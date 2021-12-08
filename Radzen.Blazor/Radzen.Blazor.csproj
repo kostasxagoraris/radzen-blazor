@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components" Condition="'$(TargetFramework)' == 'net5.0'" Version="5.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Condition="'$(TargetFramework)' == 'net5.0'" Version="5.0.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.2.12" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.2.14" />
   </ItemGroup>
 
   <ItemGroup>

@@ -47,7 +47,12 @@ namespace Radzen.Blazor
         /// <value><c>true</c> if responsive; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool Responsive { get; set; } = false;
-
+        /// <summary>
+        /// Gets or sets the pages dropdown visibility.If set to true the spans with page numbers disappear and a dropdown with a list of all pages appears.
+        /// </summary>
+        /// <value>The pages  dropdown visibility.</value>
+        [Parameter]
+        public bool ShowPagesDropDown { get; set; } = true;
         /// <summary>
         /// Gets or sets a value indicating whether search button is shown.
         /// </summary>
