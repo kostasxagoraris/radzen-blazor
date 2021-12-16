@@ -47,8 +47,6 @@ namespace Radzen
         [Parameter]
         public bool Disabled { get; set; }
 
-
-
         /// <summary>
         /// The form
         /// </summary>
