@@ -74,6 +74,7 @@
         <div class="rz-dropdown-trigger  rz-corner-right" onclick="@OpenPopupScript()">
             <span class="rz-dropdown-trigger-icon  rzi rzi-chevron-down"></span>
         </div>
+
         <div id="@PopupID" class="@(Multiple ? "rz-multiselect-panel" : "rz-dropdown-panel")"
              style="display:none;padding:0px;min-width:@PanelMinWidth;">
             <div class="rz-lookup-panel">
@@ -137,6 +138,7 @@
                 }
             </div>
         </div>
+
         @if (AllowClear && (!Multiple && HasValue || Multiple && selectedItems.Count > 0))
         {
             <i class="rz-dropdown-clear-icon rzi rzi-times" @onclick="@Clear"></i>

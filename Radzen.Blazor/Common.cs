@@ -413,6 +413,29 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Specifies the ways a <see cref="RadzenTabs" /> component renders its titles.
+    /// </summary>
+    public enum TabPosition
+    {
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the top of the component.
+        /// </summary>
+        Top,
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the bottom of the component.
+        /// </summary>
+        Bottom,
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the left side of the component.
+        /// </summary>
+        Left,
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the right side of the component.
+        /// </summary>
+        Right
+    }
+
+    /// <summary>
     /// Specifies the position at which a Radzen Blazor component renders its built-in <see cref="RadzenPager" />.
     /// </summary>
     public enum PagerPosition
@@ -755,6 +778,41 @@ namespace Radzen
     /// Specifies the display style of a <see cref="RadzenBadge" />. Affects the visual styling of RadzenBadge (background and text color).
     /// </summary>
     public enum BadgeStyle
+    {
+        /// <summary>
+        /// Primary styling. Similar to primary buttons.
+        /// </summary>
+        Primary,
+        /// <summary>
+        /// Secondary styling. Similar to secondary buttons.
+        /// </summary>
+        Secondary,
+        /// <summary>
+        /// Light styling. Similar to light buttons.
+        /// </summary>
+        Light,
+        /// <summary>
+        /// Success styling.
+        /// </summary>
+        Success,
+        /// <summary>
+        /// Danger styling.
+        /// </summary>
+        Danger,
+        /// <summary>
+        /// Warning styling.
+        /// </summary>
+        Warning,
+        /// <summary>
+        /// Informative styling.
+        /// </summary>
+        Info
+    }
+
+    /// <summary>
+    /// Specifies the display style of a <see cref="RadzenIcon" />. Affects the visual styling of RadzenIcon (Icon (text) color).
+    /// </summary>
+    public enum IconStyle
     {
         /// <summary>
         /// Primary styling. Similar to primary buttons.
