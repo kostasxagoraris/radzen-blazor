@@ -36,7 +36,8 @@ namespace RadzenBlazorDemos
 
         new Example()
         {
-            Name="DataGrid",
+            Name = "DataGrid",
+            Icon = "&#xf1be",
             Children = new [] {
                 new Example
                 {
@@ -360,7 +361,8 @@ namespace RadzenBlazorDemos
         },
         new Example
         {
-            Name="Data",
+            Name = "Data",
+            Icon = "&#xe1db",
             Children = new [] {
                 new Example()
                 {
@@ -425,31 +427,33 @@ namespace RadzenBlazorDemos
         },
         new Example()
         {
-            Name="Images",
+            Name = "Images",
+            Icon = "&#xe3d3", 
             Children = new [] {
                 new Example()
                 {
                     Name = "Gravatar",
                     Path = "gravatar",
-                    Icon = "&#xe84e"
+                    Icon = "&#xe420"
                 },
                 new Example()
                 {
                     Name = "Icon",
                     Path = "icon",
-                    Icon = "&#xe84f"
+                    Icon = "&#xe148"
                 },
                 new Example()
                 {
                     Name = "Image",
                     Path = "image",
-                    Icon = "&#xe8aa"
+                    Icon = "&#xe3c4"
                 },
             }
         },
         new Example()
         {
             Name="Layout & Navigation",
+            Icon = "&#xe8f1",
             Children = new [] {
                 new Example()
                 {
@@ -545,7 +549,8 @@ namespace RadzenBlazorDemos
         },
         new Example()
         {
-            Name="Forms",
+            Name = "Forms",
+            Icon = "&#xf1c1",
             Children = new [] {
                 new Example()
                 {
@@ -738,7 +743,8 @@ namespace RadzenBlazorDemos
         },
         new Example
         {
-            Name="Data Visualization",
+            Name = "Data Visualization",
+            Icon = "&#xe4fb",
             Children= new [] {
                 new Example
                 {
@@ -820,7 +826,8 @@ namespace RadzenBlazorDemos
         },
         new Example()
         {
-            Name="Feedback",
+            Name = "Feedback",
+            Icon = "&#xe0cb",
             Children = new [] {
                 new Example()
                 {
@@ -855,6 +862,7 @@ namespace RadzenBlazorDemos
         new Example()
         {
             Name = "Validators",
+            Icon = "&#xf1c2",
             Children = new [] {
                 new Example()
                 {
@@ -917,18 +925,18 @@ namespace RadzenBlazorDemos
             if (string.IsNullOrEmpty(term))
                 return allExamples;
 
-            bool contains(string value) => value.Contains(term, StringComparison.OrdinalIgnoreCase);
+            bool contains(string value) => value != null && value.Contains(term, StringComparison.OrdinalIgnoreCase);
 
             bool filter(Example example) => contains(example.Name) || (example.Tags != null && example.Tags.Any(contains));
 
             bool deepFilter(Example example) => filter(example) || example.Children?.Any(filter) == true;
 
-            return Examples.Where(category => category.Children?.Any(deepFilter) == true)
+            return Examples.Where(category => category.Children?.Any(deepFilter) == true || filter(category))
                            .Select(category => new Example
                            {
                                Name = category.Name,
                                Expanded = true,
-                               Children = category.Children.Where(deepFilter).Select(example => new Example
+                               Children = category.Children?.Where(deepFilter).Select(example => new Example
                                {
                                    Name = example.Name,
                                    Path = example.Path,
