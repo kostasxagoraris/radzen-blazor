@@ -197,14 +197,14 @@ namespace Radzen.Blazor
             await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize });
         }
 
-        private string GetPropertyFilterExpression(string property, string filterCaseSensitivityOperator)
+        private string GetPropertyFilterExpression(string property )
         {
             if (property == null)
             {
                 property = "it";
             }
             var p = $@"({property} == null ? """" : {property})";
-            return $"{p}{filterCaseSensitivityOperator}.{Enum.GetName(typeof(StringFilterOperator), FilterOperator)}(@0)";
+            return GetFilterExpression(p);
         }
 
         private bool IsColumnFilterPropertyTypeString(RadzenDataGridColumn<object> column)
@@ -232,13 +232,11 @@ namespace Radzen.Blazor
                     if (AllowFilteringByAllStringColumns)
                     {
                         query = query.Where(string.Join(" || ", grid.ColumnsCollection.Where(c => c.Filterable && IsColumnFilterPropertyTypeString(c))
-                            .Select(c => GetPropertyFilterExpression(c.GetFilterProperty(), filterCaseSensitivityOperator))),
-                                FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? searchText.ToLower() : searchText);
+                            .Select(c => GetPropertyFilterExpression(c.GetFilterProperty()))),searchText, CompareOptions);
                     }
                     else
                     {
-                        query = query.Where($"{GetPropertyFilterExpression(TextProperty, filterCaseSensitivityOperator)}",
-                            FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? searchText.ToLower() : searchText);
+                        query = query.Where($"{GetPropertyFilterExpression(TextProperty)}", searchText,CompareOptions);
                     }
                 }
 
