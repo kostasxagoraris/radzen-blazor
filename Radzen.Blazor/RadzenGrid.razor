@@ -670,7 +670,7 @@
     public async Task OnColumnResized(int columnIndex, double value)
     {
         var column = this.ColumnsCollection.Where(c => c.Visible).ToList()[columnIndex];
-        column.SetWidth($"{value}px");
+        column.SetWidth($"{Math.Round(value).ToString("0")}px");
         await ColumnResized.InvokeAsync(new ColumnResizedEventArgs<TItem>
         {
             Column = column,
