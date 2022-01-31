@@ -36,7 +36,9 @@ namespace RadzenBlazorDemos
 
         new Example()
         {
-            Name="DataGrid",
+            Name = "DataGrid",
+            Updated = true,
+            Icon = "&#xf1be",
             Children = new [] {
                 new Example
                 {
@@ -61,7 +63,6 @@ namespace RadzenBlazorDemos
                             Name = "OData service",
                             Path = "datagrid-odata",
                             Title = "Blazor DataGrid OData data-binding",
-                            Icon = "&#xe871",
                             Tags = new [] { "datagrid", "bind", "load", "data", "loaddata", "odata", "service", "rest" }
                         },
                         new Example
@@ -69,7 +70,6 @@ namespace RadzenBlazorDemos
                             Name = "Dynamic data",
                             Path = "datagrid-dynamic",
                             Title = "Blazor DataGrid binding dynamic data",
-                            Icon = "&#xe871",
                             Tags = new [] { "datagrid", "bind", "load", "data", "loaddata", "dynamic" }
                         },
                     }
@@ -100,6 +100,7 @@ namespace RadzenBlazorDemos
                 {
                     Name = "Columns",
                     Icon = "&#xe336",
+                    Updated = true,
                     Children = new []
                     {
                         new Example
@@ -143,6 +144,14 @@ namespace RadzenBlazorDemos
                             Path = "datagrid-frozen-columns",
                             Title = "Blazor DataGrid frozen columns",
                             Tags = new [] { "datagrid", "column", "frozen", "locked" }
+                        },
+                        new Example
+                        {
+                            Name = "Composite Columns",
+                            New = true,
+                            Path = "datagrid-composite-columns",
+                            Title = "Blazor DataGrid composite columns",
+                            Tags = new [] { "datagrid", "column", "composite", "merged", "complex" }
                         }
                     }
                 },
@@ -206,6 +215,7 @@ namespace RadzenBlazorDemos
                 },
                 new Example
                 {
+                    Updated = true,
                     Name = "Selection",
                     Icon = "&#xf0c5",
                     Children = new []
@@ -219,6 +229,7 @@ namespace RadzenBlazorDemos
                         },
                         new Example
                         {
+                            Updated = true,
                             Name = "Multiple selection",
                             Path = "datagrid-multiple-selection",
                             Title = "Blazor DataGrid Multiple selection",
@@ -258,6 +269,7 @@ namespace RadzenBlazorDemos
                 new Example
                 {
                     Name = "Paging",
+                    Updated = true,
                     Icon = "&#xe5dd",
                     Children = new []
                     {
@@ -266,6 +278,14 @@ namespace RadzenBlazorDemos
                             Name = "Pager Position",
                             Path = "datagrid-pager-position",
                             Title = "Blazor DataGrid pager position",
+                            Tags = new [] { "pager", "paging", "datagrid", "table", "dataview" }
+                        },
+                        new Example
+                        {
+                            Name = "Pager Horizontal Align",
+                            New = true,
+                            Path = "datagrid-pager-horizontal-align",
+                            Title = "Blazor DataGrid pager horizontal align",
                             Tags = new [] { "pager", "paging", "datagrid", "table", "dataview" }
                         },
                         new Example
@@ -279,12 +299,14 @@ namespace RadzenBlazorDemos
                 },
                 new Example
                 {
+                    Updated = true,
                     Name = "Grouping",
                     Icon = "&#xf1be",
                     Children = new []
                     {
                         new Example
                         {
+                            Updated = true,
                             Name = "Grouping API",
                             Path = "datagrid-grouping-api",
                             Title = "Blazor DataGrid pager position",
@@ -292,6 +314,7 @@ namespace RadzenBlazorDemos
                         },
                         new Example
                         {
+                            Updated = true,
                             Name = "Group Header Template",
                             Path = "datagrid-group-header-template",
                             Title = "Blazor DataGrid group header template",
@@ -360,11 +383,14 @@ namespace RadzenBlazorDemos
         },
         new Example
         {
-            Name="Data",
+            Name = "Data",
+            Updated = true,
+            Icon = "&#xe1db",
             Children = new [] {
                 new Example()
                 {
                     Name = "DataList",
+                    Updated = true,
                     Path = "datalist",
                     Icon = "&#xe896",
                     Tags = new [] { "dataview", "grid", "table" }
@@ -372,6 +398,7 @@ namespace RadzenBlazorDemos
                 new Example()
                 {
                     Name = "Pager",
+                    Updated = true,
                     Path = "pager",
                     Icon = "&#xe8be",
                     Tags = new [] { "pager", "paging" }
@@ -425,31 +452,33 @@ namespace RadzenBlazorDemos
         },
         new Example()
         {
-            Name="Images",
+            Name = "Images",
+            Icon = "&#xe3d3", 
             Children = new [] {
                 new Example()
                 {
                     Name = "Gravatar",
                     Path = "gravatar",
-                    Icon = "&#xe84e"
+                    Icon = "&#xe420"
                 },
                 new Example()
                 {
                     Name = "Icon",
                     Path = "icon",
-                    Icon = "&#xe84f"
+                    Icon = "&#xe148"
                 },
                 new Example()
                 {
                     Name = "Image",
                     Path = "image",
-                    Icon = "&#xe8aa"
+                    Icon = "&#xe3c4"
                 },
             }
         },
         new Example()
         {
             Name="Layout & Navigation",
+            Icon = "&#xe8f1",
             Children = new [] {
                 new Example()
                 {
@@ -545,7 +574,8 @@ namespace RadzenBlazorDemos
         },
         new Example()
         {
-            Name="Forms",
+            Name = "Forms",
+            Icon = "&#xf1c1",
             Children = new [] {
                 new Example()
                 {
@@ -738,7 +768,8 @@ namespace RadzenBlazorDemos
         },
         new Example
         {
-            Name="Data Visualization",
+            Name = "Data Visualization",
+            Icon = "&#xe4fb",
             Children= new [] {
                 new Example
                 {
@@ -820,7 +851,8 @@ namespace RadzenBlazorDemos
         },
         new Example()
         {
-            Name="Feedback",
+            Name = "Feedback",
+            Icon = "&#xe0cb",
             Children = new [] {
                 new Example()
                 {
@@ -855,6 +887,7 @@ namespace RadzenBlazorDemos
         new Example()
         {
             Name = "Validators",
+            Icon = "&#xf1c2",
             Children = new [] {
                 new Example()
                 {
@@ -917,18 +950,18 @@ namespace RadzenBlazorDemos
             if (string.IsNullOrEmpty(term))
                 return allExamples;
 
-            bool contains(string value) => value.Contains(term, StringComparison.OrdinalIgnoreCase);
+            bool contains(string value) => value != null && value.Contains(term, StringComparison.OrdinalIgnoreCase);
 
             bool filter(Example example) => contains(example.Name) || (example.Tags != null && example.Tags.Any(contains));
 
             bool deepFilter(Example example) => filter(example) || example.Children?.Any(filter) == true;
 
-            return Examples.Where(category => category.Children?.Any(deepFilter) == true)
+            return Examples.Where(category => category.Children?.Any(deepFilter) == true || filter(category))
                            .Select(category => new Example
                            {
                                Name = category.Name,
                                Expanded = true,
-                               Children = category.Children.Where(deepFilter).Select(example => new Example
+                               Children = category.Children?.Where(deepFilter).Select(example => new Example
                                {
                                    Name = example.Name,
                                    Path = example.Path,
@@ -942,8 +975,13 @@ namespace RadzenBlazorDemos
 
         public Example FindCurrent(Uri uri)
         {
-            return Examples.SelectMany(example => example.Children ?? new[] { example })
-                           .FirstOrDefault(example => example.Path == uri.AbsolutePath || $"/{example.Path}" == uri.AbsolutePath);
+            IEnumerable<Example> Flatten(IEnumerable<Example> e)
+            {
+                return e.SelectMany(c => c.Children != null ? Flatten(c.Children) : new[] { c });
+            }
+
+            return Flatten(Examples)
+                        .FirstOrDefault(example => example.Path == uri.AbsolutePath || $"/{example.Path}" == uri.AbsolutePath);
         }
 
         public string TitleFor(Example example)

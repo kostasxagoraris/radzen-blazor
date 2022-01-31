@@ -8,7 +8,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>Radzen.Blazor</PackageId>
     <Product>Radzen.Blazor</Product>
-    <Version>3.13.4</Version>
+    <Version>3.14.8</Version>
     <Copyright>Radzen Ltd.</Copyright>
     <Authors>Radzen Ltd.</Authors>
     <Description>Native Blazor UI components by Radzen Ltd.</Description>
@@ -43,34 +43,25 @@
       </EmbeddedResource>
   </ItemGroup>
 
+  <PropertyGroup>
+    <LibSassOutputStyle>expanded</LibSassOutputStyle>
+    <EnableDefaultSassItems>false</EnableDefaultSassItems>  
+  </PropertyGroup>
+
   <ItemGroup>
-    <Folder Include="wwwroot\css\" />
+    <Sass Include="$(MSBuildProjectDirectory)/themes/*.scss" Exclude="$(MSBuildProjectDirectory)/themes/_*.scss" Condition="'$(TargetFramework)' == 'net5.0'" />
   </ItemGroup>
-  
-  <UsingTask TaskName="RemoveSourceMap" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <Task>
-      <Using Namespace="System" />
-      <Using Namespace="System.IO" />
-      <Using Namespace="System.Text" />
-      <Code Type="Fragment" Language="cs">
-        <![CDATA[
-          foreach (var file in Directory.EnumerateFiles("./wwwroot/css", "*.css"))
-          {
-              File.WriteAllText(file, File.ReadAllText(file).Replace("/*# sourceMappingURL=themes" + Path.DirectorySeparatorChar + Path.GetFileName(file) + ".map */", ""), Encoding.UTF8);
-          }
-        ]]>
-      </Code>
-    </Task>
-  </UsingTask>
-  
-  <Target Name="ToolRestore" BeforeTargets="PreBuildEvent">
-    <Exec Command="dotnet tool restore" StandardOutputImportance="high" />
+
+ <Target Name="Sass" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net5.0'">
+    <PropertyGroup>
+      <_SassFileList>@(Sass->'&quot;%(FullPath)&quot;', ' ')</_SassFileList>
+      <LibSassBuilderArgs>files $(_SassFileList) --outputstyle $(LibSassOutputStyle) --level $(LibSassOutputLevel)</LibSassBuilderArgs>
+    </PropertyGroup>
+    <Message Text="$(LibSassBuilderArgs)" Importance="$(LibSassMessageLevel)" />
+    <Message Text="Converted SassFile list to argument" Importance="$(LibSassMessageLevel)" />
   </Target>
-  <Target Name="PreBuild" AfterTargets="ToolRestore">
-    <!--<Exec Command="dotnet webcompiler -r themes -o wwwroot/css -z disable -m disable -p disable" StandardOutputImportance="high" />-->
-    <ItemGroup>
-      <CssFiles Include="$(MSBuildProjectDirectory)\themes\*.css" />
-    </ItemGroup>
+
+  <Target Name="MoveCss" AfterTargets="AfterCompile" Condition="'$(TargetFramework)' == 'net5.0'" >
     <ItemGroup>
       <BootstrapFiles Include="$(MSBuildProjectDirectory)\wwwroot\css\bootstrap\**\*.*" />
     </ItemGroup>

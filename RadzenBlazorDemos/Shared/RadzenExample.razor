@@ -1,5 +1,12 @@
 @using System.IO
 @using Radzen.Blazor
+@inject ExampleService ExampleService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@ExampleService.TitleFor(example)</PageTitle>
+<HeadContent>
+    <meta name="description" content="@ExampleService.DescriptionFor(example)">
+</HeadContent>
 
 @if (Heading)
 {
@@ -8,7 +15,7 @@
 }
 @if (Documentation)
 {
-    <a class="documentation-link" target="blank" href="@DocumentationHref"><RadzenIcon Icon="help_outline" style="font-size: 1rem; margin-right: 4px;" /> Documentation</a>
+    <a class="documentation-link" target="blank" href="@DocumentationHref" title=@($"Open {Name} documentation in new tab") ><RadzenIcon Icon="help_outline" style="font-size: 1rem; margin-right: 4px;" /> @Name Docs</a>
 }
 <RadzenTabs>
     <Tabs>
@@ -47,4 +54,11 @@
 
     [Parameter]
     public IEnumerable<string> AdditionalSourceCodePages { get; set; } = Enumerable.Empty<string>();
+
+    Example example;
+
+    protected override void OnInitialized()
+    {
+        example = ExampleService.FindCurrent(NavigationManager.ToAbsoluteUri(NavigationManager.Uri));
+    }
 }

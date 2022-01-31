@@ -78,11 +78,11 @@ namespace Radzen.Blazor
                     selectedIndex = -1;
                 }
             }
-            else if (key == "Escape")
+            else if (key == "Escape" || key == "Tab")
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
             }
-            else if(key != "Tab")
+            else
             {
                 selectedIndex = -1;
 
@@ -146,10 +146,8 @@ namespace Radzen.Blazor
             {
                 if (Query != null)
                 {
-                    string filterCaseSensitivityOperator = FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? ".ToLower()" : "";
-
-                    return Query.Where($"{TextProperty}{filterCaseSensitivityOperator}.{Enum.GetName(typeof(StringFilterOperator), FilterOperator)}(@0)",
-                        FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? searchText.ToLower() : searchText);
+                   
+                    return Query.Where($"{GetFilterExpression(TextProperty)}", searchText, CompareOptions);
                 }
 
                 return null;
@@ -203,7 +201,7 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("").ToString();
+            return GetClassList("rz-autocomplete").ToString();
         }
 
         /// <inheritdoc />

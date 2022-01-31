@@ -1,11 +1,11 @@
 @using System.Text.Json
 @inject IJSRuntime JSRuntime
-<div class="console" @attributes=@Attributes>
-    <div class="console-header">
-        <div class="console-title">Console Log</div>
-        <button class="console-clear" @onclick=@OnClearClick>Clear</button>
+<RadzenCard @attributes=@Attributes>
+    <div class="console-header align-items-center">
+        <h3 class="console-title">Console log</h3>
+        <RadzenButton Click=@OnClearClick Text="Clear console" ButtonStyle="ButtonStyle.Light" />
     </div>
-    <div class="console-content" @ref=@console>
+    <div class="console-content" id="event-console">
     @foreach(var message in messages)
     {
         <div class="console-message">
@@ -14,7 +14,7 @@
         </div>
     }
     </div>
-</div>
+</RadzenCard>
 
 @code {
     class Message
@@ -22,8 +22,6 @@
         public DateTime Date { get; set; }
         public string Text { get; set; }
     }
-
-    ElementReference console;
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IDictionary<string, object> Attributes { get; set; }
@@ -33,7 +31,7 @@
     {
         if (!firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("scrollToBottom", console);
+            await JSRuntime.InvokeVoidAsync("eval", $"document.getElementById('event-console').scrollTop = document.getElementById('event-console').scrollHeight");
         }
     }
 

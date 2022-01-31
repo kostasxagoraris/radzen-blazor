@@ -22,6 +22,20 @@ namespace Radzen.Blazor
     public partial class RadzenDropDownDataGrid<TValue> : DropDownBase<TValue>
     {
         /// <summary>
+        /// Gets or sets a value indicating whether pager is visible even when not enough data for paging.
+        /// </summary>
+        /// <value><c>true</c> if pager is visible even when not enough data for paging otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool PagerAlwaysVisible { get; set; }
+
+        /// <summary>
+        /// Gets or sets the horizontal align.
+        /// </summary>
+        /// <value>The horizontal align.</value>
+        [Parameter]
+        public HorizontalAlign PagerHorizontalAlign { get; set; } = HorizontalAlign.Justify;
+
+        /// <summary>
         /// Gets or sets a value indicating whether column resizing is allowed.
         /// </summary>
         /// <value><c>true</c> if column resizing is allowed; otherwise, <c>false</c>.</value>
@@ -197,14 +211,14 @@ namespace Radzen.Blazor
             await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize });
         }
 
-        private string GetPropertyFilterExpression(string property, string filterCaseSensitivityOperator)
+        private string GetPropertyFilterExpression(string property )
         {
             if (property == null)
             {
                 property = "it";
             }
             var p = $@"({property} == null ? """" : {property})";
-            return $"{p}{filterCaseSensitivityOperator}.{Enum.GetName(typeof(StringFilterOperator), FilterOperator)}(@0)";
+            return GetFilterExpression(p);
         }
 
         private bool IsColumnFilterPropertyTypeString(RadzenDataGridColumn<object> column)
@@ -232,13 +246,12 @@ namespace Radzen.Blazor
                     if (AllowFilteringByAllStringColumns)
                     {
                         query = query.Where(string.Join(" || ", grid.ColumnsCollection.Where(c => c.Filterable && IsColumnFilterPropertyTypeString(c))
-                            .Select(c => GetPropertyFilterExpression(c.GetFilterProperty(), filterCaseSensitivityOperator))),
-                                FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? searchText.ToLower() : searchText);
+                            .Select(c => GetPropertyFilterExpression(c.GetFilterProperty()))),searchText, CompareOptions);
                     }
                     else
                     {
-                        query = query.Where($"{GetPropertyFilterExpression(TextProperty, filterCaseSensitivityOperator)}",
-                            FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? searchText.ToLower() : searchText);
+                        
+                        query = query.Where($"{GetPropertyFilterExpression(TextProperty)}", searchText,CompareOptions);
                     }
                 }
 

@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using Radzen.Blazor.Rendering;
 
 namespace Radzen.Blazor
 {
@@ -7,17 +11,27 @@ namespace Radzen.Blazor
     /// </summary>
     public partial class RadzenSidebar : RadzenComponentWithChildren
     {
+        private const string DefaultStyle = "top:51px;bottom:57px;width:250px;";
+
         /// <summary>
         /// Gets or sets the style.
         /// </summary>
         /// <value>The style.</value>
         [Parameter]
-        public override string Style { get; set; } = "top:51px;bottom:57px;width:250px;";
+        public override string Style { get; set; } = DefaultStyle;
+
+        /// <summary>
+        /// The <see cref="RadzenLayout" /> this component is nested in.
+        /// </summary>
+        [CascadingParameter]
+        public RadzenLayout Layout { get; set; }
 
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return Expanded ? "rz-sidebar rz-sidebar-expanded" : "rz-sidebar";
+            return ClassList.Create("rz-sidebar").Add("rz-sidebar-expanded", expanded == true)
+                                                 .Add("rz-sidebar-collapsed", expanded == false)
+                                                 .ToString();
         }
 
         /// <summary>
@@ -25,7 +39,7 @@ namespace Radzen.Blazor
         /// </summary>
         public void Toggle()
         {
-            Expanded = !Expanded;
+            expanded = Expanded = !Expanded;
 
             StateHasChanged();
         }
@@ -36,7 +50,19 @@ namespace Radzen.Blazor
         /// <returns>System.String.</returns>
         protected string GetStyle()
         {
-            return $"{Style}{(Expanded ? ";transform:translateX(0px);" : ";width:0px;transform:translateX(-100%);")}";
+            var style = Style;
+
+            if (Layout != null && !string.IsNullOrEmpty(style))
+            {
+                style = style.Replace(DefaultStyle, "");
+            }
+
+            if (Layout != null)
+            {
+                return style;
+            }
+
+            return $"{style}{(Expanded ? ";transform:translateX(0px);" : ";width:0px;transform:translateX(-100%);")}";
         }
 
         /// <summary>
@@ -52,5 +78,24 @@ namespace Radzen.Blazor
         /// <value>The expanded changed callback.</value>
         [Parameter]
         public EventCallback<bool> ExpandedChanged { get; set; }
+
+        bool? expanded;
+
+        /// <inheritdoc />
+        public override async Task SetParametersAsync(ParameterView parameters)
+        {
+            if (parameters.DidParameterChange(nameof(Expanded), Expanded))
+            {
+                expanded = parameters.GetValueOrDefault<bool>(nameof(Expanded));
+            }
+
+            await base.SetParametersAsync(parameters);
+        }
+
+        async Task OnChange(bool matches)
+        {
+            expanded = !matches;
+            await ExpandedChanged.InvokeAsync(!matches);
+        }
     }
 }

@@ -151,6 +151,34 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Supplies information about a <see cref="RadzenDataGrid{TItem}" /> event that is being raised.
+    /// </summary>
+    public class GroupRowRenderEventArgs
+    {
+        /// <summary>
+        /// Gets or sets the group row HTML attributes. They will apply to the table row (tr) element which RadzenDataGrid renders for every group row.
+        /// </summary>
+        public IDictionary<string, object> Attributes { get; private set; } = new Dictionary<string, object>();
+
+        /// <summary>
+        /// Gets the data item which the current row represents.
+        /// </summary>
+        public Group Group { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this group row is expanded.
+        /// </summary>
+        /// <value><c>true</c> if expanded; otherwise, <c>false</c>.</value>
+        public bool? Expanded { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this is the first time the RadzenGrid has rendered.
+        /// </summary>
+        /// <value><c>true</c> if this is the first time; otherwise, <c>false</c>.</value>
+        public bool FirstRender { get; internal set; }
+    }
+
+    /// <summary>
     /// Supplies information about a <see cref="RadzenGrid{TItem}.Render" /> event that is being raised.
     /// </summary>
     /// <typeparam name="T"></typeparam>
@@ -413,6 +441,29 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Specifies the ways a <see cref="RadzenTabs" /> component renders its titles.
+    /// </summary>
+    public enum TabPosition
+    {
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the top of the component.
+        /// </summary>
+        Top,
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the bottom of the component.
+        /// </summary>
+        Bottom,
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the left side of the component.
+        /// </summary>
+        Left,
+        /// <summary>
+        /// The RadzenTabs titles are displayed at the right side of the component.
+        /// </summary>
+        Right
+    }
+
+    /// <summary>
     /// Specifies the position at which a Radzen Blazor component renders its built-in <see cref="RadzenPager" />.
     /// </summary>
     public enum PagerPosition
@@ -642,7 +693,34 @@ namespace Radzen
         /// </summary>
         CaseInsensitive
     }
-
+    /// <summary>
+    /// Specifies the filter Diacritics sensitivity of a component.
+    /// </summary>
+    public enum FilterDiacriticsSensitivity
+    {
+        /// <summary>
+        /// Relies on the underlying provider (LINQ to Objects, Entity Framework etc.) to handle diacritics sensitivity. LINQ to Objects is diacritics sensitive. Entity Framework relies on the database collection settings.
+        /// </summary>
+        Default,
+        /// <summary>
+        /// Filters are Diacritics insensitive regardless of the underlying provider.
+        /// </summary>
+        DiacriticsInsensitive
+    }
+    /// <summary>
+    /// Specifies the filter symbol sensitivity of a component. Valid symbols are members of the following categories in UnicodeCategory: MathSymbol, CurrencySymbol, ModifierSymbol, and OtherSymbol.
+    /// </summary>
+    public enum FilterSymbolsSensitivity
+    {
+        /// <summary>
+        /// It is used only on LINQ to Objects provider where the default behaviour is symbol sensitive.   
+        /// </summary>
+        Default,
+        /// <summary>
+        /// Filters are Diacritics insensitive regardless of the underlying provider.
+        /// </summary>
+        SymbolInsensitive
+    }
     /// <summary>
     /// Specifies the logical operator between filters.
     /// </summary>
@@ -752,9 +830,67 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Specifies horizontal alignment.
+    /// </summary>
+    public enum HorizontalAlign
+    {
+        /// <summary>
+        /// Left horizontal alignment.
+        /// </summary>
+        Left,
+        /// <summary>
+        /// Right horizontal alignment.
+        /// </summary>
+        Right,
+        /// <summary>
+        /// Center horizontal alignment.
+        /// </summary>
+        Center,
+        /// <summary>
+        /// Justify horizontal alignment.
+        /// </summary>
+        Justify
+    }
+
+    /// <summary>
     /// Specifies the display style of a <see cref="RadzenBadge" />. Affects the visual styling of RadzenBadge (background and text color).
     /// </summary>
     public enum BadgeStyle
+    {
+        /// <summary>
+        /// Primary styling. Similar to primary buttons.
+        /// </summary>
+        Primary,
+        /// <summary>
+        /// Secondary styling. Similar to secondary buttons.
+        /// </summary>
+        Secondary,
+        /// <summary>
+        /// Light styling. Similar to light buttons.
+        /// </summary>
+        Light,
+        /// <summary>
+        /// Success styling.
+        /// </summary>
+        Success,
+        /// <summary>
+        /// Danger styling.
+        /// </summary>
+        Danger,
+        /// <summary>
+        /// Warning styling.
+        /// </summary>
+        Warning,
+        /// <summary>
+        /// Informative styling.
+        /// </summary>
+        Info
+    }
+
+    /// <summary>
+    /// Specifies the display style of a <see cref="RadzenIcon" />. Affects the visual styling of RadzenIcon (Icon (text) color).
+    /// </summary>
+    public enum IconStyle
     {
         /// <summary>
         /// Primary styling. Similar to primary buttons.
@@ -902,6 +1038,13 @@ namespace Radzen
         /// </summary>
         /// <value>The property.</value>
         public string Property { get; set; }
+
+        /// <summary>
+        /// Gets or sets the sort order.
+        /// </summary>
+        /// <value>The sort order.</value>
+        public SortOrder? SortOrder { get; set; }
+
         /// <summary>
         /// Gets or sets the title displayed in the group.
         /// </summary>

@@ -23,6 +23,75 @@ namespace Radzen.Blazor
         public RadzenDataGrid<TItem> Grid { get; set; }
 
         /// <summary>
+        /// Gets or sets the columns.
+        /// </summary>
+        /// <value>The columns.</value>
+        [Parameter]
+        public RenderFragment Columns { get; set; }
+
+        /// <summary>
+        /// Gets or sets the parent column.
+        /// </summary>
+        /// <value>The parent column.</value>
+        [CascadingParameter]
+        public RadzenDataGridColumn<TItem> Parent { get; set; }
+
+        internal void RemoveColumn(RadzenDataGridColumn<TItem> column)
+        {
+            if (Grid.childColumns.Contains(column))
+            {
+                Grid.childColumns.Remove(column);
+                if (!Grid.disposed)
+                {
+                    try { InvokeAsync(StateHasChanged); } catch { }
+                }
+            }
+        }
+
+        internal int GetLevel()
+        {
+            int i = 0;
+            var p = Parent;
+            while (p != null)
+            {
+                p = p.Parent;
+                i++;
+            }
+
+            return i;
+        }
+
+        internal int GetColSpan(bool isDataCell = false)
+        {
+            if (!Grid.AllowCompositeDataCells && isDataCell) 
+                return 1;
+
+            var visibleChildColumns = Grid.childColumns.Where(c => c.Visible);
+            var directChildColumns = visibleChildColumns.Where(c => c.Parent == this);
+
+            if (Parent == null)
+            {
+                return Columns == null ? 1 : visibleChildColumns.Count() - directChildColumns.Count() + directChildColumns.Where(c => c.Columns == null).Count();
+            }
+
+            return Columns == null ? 1 : directChildColumns.Count();
+        }
+
+        internal int GetRowSpan(bool isDataCell = false)
+        {
+            if (!Grid.AllowCompositeDataCells && isDataCell) 
+                return 1;
+
+            if (Columns == null && Parent != null)
+            {
+                var level = this.GetLevel();
+                return level == Grid.deepestChildColumnLevel ? 1 : level + 1;
+            }
+
+            return Columns == null && Parent == null ? Grid.deepestChildColumnLevel + 1 : 1;
+        }
+
+        /// <summary>
         /// Called when initialized.
         /// </summary>
         protected override void OnInitialized()
@@ -323,10 +392,10 @@ namespace Radzen.Blazor
                 style.Add($"text-align:{Enum.GetName(typeof(TextAlign), TextAlign).ToLower()};");
             }
 
-            if (forCell && Frozen)
+            if (forCell && IsFrozen())
             {
                 var left = Grid.ColumnsCollection
-                    .TakeWhile((c, i) => Grid.ColumnsCollection.IndexOf(this) > i && c.Frozen)
+                    .TakeWhile((c, i) => Grid.ColumnsCollection.IndexOf(this) > i && c.IsFrozen())
                     .Sum(c => {
                         var w = !string.IsNullOrEmpty(c.GetWidth()) ? c.GetWidth() : Grid.ColumnWidth;
                         var cw = 200;
@@ -340,12 +409,17 @@ namespace Radzen.Blazor
                 style.Add($"left:{left}px");
             }
 
-            if ((isHeaderOrFooterCell && Frozen || isHeaderOrFooterCell && !Frozen || !isHeaderOrFooterCell && Frozen) && Grid.ColumnsCollection.Where(c => c.Visible && c.Frozen).Any())
+            if ((isHeaderOrFooterCell && IsFrozen() || isHeaderOrFooterCell && !IsFrozen() || !isHeaderOrFooterCell && IsFrozen()) && Grid.ColumnsCollection.Where(c => c.Visible && c.IsFrozen()).Any())
             {
-                style.Add($"z-index:{(isHeaderOrFooterCell && Frozen ? 2 : 1)}");
+                style.Add($"z-index:{(isHeaderOrFooterCell && IsFrozen() ? 1 : 0)}");
             }
 
             return string.Join(";", style);
+        }
+
+        internal bool IsFrozen()
+        {
+            return Frozen && Parent == null && Columns == null;
         }
 
         /// <summary>
@@ -456,10 +530,24 @@ namespace Radzen.Blazor
             if (parameters.DidParameterChange(nameof(FilterValue), FilterValue))
             {
                 filterValue = parameters.GetValueOrDefault<object>(nameof(FilterValue));
+                
                 if (FilterTemplate != null)
                 {
                     FilterValue = filterValue;
-                    await Grid.Reload();
+                    if (Grid.IsVirtualizationAllowed())
+                    {
+#if NET5
+                        if (Grid.virtualize != null)
+                        {
+                            await Grid.virtualize.RefreshDataAsync();
+                        }
+#endif
+                    }
+                    else
+                    {
+                        await Grid.Reload();
+                    }
+                    
                     return;
                 }
             }

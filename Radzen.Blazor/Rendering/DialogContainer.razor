@@ -1,5 +1,7 @@
 @using Microsoft.JSInterop
+@using System.Reflection;
 @inject IJSRuntime JSRuntime
+@implements IDisposable
 <div class="rz-dialog-wrapper">
     <div @ref="dialog" class="rz-dialog" role="dialog" aria-labelledby="rz-dialog-0-label" style=@Style>
         @if (Dialog.Options.ShowTitle)
@@ -8,7 +10,7 @@
             {
                 <Draggable Drag="@OnDrag" DragStart="@OnDragStart">
                     <div class="rz-dialog-titlebar">
-                        <span class="rz-dialog-title" id="rz-dialog-0-label">@Dialog.Title</span>
+                        <span class="rz-dialog-title" id="rz-dialog-0-label">@((MarkupString)Dialog.Title)</span>
                         @if (Dialog.Options.ShowClose)
                         {
                             <a href="javascript:void(0)" @onclick=@Close role="button" class="rz-dialog-titlebar-icon rz-dialog-titlebar-close">
@@ -21,7 +23,7 @@
             else
             {
                 <div class="rz-dialog-titlebar">
-                    <span class="rz-dialog-title" id="rz-dialog-0-label">@Dialog.Title</span>
+                    <span class="rz-dialog-title" id="rz-dialog-0-label">@((MarkupString)Dialog.Title)</span>
                     @if (Dialog.Options.ShowClose)
                     {
                         <a href="javascript:void(0)" @onclick=@Close role="button" class="rz-dialog-titlebar-icon rz-dialog-titlebar-close">
@@ -103,8 +105,12 @@
                 }
             }
 
+            builder.AddComponentReferenceCapture(2, component => reference = component);
+
             builder.CloseComponent();
         });
+
+    object reference;
 
     void Close()
     {
@@ -120,12 +126,30 @@
             var heightStyle = !string.IsNullOrEmpty(height) ? height : string.IsNullOrEmpty(Dialog.Options.Height) ? "" : $"height: {Dialog.Options.Height};";
             var topStyle = !string.IsNullOrEmpty(top) ? top : string.IsNullOrEmpty(Dialog.Options.Top) ? "" : $"top: {Dialog.Options.Top};";
             var leftStyle = !string.IsNullOrEmpty(left) ? left :string.IsNullOrEmpty(Dialog.Options.Left) ? "" : $"left: {Dialog.Options.Left};";
+            var bottomStyle = string.IsNullOrEmpty(Dialog.Options.Bottom) ? "" : $"bottom: {Dialog.Options.Bottom};";
             var resizeStyle = Dialog.Options.Resizable ? "resize:both;" : "";
 
-            return $"{baseStyle}{widthStyle}{heightStyle}{topStyle}{leftStyle}{resizeStyle}{Dialog.Options.Style}";
+            return $"{baseStyle}{widthStyle}{heightStyle}{topStyle}{leftStyle}{bottomStyle}{resizeStyle}{Dialog.Options.Style}";
         }
     }
 
     [Inject] 
     DialogService Service { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Service.OnRefresh += OnRefresh;
+    }
+
+    void OnRefresh()
+    {
+        var stateHasChanged = reference?.GetType().GetMethod("StateHasChanged", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        InvokeAsync(() => stateHasChanged?.Invoke(reference, null)).ConfigureAwait(false);
+    }
+
+    public void Dispose()
+    {
+        Service.OnRefresh -= OnRefresh;
+    }
 }
