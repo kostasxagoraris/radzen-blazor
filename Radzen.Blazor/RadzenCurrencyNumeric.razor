@@ -1,0 +1,9 @@
+﻿@using Radzen
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Forms
+@typeparam TValue
+@inherits FormComponent<TValue>
+
+
+    <RadzenNumeric    Min="@Min" Max="@Max" Step="@Step" @bind-Value=@Value 
+    Format="@Format" ShowUpDown="@ShowUpDown" AutoComplete=@AutoComplete ReadOnly=@ReadOnly  Culture=@CurrencyCulture/>

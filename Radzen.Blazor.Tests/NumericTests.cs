@@ -357,12 +357,10 @@ namespace Radzen.Blazor.Tests
 
             double valueToTest = 100.235;
             string currencyToTest = "EUR";
-            string format = "c";
-
-            var component = ctx.RenderComponent<RadzenNumeric<double>>(
-                ComponentParameter.CreateParameter(nameof(RadzenNumeric<double>.Format), format),
-                ComponentParameter.CreateParameter(nameof(RadzenNumeric<double>.Value), valueToTest),
-                ComponentParameter.CreateParameter(nameof(RadzenNumeric<string>.ISOCurrencySymbol), currencyToTest)
+            
+            var component = ctx.RenderComponent<RadzenCurrencyNumeric<decimal>>(
+                ComponentParameter.CreateParameter(nameof(RadzenCurrencyNumeric<decimal>.Value), valueToTest),
+                ComponentParameter.CreateParameter(nameof(RadzenCurrencyNumeric<decimal>.ISOCurrencySymbol), currencyToTest)
             );
 
             component.Render();
