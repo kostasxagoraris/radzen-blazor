@@ -74,7 +74,17 @@ namespace Radzen.Blazor
         {
             JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
         }
-
+        /// <summary>
+        /// Opens this instance popup.
+        /// </summary>
+        public void TogglePopup()
+        {
+            if (Disabled)
+            {
+                return ;
+            }
+            JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID);
+        }
         /// <summary>
         /// Gets the popup identifier.
         /// </summary>
