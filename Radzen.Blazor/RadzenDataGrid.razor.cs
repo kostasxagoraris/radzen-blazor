@@ -275,7 +275,33 @@ namespace Radzen.Blazor
         {
             column.SetFilterOperator(filterOperator);
         }
+        public Dictionary<string, string> GetColumnWidths()
+        {
+            Dictionary<string, string> dic = new Dictionary<string, string>();
+            foreach (RadzenDataGridColumn<TItem> column in columns)
+            {
+                if (!string.IsNullOrWhiteSpace(column.Property))
+                dic.Add(column.Property,column.Width);
+            }
+            return dic;
+        }
+        public void SetColumnWidths(Dictionary<string, string> columnWidths)
+        {
+            foreach (RadzenDataGridColumn<TItem> column in columns)
+            {
+                if (!string.IsNullOrWhiteSpace(column.Property)) {
+                    if (columnWidths.ContainsKey(column.Property))
 
+                    {
+                        column.SetWidth(columnWidths[column.Property]);
+                    }
+                }
+
+              
+            }
+            
+            
+        }
         private readonly List<RadzenDataGridColumn<TItem>> columns = new List<RadzenDataGridColumn<TItem>>();
         internal readonly List<RadzenDataGridColumn<TItem>> childColumns = new List<RadzenDataGridColumn<TItem>>();
 
