@@ -1885,10 +1885,37 @@ namespace Radzen
         {
             if (parameters.TryGetValue(parameterName, out T value))
             {
-                return !EqualityComparer<T>.Default.Equals(value, parameterValue);
+                if (value is IEnumerable  en1 && parameterValue is IEnumerable en2)
+                {
+                    return en1.HasEnumerableChanged( en2);
+                }
+                else
+                {
+                    return !EqualityComparer<T>.Default.Equals(value, parameterValue);
+                }
             }
 
             return false;
+        }
+
+        public static bool HasEnumerableChanged(this IEnumerable en1, IEnumerable en2)
+        {
+            if (en1 == null && en2 == null) { 
+
+                return false;
+            }
+        if (en1 == null && en2 != null || en1 != null && en2 == null)
+            {
+            return true;
+            }
+            var listOne = en1.ToDynamicList();
+            var listTwo = en2.ToDynamicList();
+            Console.WriteLine("listTwo" + listTwo.Count());
+            Console.WriteLine("listOne" + listOne.Count());
+            if (listOne.Count > listTwo.Count)
+                return listOne.Except(listTwo).Any();
+            else
+                return listTwo.Except(listOne).Any();
         }
     }
 

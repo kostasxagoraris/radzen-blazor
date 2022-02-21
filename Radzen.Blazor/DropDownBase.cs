@@ -275,7 +275,8 @@ namespace Radzen
             }
             set
             {
-                if (_data != value)
+               
+                if (value.HasEnumerableChanged(_data))
                 {
                     _data = value;
                     _view = null;
