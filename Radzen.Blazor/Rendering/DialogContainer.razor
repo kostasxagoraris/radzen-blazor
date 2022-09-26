@@ -64,7 +64,7 @@
 
     double clientX;
     double clientY;
-
+    Guid? Id;
     async Task OnDragStart(DraggableEventArgs args)
     {
         clientX = args.ClientX;
@@ -104,17 +104,31 @@
                     builder.AddAttribute(1, parameter.Key, parameter.Value);
                 }
             }
-
+            if (typeof(IDialogEvents).IsAssignableFrom(Dialog.Type))
+            {
+                var dialogSaved= EventCallback.Factory.Create<Guid>(this, OnDialogSaved);
+                builder.AddAttribute(1, "OnSaved", dialogSaved);
+                var dialogClosed = EventCallback.Factory.Create<Guid>(this, OnDialogClosed);
+                builder.AddAttribute(1, "OnClosed", dialogClosed);
+            }
             builder.AddComponentReferenceCapture(2, component => reference = component);
 
             builder.CloseComponent();
         });
 
     object reference;
-
+    public void OnDialogClosed(Guid id)
+    {
+        Id = id;
+        Service.Close(id);
+    }
+    public void OnDialogSaved(Guid id)
+    {
+        Id = id;
+      }
     void Close()
     {
-        Service.Close();
+        Service.Close(Id);
     }
 
     string Style

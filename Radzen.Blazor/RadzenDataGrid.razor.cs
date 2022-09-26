@@ -1042,7 +1042,7 @@ namespace Radzen.Blazor
         public EventCallback<IList<TItem>> ValueChanged { get; set; }
 
         /// <summary>
-        /// Gets or sets the row select callback.
+        /// Gets or sets the row select callback.onloaddata
         /// </summary>
         /// <value>The row select callback.</value>
         [Parameter]

@@ -1910,8 +1910,6 @@ namespace Radzen
             }
             var listOne = en1.ToDynamicList();
             var listTwo = en2.ToDynamicList();
-            Console.WriteLine("listTwo" + listTwo.Count());
-            Console.WriteLine("listOne" + listOne.Count());
             if (listOne.Count > listTwo.Count)
                 return listOne.Except(listTwo).Any();
             else
