@@ -275,7 +275,10 @@ namespace Radzen
             }
             set
             {
-                if (_data != value)
+            //    Console.WriteLine(Environment.StackTrace);
+
+                Console.WriteLine($"Name {Name} {_data?.ToDynamicList()?.Count}");
+                if (value.HasEnumerableChanged(_data))
                 {
                     _data = value;
                     _view = null;
