@@ -72,16 +72,16 @@
 
         shouldRender = false;
         var rect = await JSRuntime.InvokeAsync<Rect>("Radzen.clientRect", dialog);
-        height = $"height: {rect.Height}px;";
-        width = $"width: {rect.Width}px;";
+        height = $"height: {(int)rect.Height}px;";
+        width = $"width: {(int)rect.Width}px;";
 
         shouldRender = true;
     }
 
     void OnDrag(DraggableEventArgs args)
     {
-        left = $"left: {args.Rect.Left + (args.ClientX - clientX)}px;";
-        top = $"top: {args.Rect.Top + (args.ClientY - clientY)}px;";
+        left = $"left: {(int)args.Rect.Left + ((int)args.ClientX - (int)clientX)}px;";
+        top = $"top: {(int)args.Rect.Top + ((int)args.ClientY - (int)clientY)}px;";
     }
 
     bool shouldRender = true;
@@ -146,7 +146,7 @@
             var leftStyle = !string.IsNullOrEmpty(left) ? left :string.IsNullOrEmpty(Dialog.Options.Left) ? "" : $"left: {Dialog.Options.Left};";
             var bottomStyle = string.IsNullOrEmpty(Dialog.Options.Bottom) ? "" : $"bottom: {Dialog.Options.Bottom};";
             var resizeStyle = Dialog.Options.Resizable ? "resize:both;" : "";
-
+            Console.WriteLine($"Style: {baseStyle}{widthStyle}{heightStyle}{topStyle}{leftStyle}{bottomStyle}{resizeStyle}{Dialog.Options.Style}");
             return $"{baseStyle}{widthStyle}{heightStyle}{topStyle}{leftStyle}{bottomStyle}{resizeStyle}{Dialog.Options.Style}";
         }
     }
