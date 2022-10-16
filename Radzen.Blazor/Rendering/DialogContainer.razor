@@ -106,9 +106,9 @@
             }
             if (typeof(IDialogEvents).IsAssignableFrom(Dialog.Type))
             {
-                var dialogSaved= EventCallback.Factory.Create<Guid>(this, OnDialogSaved);
+                var dialogSaved= EventCallback.Factory.Create<(Object sender,Guid Id)>(this, OnDialogSaved);
                 builder.AddAttribute(1, "OnSaved", dialogSaved);
-                var dialogClosed = EventCallback.Factory.Create<Guid>(this, OnDialogClosed);
+                var dialogClosed = EventCallback.Factory.Create<(Object sender,Guid Id)>(this, OnDialogClosed);
                 builder.AddAttribute(1, "OnClosed", dialogClosed);
             }
             builder.AddComponentReferenceCapture(2, component => reference = component);
@@ -117,14 +117,18 @@
         });
 
     object reference;
-    public void OnDialogClosed(Guid id)
+    public void OnDialogClosed((Object sender,Guid Id) args)
     {
-        Id = id;
-        Service.Close(id);
+        Id = args.Id;
+        if (args.sender is IDisposable disp)
+        {
+            disp.Dispose();
+        }
+        Service.Close(Id);
     }
-    public void OnDialogSaved(Guid id)
+    public void OnDialogSaved((Object sender,Guid Id) args)
     {
-        Id = id;
+        Id = args.Id;
       }
     void Close()
     {

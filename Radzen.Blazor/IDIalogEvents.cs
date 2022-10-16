@@ -5,9 +5,10 @@ using System.Text;
 
 namespace Radzen.Blazor
 {
-    public interface IDialogEvents
+    public interface IDialogEvents:IDisposable
     {
-          EventCallback<Guid> OnSaved { get; set; }
-          EventCallback<Guid> OnClosed { get; set; }
+          EventCallback<(Object sender,Guid Id)> OnSaved { get; set; }
+          EventCallback<(Object sender, Guid Id)> OnClosed { get; set; }
     }
+ 
 }
