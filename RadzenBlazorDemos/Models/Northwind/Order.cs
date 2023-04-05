@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+using Olympus.Cronus.DomainModel.Interfaces;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RadzenBlazorDemos.Models.Northwind
