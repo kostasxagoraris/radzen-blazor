@@ -1,5 +1,5 @@
-using Olympus.Cronus.DomainModel.Interfaces;
 using Microsoft.AspNetCore.Components;
+using System.ComponentModel.DataAnnotations;
 
 namespace Radzen.Blazor
 {
