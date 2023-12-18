@@ -277,7 +277,7 @@ namespace Radzen
             {
             //    Console.WriteLine(Environment.StackTrace);
 
-                Console.WriteLine($"Name {Name} {_data?.ToDynamicList()?.Count}");
+                //Console.WriteLine($"Name {Name} {_data?.ToDynamicList()?.Count}");
                 if (value.HasEnumerableChanged(_data))
                 {
                     _data = value;
