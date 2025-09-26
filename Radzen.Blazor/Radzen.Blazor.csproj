@@ -33,8 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
+      <None Include="compilerconfig.json" />
       <None Include="LICENSE.txt" Pack="true" PackagePath="" />
       <None Include="icon.png" Pack="true" PackagePath="" />
+      <None Include="wwwroot\css\default-base.min.css" />
   </ItemGroup>
 
   <ItemGroup>
@@ -52,16 +54,21 @@
     <Sass Include="$(MSBuildProjectDirectory)/themes/*.scss" Exclude="$(MSBuildProjectDirectory)/themes/_*.scss" Condition="'$(TargetFramework)' == 'net5.0'" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="compilerconfig.json" />
+    <Content Remove="wwwroot\default-base.min.css" />
+  </ItemGroup>
+
  <Target Name="Sass" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net5.0'">
     <PropertyGroup>
-      <_SassFileList>@(Sass->'&quot;%(FullPath)&quot;', ' ')</_SassFileList>
+      <_SassFileList>@(Sass->'"%(FullPath)"', ' ')</_SassFileList>
       <LibSassBuilderArgs>files $(_SassFileList) --outputstyle $(LibSassOutputStyle) --level $(LibSassOutputLevel)</LibSassBuilderArgs>
     </PropertyGroup>
     <Message Text="$(LibSassBuilderArgs)" Importance="$(LibSassMessageLevel)" />
     <Message Text="Converted SassFile list to argument" Importance="$(LibSassMessageLevel)" />
   </Target>
 
-  <Target Name="MoveCss" AfterTargets="AfterCompile" Condition="'$(TargetFramework)' == 'net5.0'" >
+  <Target Name="MoveCss" AfterTargets="AfterCompile" Condition="'$(TargetFramework)' == 'net5.0'">
     <ItemGroup>
       <BootstrapFiles Include="$(MSBuildProjectDirectory)\wwwroot\css\bootstrap\**\*.*" />
     </ItemGroup>
