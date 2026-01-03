@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.JSInterop;
+using Radzen.Blazor;
 
 namespace Radzen
 {
@@ -706,21 +707,23 @@ namespace Radzen
                 {
                     if (!string.IsNullOrEmpty(searchText))
                     {
-                     
-                        var query = new List<string>();
-
                         if (!string.IsNullOrEmpty(TextProperty))
                         {
-                            query.Add(TextProperty);
+                            _view = Query.Where($"{GetFilterExpression(TextProperty)}", searchText, CompareOptions);
                         }
-
-                        if (typeof(EnumerableQuery).IsAssignableFrom(Query.GetType()))
+                        else if (typeof(EnumerableQuery).IsAssignableFrom(Query.GetType()))
                         {
-                            query.Add("ToString()");
+                            // Use in-memory filtering to avoid .NET 10 dynamic access restrictions
+                            var items = Query.Cast<object>().ToList();
+                            _view = items.Where(item =>
+                                item != null &&
+                                StringExtensions.Contains(item.ToString(), searchText, CompareOptions))
+                                .AsQueryable();
                         }
-
-                        _view = Query.Where($"{GetFilterExpression(String.Join(".", query))}", searchText, CompareOptions);
-
+                        else
+                        {
+                            _view = Query.Where($"{GetFilterExpression(string.Empty)}", searchText, CompareOptions);
+                        }
                     }
                     else
                     {
