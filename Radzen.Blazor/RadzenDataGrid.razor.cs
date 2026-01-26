@@ -1175,7 +1175,7 @@ namespace Radzen.Blazor
 
             if (Data != null && !LoadData.HasDelegate)
             {
-                Count = 1;
+                Count = Data.Count();
             }
 #if NET5
             if (AllowVirtualization)
