@@ -1,45 +1,12 @@
 ﻿@page "/export-excel-csv"
 
-@using RadzenBlazorDemos.Data
-@using RadzenBlazorDemos.Models.Northwind
-@using Microsoft.EntityFrameworkCore
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Export to Excel and CSV
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    This page demonstrates how to export a Radzen Blazor DataGrid to Excel and CSV.
+</RadzenText>
 
-@inject NorthwindContext dbContext
-@inject NorthwindService service
-
-<h1>Export to Excel and CSV</h1>
-
-<p>This page demonstrates how to export a Radzen Blazor DataGrid to Excel and CSV.</p>
-
-<RadzenExample Name="DataGrid" Source="ExportToExcelCsv" Heading="false">
-    <RadzenButton Text="Export XLS" Icon="grid_on" Click="@(args => Export("excel"))" Class="mb-4 mr-2" /><RadzenButton Text="Export CSV" Icon="wrap_text" Click="@(args => Export("csv"))" Class="mb-4" />
-    <RadzenDataGrid @ref="grid" AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@orderDetails" TItem="OrderDetail">
-        <Columns>
-            <RadzenDataGridColumn TItem="OrderDetail" Property="OrderID" Title="OrderID" />
-            <RadzenDataGridColumn TItem="OrderDetail" Property="ProductID" Title="ProductID" />
-            <RadzenDataGridColumn TItem="OrderDetail" Property="UnitPrice" Title="Unit Price">
-                <Template Context="detail">
-                    @String.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", detail.UnitPrice)
-                </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="OrderDetail" Property="Quantity" Title="Quantity" />
-            <RadzenDataGridColumn TItem="OrderDetail" Property="Discount" Title="Discount" FormatString="{0:P}" />
-        </Columns>
-    </RadzenDataGrid>
+<RadzenExample ComponentName="DataGrid" Example="ExportToExcelCsv" AdditionalSourceCodePages="@(new [] {"/demos/Services/NorthwindService.cs", "/demos/Controllers/ExportNorthwindController.cs", "/demos/Controllers/ExportController.cs"})">
+    <ExportToExcelCsv />
 </RadzenExample>
-
-@code {
-    RadzenDataGrid<OrderDetail> grid;
-
-    IEnumerable<OrderDetail> orderDetails;
-
-    protected override void OnInitialized()
-    {
-        orderDetails = dbContext.OrderDetails.ToList();
-    }
-
-    public void Export(string type)
-    {
-        service.Export("OrderDetails", type, new Query() { OrderBy = grid.Query.OrderBy, Filter = grid.Query.Filter });
-    }
-}

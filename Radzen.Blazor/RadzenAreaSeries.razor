@@ -8,43 +8,35 @@
 @code {
   public override RenderFragment Render(ScaleBase categoryScale, ScaleBase valueScale)
   {
+    var chart = RequireChart();
     var category = ComposeCategory(categoryScale);
 
     var value = ComposeValue(valueScale);
 
-    IPathGenerator pathGenerator;
-      
-    if (Smooth)
-    {
-      pathGenerator = new SplineGenerator();
-    }
-    else
-    {
-      pathGenerator = new LineGenerator();
-    }
+    var pathGenerator = GetPathGenerator();
 
-    var data = Items.Select(item => 
+    var data = Items.Select(item =>
     {
       var x = category(item);
       var y = value(item);
 
-      return new Point { X = x, Y = y };
+      return new Point<TItem> { X = x, Y = y, Data = item };
     });
 
-    var ticks = Chart.CategoryScale.Ticks(Chart.CategoryAxis.TickDistance);
-    var index = Chart.Series.IndexOf(this);
+    var ticks = chart.CategoryScale.Ticks(chart.CategoryAxis.TickDistance);
+    var index = chart.Series.IndexOf(this);
     var className = $"rz-area-series rz-series-{index}";
 
-    return 
+    return
     @<g class="@className">
       @if (Items.Any())
       {
         var x1 = category(Items.First()).ToInvariantString();
         var x2 = category(Items.Last()).ToInvariantString();
-        var valueTicks = Chart.ValueScale.Ticks(Chart.ValueAxis.TickDistance);
+        var valueTicks = chart.ValueScale.Ticks(chart.ValueAxis.TickDistance);
         var start = Math.Max(0, valueTicks.Start);
-        var y = Chart.ValueScale.Scale(start).ToInvariantString();
-        var style = $"clip-path: url(#{Chart.ClipPath}); -webkit-clip-path: url(#{Chart.ClipPath});";
+        var y = chart.ValueScale.Scale(start).ToInvariantString();
+        var style = $"clip-path: url(#{chart.ClipPath}); -webkit-clip-path: url(#{chart.ClipPath});";
         var path = pathGenerator.Path(data);
         var area = $"M {x1} {y} {path} L {x2} {y}";
         var line = $"M {path}";
@@ -52,7 +44,7 @@
         <path @key="@area" style="@style" d="@area" fill="@Fill" stroke="none"></path>
         <Path @key="@line" D="@line" Stroke="@Stroke" StrokeWidth="@StrokeWidth" LineType="@LineType" Style="@style" Fill="none" />
       }
-      <Markers Data="@Items" Category="@category" Value="@value" MarkerType="@MarkerType" Stroke="@Markers.Stroke" Fill="@(Markers.Fill ?? Stroke)" StrokeWidth="@Markers.StrokeWidth" Size="@Markers.Size" />
+      <Markers Visible="@Markers.Visible" Series="@this" Data="@data" MarkerType="@MarkerType" Stroke="@Markers.Stroke" Fill="@(Markers.Fill ?? Stroke)" StrokeWidth="@Markers.StrokeWidth" Size="@Markers.Size" />
     </g>;
   }
 }

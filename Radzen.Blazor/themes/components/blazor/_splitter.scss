@@ -1,10 +1,11 @@
-$splitter-bar-color: #6A6A6A !default;
-$splitter-bar-color-active: #fff !default;
-$splitter-bar-background-color: #E6ECEF !default;
-$splitter-bar-background-color-active: #479CC8 !default;
+$splitter-bar-color: var(--rz-text-secondary-color) !default;
+$splitter-bar-color-active: var(--rz-on-secondary) !default;
+$splitter-bar-background-color: var(--rz-base-200) !default;
+$splitter-bar-background-color-active: var(--rz-secondary) !default;
 $splitter-bar-hover-opacity: 1 !default;
 
 .rz-splitter {
+    box-sizing: border-box;
     display: flex;
     flex-wrap: nowrap;
     width: 100%;
@@ -17,8 +18,8 @@ $splitter-bar-hover-opacity: 1 !default;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: $splitter-bar-color;
-        background-color: $splitter-bar-background-color;
+        color: var(--rz-splitter-bar-color);
+        background-color: var(--rz-splitter-bar-background-color);
         opacity: 0.4;
         user-select: none;
 
@@ -26,7 +27,7 @@ $splitter-bar-hover-opacity: 1 !default;
             display: table;
 
             &:before {
-                font-family: 'Material Icons';
+                font-family: var(--rz-icon-font-family);
                 line-height: normal;
                 display: table-cell;
             }
@@ -37,7 +38,7 @@ $splitter-bar-hover-opacity: 1 !default;
         }
 
         > .rz-resize {
-            border: 1px solid $splitter-bar-color;
+            border: 1px solid var(--rz-splitter-bar-color);
             border-radius: 1px;
         }
 
@@ -45,7 +46,7 @@ $splitter-bar-hover-opacity: 1 !default;
             display: table;
 
             &:before {
-                font-family: 'Material Icons';
+                font-family: var(--rz-icon-font-family);
                 line-height: normal;
                 display: table-cell;
             }
@@ -56,20 +57,20 @@ $splitter-bar-hover-opacity: 1 !default;
         }
 
         &-resizable:hover {
-            background-color: $splitter-bar-background-color;
-            opacity: $splitter-bar-hover-opacity;
+            background-color: var(--rz-splitter-bar-background-color);
+            opacity: var(--rz-splitter-bar-hover-opacity);
         }
 
         &-resizable:active {
-            background-color: $splitter-bar-background-color-active;
-            opacity: $splitter-bar-hover-opacity;
+            background-color: var(--rz-splitter-bar-background-color-active);
+            opacity: var(--rz-splitter-bar-hover-opacity);
 
             > .rz-expand, > .rz-resize, > .rz-collapse {
-                color: $splitter-bar-color-active;
+                color: var(--rz-splitter-bar-color-active);
             }
 
             > .rz-resize {
-                border: 1px solid $splitter-bar-color-active;
+                border: 1px solid var(--rz-splitter-bar-color-active);
             }
         }
 
@@ -145,4 +146,13 @@ $splitter-bar-hover-opacity: 1 !default;
             flex: 1 1 auto;
         }
     }
+}
+
+.rz-splitter-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
 }

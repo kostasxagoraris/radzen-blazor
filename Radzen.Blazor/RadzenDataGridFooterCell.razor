@@ -1,7 +1,7 @@
 @typeparam TItem
 @if (RowIndex == Column.GetLevel())
 {
-<td rowspan="@(Column.GetRowSpan())" colspan="@(Column.GetColSpan())" @attributes="@Attributes" class="@CssClass" scope="col" style="@Column.GetStyle(true, true)">
+<td rowspan="@(Column.GetRowSpan())" colspan="@(Column.GetColSpan())" @attributes="@Attributes" class="@CssClass" scope="col" style="@GetStyle()">
     <span class="rz-column-footer">
         @if (Column.FooterTemplate != null)
         {
@@ -12,26 +12,51 @@
 }
 else
 {
-    @foreach(var column in Grid.childColumns.Where(c => c.Visible && c.Parent == Column))
+    @foreach(var column in Grid.childColumns.Where(c => c.GetVisible() && c.Parent == Column))
     {
-        <RadzenDataGridFooterCell RowIndex="@RowIndex" Grid="@Grid" Column="@column" 
-                                CssClass="@($"{Column.FooterCssClass} {Grid.getFrozenColumnClass(column, Grid.ColumnsCollection.Where(c => c.Visible).ToList())} {(column.Columns != null || column.Parent != null ? "rz-composite-cell" : "")}")" 
+        <RadzenDataGridFooterCell RowIndex="@RowIndex" Grid="@Grid" Column="@column" Style="@column.GetStyle(true, true)"
+                                CssClass="@($"{Column.FooterCssClass} {Grid.getFrozenColumnClass(column, Grid.ColumnsCollection.Where(c => c.GetVisible()).ToList())} {Grid.getCompositeCellCSSClass(column)}")" 
                                 Attributes="@(Attributes)" />
     }
 }
 @code {
     [Parameter(CaptureUnmatchedValues = true)]
-    public IReadOnlyDictionary<string, object> Attributes { get; set; }
+    public IReadOnlyDictionary<string, object> Attributes { get; set; } = new Dictionary<string, object>();
 
     [Parameter]
-    public RadzenDataGridColumn<TItem> Column { get; set; }
+    public RadzenDataGridColumn<TItem> Column { get; set; } = default!;
 
     [Parameter]
     public int RowIndex { get; set; }
 
     [Parameter]
-    public RadzenDataGrid<TItem> Grid { get; set; }
+    public RadzenDataGrid<TItem> Grid { get; set; } = default!;
 
     [Parameter]
-    public string CssClass { get; set; }
+    public string CssClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Style { get; set; } = string.Empty;
+
+    private string GetStyle()
+    {
+        var styles = new List<string>() { Column.GetStyle(true, true), Style };
+
+        if (Attributes?.TryGetValue("style", out var styleAttribute) == true)
+        {
+            var styleValue = Convert.ToString(styleAttribute);
+            if (styleValue != null)
+            {
+                styles.Add(styleValue);
+            }
+        }
+
+        var finalStyle = string.Join(";",
+                styles
+                .Select(x => x?.Trim().TrimEnd(';'))
+                .Where(x => !string.IsNullOrEmpty(x))
+            );
+
+        return finalStyle;
+    }
 }

@@ -4,9 +4,9 @@
 {
     @if (Template == null)
     {
-        <EditorButton Title=@Title Click=@OnClick Icon=@Icon Selected=@Selected Disabled=@Disabled />
+        <EditorButton Title=@Title Click=@OnClick Icon=@Icon IconColor="@IconColor" Selected=@Selected Disabled=@Disabled EnabledModes="@EnabledModes"/>
     }
-    else
+    else if (Editor != null && Template != null)
     {
         <div class="rz-html-editor-custom-tool">@Template(Editor)</div>
     }

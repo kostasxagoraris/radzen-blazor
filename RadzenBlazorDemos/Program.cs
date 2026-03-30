@@ -1,29 +1,34 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
+using System.Net.Http;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+
+using RadzenBlazorDemos.Services;
+using Radzen;
+using RadzenBlazorDemos.Data;
+using RadzenBlazorDemos;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
-namespace RadzenBlazorDemos
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+builder.Services.AddDbContextFactory<NorthwindContext>();
+
+builder.Services.AddRadzenComponents();
+builder.Services.AddRadzenQueryStringThemeService();
+
+builder.Services.AddScoped<ExampleService>();
+builder.Services.AddScoped<NorthwindService>();
+builder.Services.AddScoped<NorthwindODataService>();
+builder.Services.AddSingleton<GitHubService>();
+
+builder.Services.AddAIChatService(options =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+    options.Proxy = "api/chat/completions";
+    options.Model = "@cf/meta/llama-3.1-8b-instruct";
+    options.SystemPrompt = "You are a helpful AI code assistant.";
+    options.Temperature = 0.7;
+});
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                    webBuilder.UseSetting(WebHostDefaults.DetailedErrorsKey, "true");
-                });
-    }
-}
+await builder.Build().RunAsync();

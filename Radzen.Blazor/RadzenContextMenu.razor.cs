@@ -35,19 +35,19 @@ namespace Radzen.Blazor
     /// }
     /// </code>
     /// </example>
-    public partial class RadzenContextMenu
+    public partial class RadzenContextMenu : IAsyncDisposable
     {
         /// <summary>
         /// Gets or sets the unique identifier.
         /// </summary>
         /// <value>The unique identifier.</value>
-        public string UniqueID { get; set; }
+        public string? UniqueID { get; set; }
 
         /// <summary>
         /// Gets or sets the ContextMenuService.
         /// </summary>
         /// <value>The ContextMenuService.</value>
-        [Inject] private ContextMenuService Service { get; set; }
+        [Inject] private ContextMenuService? Service { get; set; }
 
         List<ContextMenu> menus = new List<ContextMenu>();
 
@@ -72,12 +72,33 @@ namespace Radzen.Blazor
             IsJSRuntimeAvailable = true;
 
             var menu = menus.LastOrDefault();
-            if (menu != null)
+            if (menu != null && menu.MouseEventArgs != null)
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.openContextMenu",
                     menu.MouseEventArgs.ClientX,
                     menu.MouseEventArgs.ClientY,
-                    UniqueID);
+                    UniqueID,
+                    Reference,
+                    "RadzenContextMenu.CloseMenu");
+            }
+        }
+
+        private DotNetObjectReference<RadzenContextMenu>? reference;
+
+        /// <summary>
+        /// Gets the reference for the current component.
+        /// </summary>
+        /// <value>The reference.</value>
+        protected DotNetObjectReference<RadzenContextMenu> Reference
+        {
+            get
+            {
+                if (reference == null)
+                {
+                    reference = DotNetObjectReference.Create(this);
+                }
+
+                return reference;
             }
         }
 
@@ -96,27 +117,55 @@ namespace Radzen.Blazor
             await InvokeAsync(() => { StateHasChanged(); });
         }
 
-        /// <inheritdoc />
-        public void Dispose()
+        /// <summary>
+        /// Closes this instance.
+        /// </summary>
+        [JSInvokable("RadzenContextMenu.CloseMenu")]
+        public void CloseMenu()
         {
-            if (IsJSRuntimeAvailable)
+            Service?.Close(); 
+        }
+
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            while (menus.Count != 0)
             {
-                JSRuntime.InvokeVoidAsync("Radzen.destroyPopup", UniqueID);
+                await Close();
             }
 
-            Service.OnOpen -= OnOpen;
-            Service.OnClose -= OnClose;
-            Service.OnNavigate -= OnNavigate;
+            reference?.Dispose();
+            reference = null;
+
+            if (IsJSRuntimeAvailable)
+            {
+                try 
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.destroyPopup", UniqueID);
+                }
+                catch
+                { }
+            }
+
+            if (Service != null)
+            {
+                Service.OnOpen -= OnOpen;
+                Service.OnClose -= OnClose;
+                Service.OnNavigate -= OnNavigate;
+            }
         }
 
         /// <inheritdoc />
         protected override void OnInitialized()
         {
-            UniqueID = Convert.ToBase64String(Guid.NewGuid().ToByteArray()).Replace("/", "-").Replace("+", "-").Substring(0, 10);
+            UniqueID = Convert.ToBase64String(Guid.NewGuid().ToByteArray()).Replace("/", "-", StringComparison.Ordinal).Replace("+", "-", StringComparison.Ordinal).Substring(0, 10);
 
-            Service.OnOpen += OnOpen;
-            Service.OnClose += OnClose;
-            Service.OnNavigate += OnNavigate;
+            if (Service != null)
+            {
+                Service.OnOpen += OnOpen;
+                Service.OnClose += OnClose;
+                Service.OnNavigate += OnNavigate;
+            }
         }
 
         void OnOpen(MouseEventArgs args, ContextMenuOptions options)
@@ -131,7 +180,10 @@ namespace Radzen.Blazor
 
         void OnNavigate()
         {
-            JSRuntime.InvokeVoidAsync("Radzen.closePopup", UniqueID);
+            if (UniqueID != null)
+            {
+                JSRuntime.InvokeVoid("Radzen.closePopup", UniqueID);
+            }
         }
     }
 }

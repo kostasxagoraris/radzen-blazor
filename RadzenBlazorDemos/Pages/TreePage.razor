@@ -1,68 +1,32 @@
 @page "/tree"
-@using System.IO
-@using Microsoft.EntityFrameworkCore
-@using RadzenBlazorDemos.Models.Northwind
-@inject RadzenBlazorDemos.Data.NorthwindContext Northwind
-@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Blazor Tree
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    Inline definition, data-binding, and keyboard navigation.
+</RadzenText>
 
-<RadzenExample Name="Tree">
-    <RadzenCard Class="my-5 mx-auto" style="max-width: 400px;">
-        <h4>Inline definition</h4>
-        <RadzenTree Expand=@OnExpand Change=@OnChange Style="width: 100%; height: 300px">
-            <RadzenTreeItem Text="BMW">
-                <ChildContent>
-                    <RadzenTreeItem Text="M3" />
-                    <RadzenTreeItem Text="M5" />
-                </ChildContent>
-                <Template>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg" style="width: 20px; margin-right: 8px;" />
-                    <b>@context.Text</b>
-                </Template>
-            </RadzenTreeItem>
-            <RadzenTreeItem Text="Audi">
-                <ChildContent>
-                    <RadzenTreeItem Text="RS4" />
-                    <RadzenTreeItem Text="RS6" />
-                </ChildContent>
-                <Template>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/92/Audi-Logo_2016.svg" style="width: 20px; margin-right: 8px;" />
-                    <b>@context.Text</b>
-                </Template>
-            </RadzenTreeItem>
-            <RadzenTreeItem Text="Mercedes">
-                <Template>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/90/Mercedes-Logo.svg" style="width: 20px; margin-right: 8px;" />
-                    <b>@context.Text</b>
-                </Template>
-                <ChildContent>
-                    <RadzenTreeItem Text="C63 AMG" />
-                    <RadzenTreeItem Text="S63 AMG" />
-                </ChildContent>
-            </RadzenTreeItem>
-        </RadzenTree>
-    </RadzenCard>
+<RadzenExample ComponentName="Tree" Example="TreeConfig">
+    <TreeConfig />
 </RadzenExample>
 
-<EventConsole @ref=@console Class="mt-4" />
+<RadzenText Anchor="tree#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor Tree component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@shortcuts" />
 
 @code {
-    EventConsole console;
-
-    void Log(string eventName, string value)
+    public List<KeyboardShortcut> shortcuts = new()
     {
-        console.Log($"{eventName}: {value}");
-    }
-
-    void OnChange(TreeEventArgs args)
-    {
-        Log("Change", $"Item Text: {args.Text}");
-    }
-
-    void OnExpand(TreeExpandEventArgs args)
-    {
-        if (args.Value is string text)
-        {
-            Log("Expand", $"Text: {text}");
-        }
-    }
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate to a Tree component." },
+        new KeyboardShortcut { Key = "UpArrow", Action = "Select previous hierarchical Tree item." },
+        new KeyboardShortcut { Key = "DownArrow", Action = "Select next hierarchical Tree item." },
+        new KeyboardShortcut { Key = "RightArrow", Action = "Expands selected Tree item." },
+        new KeyboardShortcut { Key = "LeftArrow", Action = "Collapse selected Tree item." },
+        new KeyboardShortcut { Key = "Enter or Space", Action = "Check/uncheck selected Tree item if CheckBox is available." }
+    };
 }

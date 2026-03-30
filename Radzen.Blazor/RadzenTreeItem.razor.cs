@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Radzen.Blazor.Rendering;
 using System;
 using System.Collections;
@@ -13,29 +14,53 @@ namespace Radzen.Blazor
     /// </summary>
     public partial class RadzenTreeItem : IDisposable
     {
-        ClassList ContentClassList => ClassList.Create("rz-treenode-content")
-                                               .Add("rz-treenode-content-selected", selected);
-        ClassList IconClassList => ClassList.Create("rz-tree-toggler rzi")
-                                               .Add("rzi-caret-down", expanded)
-                                               .Add("rzi-caret-right", !expanded);
+        /// <summary>
+        /// Specifies additional custom attributes that will be rendered by the component.
+        /// </summary>
+        /// <value>The attributes.</value>
+        [Parameter(CaptureUnmatchedValues = true)]
+        public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+        string ContentClass => ClassList.Create("rz-treenode-content")
+                                        .Add("rz-treenode-content-selected", selected)
+                                        .Add("rz-state-focused", Tree?.IsFocused(this) == true)
+                                        .Add(Tree?.ItemContentCssClass ?? string.Empty)
+                                        .Add(ContentCssClass)
+                                        .ToString();
+        string IconClass => ClassList.Create("notranslate rz-tree-toggler rzi")
+                                     .Add("rzi-caret-down", clientExpanded)
+                                     .Add("rzi-caret-right", !clientExpanded)
+                                     .Add(Tree?.ItemIconCssClass ?? string.Empty)
+                                     .Add(IconCssClass)
+                                     .ToString();
+        string LabelClass => ClassList.Create("rz-treenode-label")
+                                      .Add(Tree?.ItemLabelCssClass ?? string.Empty)
+                                      .Add(LabelCssClass)
+                                      .ToString();
         /// <summary>
         /// Gets or sets the child content.
         /// </summary>
         /// <value>The child content.</value>
         [Parameter]
-        public RenderFragment ChildContent { get; set; }
+        public RenderFragment? ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets the template. Use it to customize the appearance of a tree item.
         /// </summary>
         [Parameter]
-        public RenderFragment<RadzenTreeItem> Template { get; set; }
+        public RenderFragment<RadzenTreeItem>? Template { get; set; }
 
         /// <summary>
         /// Gets or sets the text displayed by the tree item.
         /// </summary>
         [Parameter]
-        public string Text { get; set; }
+        public string? Text { get; set; }
+
+        /// <summary>
+        /// Gets or sets value indicating if the tree item checkbox can be checked.
+        /// </summary>
+        [Parameter]
+        public bool Checkable { get; set; } = true;
 
         private bool expanded;
 
@@ -49,7 +74,7 @@ namespace Radzen.Blazor
         /// Gets or sets the value of the tree item.
         /// </summary>
         [Parameter]
-        public object Value { get; set; }
+        public object? Value { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance has children.
@@ -69,21 +94,57 @@ namespace Radzen.Blazor
         /// The RadzenTree which this item is part of.
         /// </summary>
         [CascadingParameter]
-        public RadzenTree Tree { get; set; }
+        public RadzenTree? Tree { get; set; }
 
         /// <summary>
         /// The RadzenTreeItem which contains this item.
         /// </summary>
         [CascadingParameter]
-        public RadzenTreeItem ParentItem { get; set; }
+        public RadzenTreeItem? ParentItem { get; set; }
 
         /// <summary>
         /// The children data.
         /// </summary>
         [Parameter]
-        public IEnumerable Data { get; set; }
+        public IEnumerable? Data { get; set; }
+
+        /// <summary>
+        /// Gets or sets the CSS classes added to the content.
+        /// </summary>
+        [Parameter]
+        public string? ContentCssClass { get; set; }
+
+        /// <summary>
+        /// Gets or sets the CSS classes added to the icon.
+        /// </summary>
+        [Parameter]
+        public string? IconCssClass { get; set; }
+
+        /// <summary>
+        /// Gets or sets the CSS classes added to the label.
+        /// </summary>
+        [Parameter]
+        public string? LabelCssClass { get; set; }
 
         internal List<RadzenTreeItem> items = new List<RadzenTreeItem>();
+
+        /// <summary>
+        /// Toggles the checked state of the tree node in response to a mouse event, if checkboxes are enabled and the
+        /// node is checkable.
+        /// </summary>
+        /// <remarks>This method has no effect if the tree does not support checkboxes or if the node is
+        /// not checkable.</remarks>
+        /// <returns>A task that represents the asynchronous toggle operation.</returns>
+        public async Task ToggleChecked()
+        {
+            if (Tree != null && Tree.AllowCheckBoxes && Checkable)
+            {
+                var currentValue = IsChecked();
+                await CheckedChange(currentValue == true ? false : true);
+
+                Select();
+            }
+        }
 
         internal void AddItem(RadzenTreeItem item)
         {
@@ -112,30 +173,99 @@ namespace Radzen.Blazor
             {
                 Tree.RemoveItem(this);
             }
+
+            GC.SuppressFinalize(this);
         }
 
-        internal async Task Toggle()
+        bool clientExpanded;
+        async Task Toggle()
         {
+            if (expanded && Tree?.SingleExpand != true)
+            {
+                clientExpanded = !clientExpanded;
+
+                if (clientExpanded)
+                {
+                    await Expand();
+                }
+                else
+                {
+                    if (items.Count > 0)
+                    {
+                        if (Tree?.CurrentItems != null && items.Count > 0)
+                        {
+                            Tree.RemoveFromCurrentItems(Tree.CurrentItems.IndexOf(items[0]), items.Count);
+                        }
+                    }
+
+                    if (Tree != null)
+                    {
+                        await Tree.Collapse.InvokeAsync(new TreeEventArgs()
+                        {
+                            Text = Text,
+                            Value = Value
+                        });
+                    }
+                }
+
+                return;
+            }
+
             expanded = !expanded;
+            clientExpanded = !clientExpanded;
 
             if (expanded)
             {
+                await Expand();
+            }
+        }
+
+        internal async Task ExpandCollapse(bool value)
+        {
+            expanded = value;
+            clientExpanded = value;
+
+            if (expanded || clientExpanded)
+            {
+                await Expand();
+            }
+            else
+            {
+                if (items.Count > 0)
+                {
+                    if (Tree?.CurrentItems != null && items.Count > 0)
+                    {
+                        Tree.RemoveFromCurrentItems(Tree.CurrentItems.IndexOf(items[0]), items.Count);
+                    }
+                }
+
                 if (Tree != null)
                 {
-                    await Tree.ExpandItem(this);
-
-                    if (Tree.SingleExpand)
+                    await Tree.Collapse.InvokeAsync(new TreeEventArgs()
                     {
-                        var siblings = ParentItem?.items ?? Tree.items;
+                        Text = Text,
+                        Value = Value
+                    });
+                }
+            }
+        }
 
-                        foreach (var sibling in siblings)
-                        {
-                            if (sibling != this && sibling.expanded)
-                            {
-                                await sibling.Toggle();
-                            }
-                        }
+        async Task Expand()
+        {
+            if (Tree != null)
+            {
+                await Tree.ExpandItem(this);
+
+                if (Tree.SingleExpand)
+                {
+                    var siblings = (ParentItem?.items ?? Tree.items).Where(s => s != this && s.expanded).ToList();
+
+                    foreach (var sibling in siblings)
+                    {
+                        await sibling.Toggle();
                     }
+
+                    await Tree.ChangeState();
                 }
             }
         }
@@ -144,6 +274,24 @@ namespace Radzen.Blazor
         {
             selected = true;
             Tree?.SelectItem(this);
+        }
+
+        void OnKeyDown(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+            if (key == "Enter" || key == "Space")
+            {
+                Select();
+            }
+        }
+
+        async Task OnToggleKeyDown(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+            if (key == "Enter" || key == "Space")
+            {
+                await Toggle();
+            }
         }
 
         internal void Unselect()
@@ -158,22 +306,8 @@ namespace Radzen.Blazor
         }
 
         /// <inheritdoc />
-        override protected void OnInitialized()
+        override protected async Task OnInitializedAsync()
         {
-            expanded = Expanded;
-
-            if (expanded)
-            {
-                Tree?.ExpandItem(this);
-            }
-
-            selected = Selected;
-
-            if (selected)
-            {
-                Tree?.SelectItem(this);
-            }
-
             if (Tree != null && ParentItem == null)
             {
                 Tree.AddItem(this);
@@ -182,6 +316,28 @@ namespace Radzen.Blazor
             if (ParentItem != null)
             {
                 ParentItem.AddItem(this);
+
+                if (Tree != null)
+                {
+                    var currentItems = Tree.items;
+
+                    Tree.InsertInCurrentItems(currentItems.IndexOf(ParentItem) + (ParentItem != null ? ParentItem.items.Count : 0), this);
+                }
+            }
+
+            expanded = Expanded;
+            clientExpanded = expanded;
+
+            if (expanded && Tree != null)
+            {
+                await Tree.ExpandItem(this);
+            }
+
+            selected = Selected;
+
+            if (selected && Tree != null)
+            {
+                await Tree.SelectItem(this);
             }
         }
 
@@ -193,8 +349,13 @@ namespace Radzen.Blazor
             if (parameters.DidParameterChange(nameof(Expanded), Expanded))
             {
                 // The Expanded property has changed - update the expanded state
-                expanded = parameters.GetValueOrDefault<bool>(nameof(Expanded));
-                shouldExpand = true;
+                var e = parameters.GetValueOrDefault<bool>(nameof(Expanded));
+                if (expanded != e)
+                {
+                    expanded = e;
+                    clientExpanded = expanded;
+                    shouldExpand = expanded;
+                }
             }
 
             if (parameters.DidParameterChange(nameof(Value), Value))
@@ -222,24 +383,22 @@ namespace Radzen.Blazor
             await base.SetParametersAsync(parameters);
         }
 
-        async Task CheckedChange(bool? value)
+        internal async Task CheckedChange(bool? value)
         {
-            if (Tree != null)
+            if (Tree != null && Tree.UncheckedValues != null)
             {
-                var checkedValues = GetCheckedValues();
-
                 if (Tree.AllowCheckChildren)
                 {
                     if (value == true)
                     {
                         var valueAndChildren = GetValueAndAllChildValues();
-                        checkedValues = checkedValues.Union(valueAndChildren);
+                        await Tree.SetCheckedValues(GetCheckedValues().Union(valueAndChildren));
                         Tree.SetUncheckedValues(Tree.UncheckedValues.Except(valueAndChildren));
                     }
                     else
                     {
                         var valueAndChildren = GetValueAndAllChildValues();
-                        checkedValues = checkedValues.Except(valueAndChildren);
+                        await Tree.SetCheckedValues(GetCheckedValues().Except(valueAndChildren));
                         Tree.SetUncheckedValues(valueAndChildren.Union(Tree.UncheckedValues));
                     }
                 }
@@ -248,31 +407,29 @@ namespace Radzen.Blazor
                     if (value == true)
                     {
                         var valueWithoutChildren = new[] { Value };
-                        checkedValues = checkedValues.Union(valueWithoutChildren);
+                        await Tree.SetCheckedValues(GetCheckedValues().Union(valueWithoutChildren));
                         Tree.SetUncheckedValues(Tree.UncheckedValues.Except(valueWithoutChildren));
                     }
                     else
                     {
                         var valueWithoutChildren = new[] { Value };
-                        checkedValues = checkedValues.Except(valueWithoutChildren);
+                        await Tree.SetCheckedValues(GetCheckedValues().Except(valueWithoutChildren));
                         Tree.SetUncheckedValues(valueWithoutChildren.Union(Tree.UncheckedValues));
                     }
                 }
 
                 if (Tree.AllowCheckParents)
                 {
-                    checkedValues = UpdateCheckedValuesWithParents(checkedValues, value);
+                    await UpdateCheckedValuesWithParents(value);
                 }
-
-                await Tree.SetCheckedValues(checkedValues);
             }
         }
 
-        bool? IsChecked()
+        internal bool? IsChecked()
         {
             var checkedValues = GetCheckedValues();
 
-            if (HasChildren && IsOneChildUnchecked() && IsOneChildChecked())
+            if (Tree?.AllowCheckParents == true && HasChildren && IsOneChildUnchecked() && IsOneChildChecked())
             {
                 return null;
             }
@@ -280,30 +437,30 @@ namespace Radzen.Blazor
             return checkedValues.Contains(Value);
         }
 
-        IEnumerable<object> GetCheckedValues()
+        IEnumerable<object?> GetCheckedValues()
         {
-            return Tree.CheckedValues != null ? Tree.CheckedValues : Enumerable.Empty<object>();
+            return Tree?.CheckedValues != null ? Tree.CheckedValues.Cast<object?>() : Enumerable.Empty<object?>();
         }
 
-        IEnumerable<object> GetAllChildValues(Func<object, bool> predicate = null)
+        internal IEnumerable<object?> GetAllChildValues(Func<object?, bool>? predicate = null)
         {
             var children = items.Concat(items.SelectManyRecursive(i => i.items)).Select(i => i.Value);
 
             return predicate != null ? children.Where(predicate) : children;
         }
 
-        IEnumerable<object> GetValueAndAllChildValues()
+        IEnumerable<object?> GetValueAndAllChildValues()
         {
-            return new object[] { Value }.Concat(GetAllChildValues());
+            return new object?[] { Value }.Concat(GetAllChildValues());
         }
 
-        bool AreAllChildrenChecked(Func<object, bool> predicate = null)
+        bool AreAllChildrenChecked(Func<object?, bool>? predicate = null)
         {
             var checkedValues = GetCheckedValues();
             return GetAllChildValues(predicate).All(i => checkedValues.Contains(i));
         }
 
-        bool AreAllChildrenUnchecked(Func<object, bool> predicate = null)
+        bool AreAllChildrenUnchecked(Func<object?, bool>? predicate = null)
         {
             var checkedValues = GetCheckedValues();
             return GetAllChildValues(predicate).All(i => !checkedValues.Contains(i));
@@ -321,24 +478,28 @@ namespace Radzen.Blazor
             return GetAllChildValues().Any(i => checkedValues.Contains(i));
         }
 
-        IEnumerable<object> UpdateCheckedValuesWithParents(IEnumerable<object> checkedValues, bool? value)
+        async Task UpdateCheckedValuesWithParents(bool? value)
         {
             var p = ParentItem;
             while (p != null)
             {
-                if (value == false && p.AreAllChildrenUnchecked(i => !object.Equals(i, Value)))
+                if (value == false && (p.AreAllChildrenUnchecked(i => !object.Equals(i, Value)) || p.IsOneChildUnchecked()))
                 {
-                    checkedValues = checkedValues.Except(new object[] { p.Value });
+                    if (Tree != null)
+                    {
+                        await Tree.SetCheckedValues(GetCheckedValues().Except(new object?[] { p.Value }));
+                    }
                 }
                 else if (value == true && p.AreAllChildrenChecked(i => !object.Equals(i, Value)))
                 {
-                    checkedValues = checkedValues.Union(new object[] { p.Value });
+                    if (Tree != null)
+                    {
+                        await Tree.SetCheckedValues(GetCheckedValues().Union(new object?[] { p.Value }));
+                    }
                 }
 
                 p = p.ParentItem;
             }
-
-            return checkedValues;
         }
 
         internal bool Contains(RadzenTreeItem child)
@@ -356,6 +517,38 @@ namespace Radzen.Blazor
             }
 
             return false;
+        }
+
+        bool stopKeydownPropagation = true;
+        void OnGuardKeyDown(KeyboardEventArgs args)
+        {
+            var key = args.Code ?? args.Key;
+            stopKeydownPropagation = key != "Escape";
+        }
+
+        async Task OnContextMenu(MouseEventArgs args)
+        {
+            if (Tree?.ItemContextMenu != null)
+            {
+                await Tree.ItemContextMenu.InvokeAsync(new TreeItemContextMenuEventArgs()
+                {
+                    Text = Text,
+                    Value = Value,
+                    AltKey = args.AltKey,
+                    Button = args.Button,
+                    Buttons = args.Buttons,
+                    ClientX = args.ClientX,
+                    ClientY = args.ClientY,
+                    CtrlKey = args.CtrlKey,
+                    Detail = args.Detail,
+                    MetaKey = args.MetaKey,
+                    OffsetX = args.OffsetX,
+                    OffsetY = args.OffsetY,
+                    ScreenX = args.ScreenX,
+                    ScreenY = args.ScreenY,
+                    ShiftKey = args.ShiftKey
+                });
+            }
         }
     }
 }

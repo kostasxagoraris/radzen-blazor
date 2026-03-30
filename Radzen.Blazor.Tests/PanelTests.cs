@@ -47,7 +47,7 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.Icon, value));
 
-            Assert.Contains(@$"<i class=""rzi"">{value}</i>", component.Markup);
+            Assert.Contains(@$"<i class=""notranslate rzi"">{value}</i>", component.Markup);
         }
 
         [Fact]
@@ -119,11 +119,11 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AllowCollapse, true));
 
-            Assert.Contains(@"<span class=""rzi rzi-minus""></span>", component.Markup);
+            Assert.Contains(@"<span class=""notranslate rzi rzi-minus""></span>", component.Markup);
 
             component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.Collapsed, true));
 
-            Assert.Contains(@"<span class=""rzi rzi-plus""></span>", component.Markup);
+            Assert.Contains(@"<span class=""notranslate rzi rzi-plus""></span>", component.Markup);
         }
 
         [Fact]
@@ -167,7 +167,7 @@ namespace Radzen.Blazor.Tests
                 parameters.Add(p => p.Collapse, args => { raised = true; });
             });
 
-            component.Find("a").Click();
+            component.Find("button.rz-panel-titlebar-toggler").Click();
 
             Assert.True(raised);
 
@@ -175,7 +175,7 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.Expand, args => { raised = true; }));
 
-            component.Find("a").Click();
+            component.Find("button.rz-panel-titlebar-toggler").Click();
         }
 
         [Fact]
@@ -198,14 +198,10 @@ namespace Radzen.Blazor.Tests
             });
 
             Assert.Contains("SummaryContent", component.Markup);
-            Assert.Equal(
-                "display: block",
-                component.Find(".rz-panel-content-summary").ParentElement.Attributes.First(attr => attr.Name == "style").Value
-            );
         }
 
         [Fact]
-        public void Panel_DontRenders_SummaryWhenOpen()
+        public void Panel_DoesNotRender_SummaryWhenOpen()
         {
             using var ctx = new TestContext();
             var component = ctx.RenderComponent<RadzenPanel>();
@@ -225,8 +221,8 @@ namespace Radzen.Blazor.Tests
 
             Assert.Contains("SummaryContent", component.Markup);
             Assert.Equal(
-                "display: none",
-                component.Find(".rz-panel-content-summary").ParentElement.Attributes.First(attr => attr.Name == "style").Value
+                "true",
+                component.Find(".rz-panel-content-summary").ParentElement.ParentElement.Attributes.First(attr => attr.Name == "aria-hidden").Value
             );
         }
     }

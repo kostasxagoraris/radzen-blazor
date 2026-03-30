@@ -1,21 +1,30 @@
-﻿@inherits RadzenComponentWithChildren
+@inherits RadzenComponentWithChildren
 
 @if (Visible)
 {
-    <ul @ref="@Element" style="@Style" @attributes="Attributes" class="@GetCssClass()" id="@GetId()">
+    <ul @ref="@Element" style="@Style" @attributes="Attributes" class="@GetCssClass()" id="@GetId()" 
+        role="menu" aria-label="@ToggleAriaLabel" tabindex="0"
+        @onkeydown="@OnKeyPress" @onkeydown:preventDefault=preventKeyPress @onkeydown:stopPropagation="stopKeydownPropagation">
         <li class="rz-navigation-item">
-            <div class="rz-navigation-item-wrapper" onclick="Radzen.toggleMenuItem(this)">
+            <div class="rz-navigation-item-wrapper" role="button" tabindex="0" aria-haspopup="menu"
+                 aria-label="@ToggleAriaLabel"
+                 aria-expanded="@((!Collapsed).ToString().ToLowerInvariant())" aria-controls="@($"{GetId()}-menu")"
+                 onclick="Radzen.toggleMenuItem(this)" @onkeydown="OnToggleKeyDown">
                 <div class="rz-navigation-item-link">
-                    <div class="item-text">
+                    <div class="item-text" @onkeydown:stopPropagation="stopGuardKeydownPropagation" @onkeydown="OnGuardKeyDown">
                         @if (Template != null)
                         {
                             @Template
                         }
                     </div>
-                    <i class="rzi rz-navigation-item-icon-children" style="@iconStyle">keyboard_arrow_down</i>
+                    @if (ShowIcon)
+                    {
+                        <i class=@ToggleClass>keyboard_arrow_down</i>
+                    }
                 </div>
             </div>
-            <ul class="rz-navigation-menu" style="@contentStyle">
+            <ul id="@($"{GetId()}-menu")" class="rz-navigation-menu" role="menu" style="@contentStyle"
+                aria-hidden="@(Collapsed ? "true" : "false")" @onkeydown:stopPropagation="stopGuardKeydownPropagation" @onkeydown="OnGuardKeyDown">
                 <CascadingValue Value=this>
                     @ChildContent
                 </CascadingValue>

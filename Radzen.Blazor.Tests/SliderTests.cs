@@ -38,8 +38,8 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add<int>(p => p.Value, value));
 
-            Assert.Contains(@$"style=""width: {(value / max * 100).ToInvariantString()}%;""", component.Markup);
-            Assert.Contains(@$"style=""left: {(value / max * 100).ToInvariantString()}%;""", component.Markup);
+            Assert.Contains(@$"style=""width: {Math.Round((value / max * 100)).ToInvariantString()}%;""", component.Markup);
+            Assert.Contains(@$"style=""inset-inline-start: {Math.Round((value / max * 100)).ToInvariantString()}%;""", component.Markup);
         }
 
         [Fact]
@@ -55,9 +55,9 @@ namespace Radzen.Blazor.Tests
                 parameters.Add<IEnumerable<int>>(p => p.Value, new int[] { 4, 30 });
             });
 
-            Assert.Contains(@$"left: 4.00%", component.Markup);
-            Assert.Contains(@$"left: 30.0%", component.Markup);
-            Assert.Contains(@$"left: 4.00%; width: 26.00%;", component.Markup);
+            Assert.Contains(@$"inset-inline-start: 4%", component.Markup);
+            Assert.Contains(@$"inset-inline-start: 30%", component.Markup);
+            Assert.Contains(@$"inset-inline-start: 4%; width: 26%;", component.Markup);
         }
 
         [Fact]
@@ -88,6 +88,72 @@ namespace Radzen.Blazor.Tests
             component.SetParametersAndRender(parameters => parameters.AddUnmatched("autofocus", ""));
 
             Assert.Contains(@$"autofocus", component.Markup);
+        }
+
+        [Fact]
+        public void Slider_Renders_Orientation_Vertical()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenSlider<int>>(parameters =>
+            {
+                parameters.Add(p => p.Orientation, Orientation.Vertical);
+            });
+
+            Assert.Contains("rz-slider-vertical", component.Markup);
+        }
+
+        [Fact]
+        public void Slider_Renders_Disabled()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenSlider<int>>(parameters =>
+            {
+                parameters.Add(p => p.Disabled, true);
+            });
+
+            Assert.Contains("rz-state-disabled", component.Markup);
+        }
+
+        [Fact]
+        public void Slider_Renders_SliderHandle()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenSlider<int>>();
+
+            Assert.Contains("rz-slider-handle", component.Markup);
+        }
+
+        [Fact]
+        public void Slider_Renders_SliderRange()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenSlider<int>>();
+
+            Assert.Contains("rz-slider-range", component.Markup);
+        }
+
+        [Fact]
+        public void Slider_Renders_TabIndex()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenSlider<int>>();
+
+            Assert.Contains("tabindex=\"0\"", component.Markup);
         }
     }
 }

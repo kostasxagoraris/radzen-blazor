@@ -1,34 +1,47 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Radzen.Blazor.Rendering;
 using System;
 using System.Threading.Tasks;
 
 namespace Radzen.Blazor
 {
     /// <summary>
-    /// RadzenFieldset component.
+    /// A fieldset container component that groups related form fields with a legend/header and optional collapse functionality.
+    /// RadzenFieldset provides semantic form grouping with visual borders, useful for organizing complex forms into logical sections.
+    /// Fieldsets are HTML form elements that semantically group related inputs, improving form structure and accessibility.
+    /// Features visual and semantic grouping of related form fields, customizable header via Text or HeaderTemplate, optional expand/collapse to hide/show grouped fields,
+    /// optional icon in the legend, optional summary content shown when collapsed, and screen reader announcement of fieldset legends for grouped fields.
+    /// Use to organize forms into sections like "Personal Information", "Address", "Payment Details". When AllowCollapse is enabled, users can collapse sections they don't need to see.
     /// </summary>
     /// <example>
+    /// Basic fieldset grouping form fields:
     /// <code>
-    /// &lt;RadzenFieldset AllowCollapse="true""&gt;
-    ///     &lt;HeaderTemplate&gt;
-    ///         Header
-    ///     &lt;/HeaderTemplate&gt;
-    ///     &lt;ChildContent&gt;
-    ///         Content
-    ///     &lt;/ChildContent&gt;
-    ///     &lt;SummaryTemplate&gt;
-    ///         Summary
-    ///     &lt;/SummaryTemplate&gt;
+    /// &lt;RadzenFieldset Text="Personal Information"&gt;
+    ///     &lt;RadzenStack Gap="1rem"&gt;
+    ///         &lt;RadzenFormField Text="First Name"&gt;
+    ///             &lt;RadzenTextBox @bind-Value=@model.FirstName /&gt;
+    ///         &lt;/RadzenFormField&gt;
+    ///         &lt;RadzenFormField Text="Last Name"&gt;
+    ///             &lt;RadzenTextBox @bind-Value=@model.LastName /&gt;
+    ///         &lt;/RadzenFormField&gt;
+    ///     &lt;/RadzenStack&gt;
+    /// &lt;/RadzenFieldset&gt;
+    /// </code>
+    /// Collapsible fieldset:
+    /// <code>
+    /// &lt;RadzenFieldset Text="Advanced Options" Icon="settings" AllowCollapse="true"&gt;
+    ///     Advanced configuration fields...
     /// &lt;/RadzenFieldset&gt;
     /// </code>
     /// </example>
     public partial class RadzenFieldset : RadzenComponent
     {
         /// <inheritdoc />
-        protected override string GetComponentCssClass()
-        {
-            return AllowCollapse ? "rz-fieldset rz-fieldset-toggleable" : "rz-fieldset";
-        }
+        protected override string GetComponentCssClass() => 
+            ClassList.Create("rz-fieldset")
+                     .Add("rz-fieldset-toggleable", AllowCollapse)
+                     .ToString();
 
         /// <summary>
         /// Gets or sets a value indicating whether collapsing is allowed. Set to <c>false</c> by default.
@@ -47,11 +60,46 @@ namespace Radzen.Blazor
         public bool Collapsed { get; set; }
 
         /// <summary>
+        /// Gets or sets the title attribute of the expand button.
+        /// </summary>
+        /// <value>The title attribute value of the expand button.</value>
+        [Parameter]
+        public string? ExpandTitle { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the title attribute of the collapse button.
+        /// </summary>
+        /// <value>The title attribute value of the collapse button.</value>
+        [Parameter]
+        public string? CollapseTitle { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the aria-label attribute of the expand button.
+        /// </summary>
+        /// <value>The aria-label attribute value of the expand button.</value>
+        [Parameter]
+        public string? ExpandAriaLabel { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the aria-label attribute of the collapse button.
+        /// </summary>
+        /// <value>The aria-label attribute value of the collapse button.</value>
+        [Parameter]
+        public string? CollapseAriaLabel { get; set; }
+        
+        /// <summary>
         /// Gets or sets the icon.
         /// </summary>
         /// <value>The icon.</value>
         [Parameter]
-        public string Icon { get; set; }
+        public string? Icon { get; set; }
+
+        /// <summary>
+        /// Gets or sets the icon color.
+        /// </summary>
+        /// <value>The icon color.</value>
+        [Parameter]
+        public string? IconColor { get; set; }
 
         /// <summary>
         /// Gets or sets the text.
@@ -65,21 +113,21 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The header template.</value>
         [Parameter]
-        public RenderFragment HeaderTemplate { get; set; }
+        public RenderFragment? HeaderTemplate { get; set; }
 
         /// <summary>
         /// Gets or sets the child content.
         /// </summary>
         /// <value>The child content.</value>
         [Parameter]
-        public RenderFragment ChildContent { get; set; }
+        public RenderFragment? ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets the summary template.
         /// </summary>
         /// <value>The summary template.</value>
         [Parameter]
-        public RenderFragment SummaryTemplate { get; set; } = null;
+        public RenderFragment? SummaryTemplate { get; set; } = null;
 
         /// <summary>
         /// Gets or sets the expand callback.
@@ -95,14 +143,9 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback Collapse { get; set; }
 
-        string contentStyle = "";
-        string summaryContentStyle = "display: none";
-
-        async System.Threading.Tasks.Task Toggle(EventArgs args)
+        async Task Toggle(EventArgs args)
         {
             collapsed = !collapsed;
-            contentStyle = collapsed ? "display: none;" : "";
-            summaryContentStyle = !collapsed ? "display: none" : "";
 
             if (collapsed)
             {
@@ -119,9 +162,28 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override void OnInitialized()
         {
+            base.OnInitialized();
             collapsed = Collapsed;
         }
 
+        private string TitleAttribute()
+        {
+            if (collapsed)
+            {
+                return string.IsNullOrWhiteSpace(ExpandTitle) ? "Expand" : ExpandTitle;
+            }
+            return string.IsNullOrWhiteSpace(CollapseTitle) ? "Collapse" : CollapseTitle;
+        }
+        
+        private string AriaLabelAttribute()
+        {
+            if (collapsed)
+            {
+                return string.IsNullOrWhiteSpace(ExpandAriaLabel) ? "Expand" : ExpandAriaLabel;  
+            }
+            return string.IsNullOrWhiteSpace(CollapseAriaLabel) ? "Collapse" : CollapseAriaLabel;
+        }
+        
         /// <inheritdoc />
         public override async Task SetParametersAsync(ParameterView parameters)
         {
@@ -133,13 +195,24 @@ namespace Radzen.Blazor
             await base.SetParametersAsync(parameters);
         }
 
-        /// <inheritdoc />
-        protected override Task OnParametersSetAsync()
+        bool preventKeyPress;
+        bool stopKeypressPropagation;
+        async Task OnKeyPress(KeyboardEventArgs args, Task task)
         {
-            contentStyle = collapsed ? "display: none;" : "";
-            summaryContentStyle = !collapsed ? "display: none" : "";
+            var key = args.Code != null ? args.Code : args.Key;
 
-            return base.OnParametersSetAsync();
+            if (key == "Space" || key == "Enter")
+            {
+                preventKeyPress = true;
+                stopKeypressPropagation = true;
+
+                await task;
+            }
+            else
+            {
+                preventKeyPress = false;
+                stopKeypressPropagation = false;
+            }
         }
     }
 }

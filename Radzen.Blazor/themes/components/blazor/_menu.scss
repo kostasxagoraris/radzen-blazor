@@ -1,118 +1,269 @@
-$menu-background-color: $default-background-color !default;
-$menu-border: $input-border !default;
+$menu-background-color: var(--rz-base-background-color) !default;
+$menu-border: var(--rz-border-normal) !default;
 $menu-border-radius: 2px !default;
-
-$menu-item-padding: 0.375rem 1.25rem !default;
-$menu-item-color: $charcoal-grey !default;
-$menu-item-selected-color: $charcoal-grey !default;
-$menu-item-icon-margin: 0 0.625rem 0 0 !default;
-$menu-item-hover-background-color: $default-link !default;
-$menu-item-hover-color: $white !default;
-$menu-item-offset: 0.75rem;
+$menu-item-padding-block: 0.5rem !default;
+$menu-item-padding-inline: 0.5rem 1rem !default;
+$menu-item-border-radius: 0 !default;
+$menu-item-color: var(--rz-text-color) !default;
+$menu-item-hover-color: var(--rz-on-secondary-light) !default;
+$menu-item-hover-background-color: var(--rz-secondary-light) !default;
+$menu-item-focus-outline: var(--rz-outline-focus) !default;
+$menu-item-focus-outline-offset: calc(-1 * var(--rz-outline-width)) !default;
+$menu-item-selected-color: var(--rz-secondary) !default;
+$menu-item-selected-background-color: transparent !default;
+$menu-item-icon-margin-inline: 0 0.5rem !default;
+$menu-item-icon-color: $menu-item-color !default;
+$menu-item-icon-hover-color: $menu-item-hover-color !default;
+$menu-item-offset: 1rem;
 $menu-item-transition: none !default;
-
-$menu-top-item-padding: 0.8125rem 0.625rem !default;
-$menu-top-item-hover-color: $default-link !default;
-$menu-top-item-hover-background-color: transparent !default;
-$menu-top-item-background-color: $menu-background-color !default;
+$menu-item-disabled-opacity: 0.2 !default;
+$menu-top-item-padding-block: 0.5rem !default;
+$menu-top-item-padding-inline: 0.5rem !default;
+$menu-top-item-border-radius: $menu-item-border-radius !default;
 $menu-top-item-color: $menu-item-color !default;
+$menu-top-item-background-color: $menu-background-color !default;
+$menu-top-item-hover-color: var(--rz-secondary) !default;
+$menu-top-item-hover-background-color: transparent !default;
+$menu-top-item-selected-color: var(--rz-secondary) !default;
+$menu-top-item-selected-background-color: transparent !default;
+$menu-top-item-icon-color: $menu-top-item-color !default;
+$menu-top-item-icon-hover-color: $menu-top-item-hover-color !default;
+$context-menu-padding-block: 0 !default;
+$context-menu-padding-inline: 0 !default;
+$context-menu-box-shadow: $rz-shadow-3 !default;
 
-$context-menu-box-shadow: 0 10px 8px 0 rgba(58, 71, 77, 0.06) !default;
+.rz-context-menu {
+  box-sizing: border-box;
 
-.rz-context-menu .rz-menu {
+  .rz-menu {
     flex-direction: column;
+  }
 }
 
 .rz-context-menu .rz-menu, .rz-context-menu .rz-navigation-menu {
-  box-shadow: $context-menu-box-shadow;
-  border: $menu-border;
-  border-radius: $menu-border-radius;
+  box-shadow: var(--rz-context-menu-box-shadow);
+  border: var(--rz-menu-border);
+  border-radius: var(--rz-menu-border-radius);
 }
 
-.rz-menu:not(.rz-profile-menu) {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-
-  background-color: $menu-top-item-background-color;
+.rz-context-menu .rz-menu:not(.rz-profile-menu) {
+  align-items: stretch;
+  background-color: var(--rz-menu-background-color);
 
   .rz-navigation-item-link {
-    color: $menu-top-item-color;
-    white-space: nowrap;
+    color: var(--rz-menu-item-color);
+
+    .rzi:not(.rz-navigation-item-icon-children) {
+      color: var(--rz-menu-item-icon-color);
+    }
   }
 
   .rz-navigation-item-wrapper {
+    border-radius: var(--rz-menu-item-border-radius);;
 
     .rz-navigation-item-link {
-      padding: $menu-top-item-padding;
+      padding-block: var(--rz-menu-item-padding-block);
+      padding-inline: var(--rz-menu-item-padding-inline);
     }
 
     &:hover {
-      background-color: $menu-top-item-hover-background-color;
+      background-color: var(--rz-menu-item-hover-background-color);
 
       .rz-navigation-item-link {
-        color: $menu-top-item-hover-color;
+        color: var(--rz-menu-item-hover-color);
+
+        .rzi:not(.rz-navigation-item-icon-children) {
+          color: var(--rz-menu-item-icon-hover-color);
+        }
       }
     }
   }
 
   .rz-navigation-item-wrapper-active {
+    background-color: var(--rz-menu-item-selected-background-color);
+
     .rz-navigation-item-link {
-      color: $menu-item-selected-color;
+      color: var(--rz-menu-item-selected-color);
+
+      .rzi:not(.rz-navigation-item-icon-children) {
+        color: var(--rz-menu-item-selected-color);
+      }
     }
   }
 
   > .rz-navigation-item {
     > .rz-navigation-item-wrapper-active {
       &:before {
-        position: absolute;
-        content: '';
-        bottom: -2px;
-        height: 1px;
-        left: 0;
-        right: 0;
-        background-color: $menu-item-selected-color;
-        margin-left: 0.75rem;
+       display: none;
+      }
+    }
+  }
+}
+
+.rz-menu:not(.rz-profile-menu) {
+  box-sizing: border-box;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  background-color: var(--rz-menu-top-item-background-color);
+
+  .rz-context-menu & {
+    padding-block: var(--rz-context-menu-padding-block);
+    padding-inline: var(--rz-context-menu-padding-inline);
+  }
+
+  // Top menu items
+  .rz-navigation-item-link {
+    padding-block: var(--rz-menu-top-item-padding-block);
+    padding-inline: var(--rz-menu-top-item-padding-inline);
+    color: var(--rz-menu-top-item-color);
+    white-space: nowrap;
+
+    .rzi:not(.rz-navigation-item-icon-children) {
+      color: var(--rz-menu-top-item-icon-color);
+    }
+
+    &.active {
+      color: var(--rz-menu-top-item-selected-color);
+
+      .rzi:not(.rz-navigation-item-icon-children) {
+        color: var(--rz-menu-top-item-selected-color);
+      }
+    }
+
+    // Expand-collapse top item icon
+    .rz-navigation-item-icon-children {
+  
+      &.rz-state-expanded {
+        transform: rotate(180deg);
+        transition: transform var(--rz-expander-transition);
+      }
+  
+      &.rz-state-collapsed {
+        transform: rotate(0);
+        transition: transform var(--rz-expander-transition);
+      }
+    }
+  }
+
+  .rz-navigation-item-wrapper {
+    border-radius: var(--rz-menu-top-item-border-radius);
+
+    &:has(>.active) {
+      background-color: var(--rz-menu-top-item-selected-background-color);
+    }
+
+    &:hover,
+    &:has(>.active):hover {
+      background-color: var(--rz-menu-top-item-hover-background-color);
+
+      .rz-navigation-item-link {
+        color: var(--rz-menu-top-item-hover-color);
+
+        .rzi:not(.rz-navigation-item-icon-children) {
+          color: var(--rz-menu-top-item-icon-hover-color);
+        }
+      }
+    }
+  }
+
+  .rz-navigation-item-wrapper-active {
+    background-color: var(--rz-menu-top-item-selected-background-color);
+
+    .rz-navigation-item-link {
+      color: var(--rz-menu-top-item-selected-color);
+
+      .rzi:not(.rz-navigation-item-icon-children) {
+        color: var(--rz-menu-top-item-selected-color);
+      }
+    }
+  }
+
+  &:focus {
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-menu-item-focus-outline);
+    .rz-navigation-item {
+      &.rz-state-focused {
+        > .rz-navigation-item-wrapper {
+          outline: var(--rz-menu-item-focus-outline);
+          outline-offset: var(--rz-menu-item-focus-outline-offset);
+        }
       }
     }
   }
 
   .rz-navigation-item {
     position: relative;
-    z-index: 2;
   }
 
   .rz-navigation-menu {
     list-style: none;
     overflow: hidden;
     position: absolute;
-    padding: 0;
+    padding-block: var(--rz-context-menu-padding-block);
+    padding-inline: var(--rz-context-menu-padding-inline);
     margin: 0;
     min-width: 100%;
-    box-shadow: $context-menu-box-shadow;
-
-    border-radius: $menu-border-radius;
-    background-color: $menu-background-color;
+    box-shadow: var(--rz-context-menu-box-shadow);
+    z-index: 3;
+    border-radius: var(--rz-menu-border-radius);
+    background-color: var(--rz-menu-background-color);
 
     .rz-navigation-item-wrapper {
+      border-radius: var(--rz-menu-item-border-radius);
 
-      .rz-navigation-item-link {
-        padding: $menu-item-padding;
+      &:has(>.active) {
+        background-color: var(--rz-menu-item-selected-background-color);
       }
 
-      &:hover {
-        background-color: $menu-item-hover-background-color;
+      &:hover,
+      &:has(>.active):hover {
+        background-color: var(--rz-menu-item-hover-background-color);
 
         .rz-navigation-item-link {
-          color: $menu-item-hover-color;
+          color: var(--rz-menu-item-hover-color);
+
+          .rzi:not(.rz-navigation-item-icon-children) {
+            color: var(--rz-menu-item-icon-hover-color);
+          }
+        }
+      }
+    }
+
+    .rz-navigation-item-wrapper-active {
+      background-color: var(--rz-menu-item-selected-background-color);
+
+      .rz-navigation-item-link {
+        color: var(--rz-menu-item-selected-color);
+
+        .rzi:not(.rz-navigation-item-icon-children) {
+          color: var(--rz-menu-item-selected-color);
         }
       }
     }
 
     .rz-navigation-item-link {
-      color: $menu-item-color;
+      padding-block: var(--rz-menu-item-padding-block);
+      padding-inline: var(--rz-menu-item-padding-inline);
+      color: var(--rz-menu-item-color);
       white-space: nowrap;
+
+      .rzi:not(.rz-navigation-item-icon-children) {
+        color: var(--rz-menu-item-icon-color);
+      }
+
+        &.active {
+        color: var(--rz-menu-item-selected-color);
+
+        .rzi:not(.rz-navigation-item-icon-children) {
+          color: var(--rz-menu-item-selected-color);
+        }
+      }
     }
 
     .rz-navigation-menu {
@@ -120,18 +271,17 @@ $context-menu-box-shadow: 0 10px 8px 0 rgba(58, 71, 77, 0.06) !default;
       box-shadow: none;
 
       .rz-navigation-item-link {
-        color: $menu-item-color;
-        margin-left: $menu-item-offset;
+        margin-inline-start: var(--rz-menu-item-offset);
       }
 
       .rz-navigation-menu {
         .rz-navigation-item-link {
-          margin-left: $menu-item-offset * 2;
+          margin-inline-start: calc(var(--rz-menu-item-offset) * 2);
         }
 
         .rz-navigation-menu {
           .rz-navigation-item-link {
-            margin-left: $menu-item-offset * 3;
+            margin-inline-start: calc(var(--rz-menu-item-offset) * 3);
           }
         }
       }
@@ -139,37 +289,137 @@ $context-menu-box-shadow: 0 10px 8px 0 rgba(58, 71, 77, 0.06) !default;
   }
 
   .rzi:not(.rz-navigation-item-icon-children) {
-    margin: $menu-item-icon-margin;
+    margin-inline: var(--rz-menu-item-icon-margin-inline);
+  }
+}
+
+// Flyout mode: nested submenus fly out horizontally
+.rz-menu-flyout:not(.rz-profile-menu) {
+  .rz-navigation-menu {
+    overflow: visible;
+  }
+
+  .rz-navigation-menu .rz-navigation-menu {
+    position: absolute;
+    inset-inline-start: 100%;
+    top: 0;
+    box-shadow: var(--rz-context-menu-box-shadow);
+    min-width: max-content;
+    z-index: 4;
+    background-color: var(--rz-menu-background-color);
+    border-radius: var(--rz-menu-border-radius);
+
+    &[data-flyout-flip] {
+      inset-inline-start: auto;
+      inset-inline-end: 100%;
+    }
+
+    .rz-navigation-item-link {
+      margin-inline-start: 0;
+    }
+
+    .rz-navigation-item-text {
+      flex: none;
+    }
+
+    .rz-navigation-menu {
+      .rz-navigation-item-link {
+        margin-inline-start: 0;
+      }
+
+      .rz-navigation-menu .rz-navigation-item-link {
+        margin-inline-start: 0;
+      }
+    }
+  }
+
+  .rz-navigation-item-link .rz-navigation-item-icon-children {
+    transition: none;
+
+    &, &.rz-state-expanded, &.rz-state-collapsed {
+      transform: none;
+    }
+  }
+}
+
+// Context menu flyout: first-level submenus should also fly out to the side
+.rz-context-menu .rz-menu-flyout:not(.rz-profile-menu) {
+  > .rz-navigation-item > .rz-navigation-menu {
+    inset-inline-start: 100%;
+    top: 0;
+    min-width: max-content;
+    z-index: 4;
+
+    &[data-flyout-flip] {
+      inset-inline-start: auto;
+      inset-inline-end: 100%;
+    }
+
+    .rz-navigation-item-link {
+      margin-inline-start: 0;
+    }
+  }
+}
+
+*[dir="rtl"] .rz-menu-flyout:not(.rz-profile-menu) .rz-navigation-item-link .rz-navigation-item-icon-children {
+  &, &.rz-state-expanded, &.rz-state-collapsed {
+    transform: scaleX(-1);
   }
 }
 
 .rz-navigation-item-wrapper,
 .rz-navigation-item-link,
 .rz-navigation-item-text {
-    transition: $menu-item-transition;
+  transition: var(--rz-menu-item-transition);
+}
+
+li.rz-navigation-item.rz-state-disabled {
+    opacity: var(--rz-menu-item-disabled-opacity);
+    cursor: initial;
+    pointer-events: none;
 }
 
 .rz-menu-toggle-item {
-    display: none;
-    padding: $menu-top-item-padding;
-    text-align: right;
-    width: 100%;
-    height: 100%;
+  display: none;
+  padding-block: var(--rz-menu-top-item-padding-block);
+  padding-inline: var(--rz-menu-top-item-padding-inline);
+  justify-content: end;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .rz-menu-toggle {
-    appearance: none;
-    background-color: transparent;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
+  appearance: none;
+  background-color: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--rz-menu-top-item-color);
 
-    &:active {
-      background-color: transparent;
-      color: inherit;
+  &:hover {
+    background-color: transparent;
+    color: var(--rz-menu-top-item-hover-color);
+  }
+
+  &:active {
+    background-color: transparent;
+    color: var(--rz-menu-top-item-color);
+  }
+
+  .rz-context-menu & {
+    color: var(--rz-menu-item-color);
+
+    &:hover {
+      color: var(--rz-menu-item-hover-color);
     }
+  
+    &:active {
+      color: var(--rz-menu-item-color);
+    }
+  }
 }
 
 @media (max-width: 768px) {
@@ -194,11 +444,21 @@ $context-menu-box-shadow: 0 10px 8px 0 rgba(58, 71, 77, 0.06) !default;
       .rz-navigation-menu {
         position: static;
         box-shadow: none;
+        border-radius: 0;
+      }
+    }
+
+    &.rz-menu-flyout.rz-menu-open {
+      .rz-navigation-menu .rz-navigation-menu {
+        position: static;
+        box-shadow: none;
+        inset-inline-start: auto;
+        top: auto;
       }
     }
 
     .rz-menu-toggle-item {
-      display: block;
+      display: flex;
     }
 
     .rz-navigation-item-wrapper-active:before {

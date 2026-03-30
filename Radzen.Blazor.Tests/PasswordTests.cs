@@ -119,13 +119,45 @@ namespace Radzen.Blazor.Tests
 
             var component = ctx.RenderComponent<RadzenPassword>();
 
-            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, false));
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", false));
 
             Assert.Contains(@$"autocomplete=""new-password""", component.Markup);
 
-            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, true));
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
 
             Assert.Contains(@$"autocomplete=""on""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("autocomplete", "custom"));
+
+            Assert.Contains(@$"autocomplete=""custom""", component.Markup);
+        }
+
+        [Fact]
+        public void Password_Renders_TypedAutoCompleteParameter()
+        {
+            using var ctx = new TestContext();
+
+            var component = ctx.RenderComponent<RadzenPassword>();
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", false));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.On));
+
+            Assert.Contains(@$"autocomplete=""new-password""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.Off));
+
+            Assert.Contains(@$"autocomplete=""off""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.CurrentPassword));
+
+            Assert.Contains(@$"autocomplete=""{AutoCompleteType.CurrentPassword.GetAutoCompleteValue()}""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.NewPassword));
+
+            Assert.Contains(@$"autocomplete=""{AutoCompleteType.NewPassword.GetAutoCompleteValue()}""", component.Markup);
         }
 
         [Fact]
@@ -139,24 +171,49 @@ namespace Radzen.Blazor.Tests
 
             Assert.Contains(@$"autofocus", component.Markup);
         }
-        
+
         [Fact]
         public void Password_Raises_ChangedEvent()
         {
             using var ctx = new TestContext();
-
-            var component = ctx.RenderComponent<RadzenPassword>();
-
-            var raised = false;
+            var hasRaised = false;
             var value = "Test";
             object newValue = null;
 
-            component.SetParametersAndRender(parameters => parameters.Add(p => p.Change, args => { raised = true; newValue = args; }));
+            var component = ctx.RenderComponent<RadzenPassword>(parameters =>
+            {
+                parameters.Add(p => p.Change, args => { hasRaised = true; newValue = args; });
+                parameters.Add(p => p.Immediate, false);
+            });
 
-            component.Find("input").Change(value);
+            var inputElement = component.Find("input");
+            inputElement.Change(value);
 
-            Assert.True(raised);
-            Assert.True(object.Equals(value, newValue));
+            Assert.DoesNotContain("oninput", inputElement.ToMarkup());
+            Assert.True(hasRaised);
+            Assert.Equal(value, newValue);
+        }
+
+        [Fact]
+        public void Password_Raises_InputEvent()
+        {
+            using var ctx = new TestContext();
+            var hasRaised = false;
+            var value = "Test";
+            object newValue = null;
+
+            var component = ctx.RenderComponent<RadzenPassword>(parameters =>
+            {
+                parameters.Add(p => p.Change, args => { hasRaised = true; newValue = args; });
+                parameters.Add(p => p.Immediate, true);
+            });
+
+            var inputElement = component.Find("input");
+            inputElement.Input(value);
+
+            Assert.DoesNotContain("onchange", inputElement.ToMarkup());
+            Assert.True(hasRaised);
+            Assert.Equal(value, newValue);
         }
 
         [Fact]

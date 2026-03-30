@@ -1,60 +1,96 @@
-﻿@page "/slider"
-@using System.Collections
-<RadzenExample Name="Slider">
-<div class="row px-3">
-    <div class="col-md-6 col-lg-4 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Slider from 0 to 100</h4>
-            <RadzenSlider @bind-Value=@value TValue="int" Min="0" Max="100" Change=@(args => OnChange(args, "Slider from 0 to 100")) Class="w-100" />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Slider from -100 to 100</h4>
-            <RadzenSlider @bind-Value=@negativeValue TValue="int" Min="-100" Max="100" Change=@(args => OnChange(args, "Slider from -100 to 100")) Class="w-100" />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Slider with Step 10</h4>
-            <RadzenSlider @bind-Value=@valueWithStep TValue="int" Step="10" Change=@(args => OnChange(args, "Slider with Step 10")) Class="w-100" />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Range Slider</h4>
-            <RadzenSlider Range="true" @bind-Value=@values TValue="IEnumerable<int>" Change=@(args => OnChange(args, "Range Slider")) Class="w-100" />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Range Slider with negative values</h4>
-            <RadzenSlider Range="true" @bind-Value=@negativeValues Min="-100" Max="100" TValue="IEnumerable<int>" Change=@(args => OnChange(args, "Range Slider with negative values")) Class="w-100" />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Disabled Slider</h4>
-            <RadzenSlider Disabled="true" @bind-Value=@value TValue="int" Min="0" Max="100" Change=@(args => OnChange(args, "Slider from 0 to 100")) Class="w-100" />
-        </RadzenCard>
-    </div>
-</div>
+@page "/slider"
+
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Blazor Slider
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    Range selection, step, and vertical orientation.
+</RadzenText>
+
+<RadzenText Anchor="slider#get-set-value" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Get and Set the value of Slider
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    As all Radzen Blazor input components the <strong>Slider</strong> has a Value property which gets and sets the value of the component. Use <code>@@bind-Value</code> to get the user input.
+</RadzenText>
+<RadzenExample ComponentName="Slider" Example="SliderBindValue">
+    <SliderBindValue />
 </RadzenExample>
 
-<EventConsole @ref=@console Class="mt-4" />
+<RadzenText  Anchor="slider#value-and-change-event"TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Get and Set the value of Slider using Value and Change event
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Value property can be used to set the value of the component and <code>Change</code> event to get the user input.
+</RadzenText>
+<RadzenExample ComponentName="Slider" Example="SliderChangeEvent">
+    <SliderChangeEvent />
+</RadzenExample>
+
+<RadzenText Anchor="slider#min-max-value" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Slider from -100 to 100
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>Min</code> and <code>Max</code> properties to define the minimum and maximum values for the slider range.
+</RadzenText>
+<RadzenExample ComponentName="Slider" Example="SliderMinMax">
+    <SliderMinMax />
+</RadzenExample>
+
+<RadzenText Anchor="slider#step" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Slider with Step=10
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>Step</code> property to define the increment/decrement value when moving the slider handle.
+</RadzenText>
+<RadzenExample ComponentName="Slider" Example="SliderStep">
+    <SliderStep />
+</RadzenExample>
+
+<RadzenText Anchor="slider#range-slider" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Range Slider
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use <code>Range="true"</code> to enable range selection mode with two handles for selecting a value range.
+</RadzenText>
+<RadzenExample ComponentName="Slider" Example="SliderRange">
+    <SliderRange />
+</RadzenExample>
+
+<RadzenText Anchor="slider#disabled-slider" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Disabled Slider
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use <code>Disabled="true"</code> to disable the Slider and prevent user interaction.
+</RadzenText>
+<RadzenExample ComponentName="Slider" Example="SliderDisabled">
+    <SliderDisabled />
+</RadzenExample>
+
+<RadzenText Anchor="slider#vertical-slider" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Vertical Slider
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use <code>Orientation="Orientation.Vertical"</code> to display the Slider in a vertical orientation.
+</RadzenText>
+<RadzenExample ComponentName="Slider" Example="SliderVertical">
+    <SliderVertical />
+</RadzenExample>
+
+<RadzenText Anchor="slider#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor Slider component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@shortcuts" />
 
 @code {
-    IEnumerable<int> values = new int[] { 14, 78 };
-    IEnumerable<int> negativeValues = new int[] { -100, 100 };
-    int value = 67;
-    int negativeValue = 0;
-    int valueWithStep = 30;
-
-    EventConsole console;
-
-    void OnChange(dynamic value, string name)
+    public List<KeyboardShortcut> shortcuts = new()
     {
-        var str = value is IEnumerable ? string.Join(", ", value) : value;
-        console.Log($"{name} value changed to {str}");
-    }
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate to a Slider handle." },
+        new KeyboardShortcut { Key = "RightArrow on a focused Slider handle", Action = "Increase the Slider value with the Step configured." },
+        new KeyboardShortcut { Key = "LeftArrow on a focused Slider handle", Action = "Decrease the Slider value with the Step configured." }
+    };
 }

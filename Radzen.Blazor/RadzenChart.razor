@@ -13,7 +13,7 @@
 {
     <CascadingValue Value="@this">
         <Legend />
-        <svg style="width: 100%; height: 100%">
+        <svg style="width: 100%; height: 100%; overflow: visible;">
             <g transform="@($"translate({MarginLeft.ToInvariantString()}, {MarginTop.ToInvariantString()})")">
                 <ClipPath />
                 @if(ShouldRenderAxes())
@@ -26,6 +26,7 @@
                     @if (series.Visible)
                     {
                         @series.Render(CategoryScale, ValueScale);
+                        @series.RenderOverlays(CategoryScale, ValueScale);
                     }
                 }
             </g>
@@ -37,10 +38,7 @@
                 @donut.RenderTitle(MarginLeft, MarginTop)
             }
         }
-    @if (tooltip != null)
-    {
-        @tooltip
-    }
+
     </CascadingValue>
 }
 </div>

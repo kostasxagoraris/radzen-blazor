@@ -17,9 +17,12 @@ namespace Radzen.Blazor
     public partial class RadzenMonthView : SchedulerViewBase
     {
         /// <inheritdoc />
+        public override string Icon => "calendar_view_month";
+
+        /// <inheritdoc />
         public override string Title
         {
-            get => Scheduler.CurrentDate.ToString("MMMM yyyy", Scheduler.Culture);
+            get => Scheduler?.CurrentDate.ToString("MMMM yyyy", Scheduler.Culture ?? System.Globalization.CultureInfo.CurrentCulture) ?? "";
         }
 
         /// <inheritdoc />
@@ -45,7 +48,7 @@ namespace Radzen.Blazor
         {
             get
             {
-                return Scheduler.CurrentDate.Date.StartOfMonth().StartOfWeek();
+                return Scheduler?.CurrentDate.Date.StartOfMonth().StartOfWeek(Scheduler.Culture ?? System.Globalization.CultureInfo.CurrentCulture) ?? DateTime.Today.StartOfMonth().StartOfWeek(System.Globalization.CultureInfo.CurrentCulture);
             }
         }
 
@@ -54,20 +57,20 @@ namespace Radzen.Blazor
         {
             get
             {
-                return Scheduler.CurrentDate.Date.EndOfMonth().EndOfWeek().AddDays(1);
+                return Scheduler?.CurrentDate.Date.EndOfMonth().EndOfWeek(Scheduler.Culture ?? System.Globalization.CultureInfo.CurrentCulture).AddDays(1) ?? DateTime.Today.EndOfMonth().EndOfWeek(System.Globalization.CultureInfo.CurrentCulture).AddDays(1);
             }
         }
 
         /// <inheritdoc />
         public override DateTime Next()
         {
-            return Scheduler.CurrentDate.Date.StartOfMonth().AddMonths(1);
+            return Scheduler?.CurrentDate.Date.StartOfMonth().AddMonths(1) ?? DateTime.Today.StartOfMonth().AddMonths(1);
         }
 
         /// <inheritdoc />
         public override DateTime Prev()
         {
-            return Scheduler.CurrentDate.Date.StartOfMonth().AddMonths(-1);
+            return Scheduler?.CurrentDate.Date.StartOfMonth().AddMonths(-1) ?? DateTime.Today.StartOfMonth().AddMonths(-1);
         }
     }
 }

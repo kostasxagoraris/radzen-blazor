@@ -1,4 +1,4 @@
-<div class="rz-chart-tooltip @Class" style="left: @(X.ToInvariantString())px; top: @(Y.ToInvariantString())px">
+<div class="rz-chart-tooltip @Class">
     <div class="rz-chart-tooltip-content" style="@Style">
     @if (ChildContent != null)
     {
@@ -6,9 +6,9 @@
     }
     else
     {
-        <div>@Title</div>
+        <div class="rz-chart-tooltip-title">@Title</div>
         <label>@($"{Label}:")
-            <strong>@Value</strong>
+            <span class="rz-chart-tooltip-item-value">@Value</span>
         </label>
     }
     </div>
@@ -16,26 +16,20 @@
 
 @code {
     [Parameter]
-    public string Style { get; set; }
+    public string? Style { get; set; }
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public double X { get; set; }
+    public string? Title { get; set; }
 
     [Parameter]
-    public double Y { get; set; }
+    public string? Value { get; set; }
 
     [Parameter]
-    public string Title { get; set; }
+    public string? Label { get; set; }
 
     [Parameter]
-    public string Value { get; set; }
-
-    [Parameter]
-    public string Label { get; set; }
-
-    [Parameter]
-    public string Class { get; set; }
+    public string? Class { get; set; }
 }

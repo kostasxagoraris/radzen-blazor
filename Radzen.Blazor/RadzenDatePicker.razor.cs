@@ -1,77 +1,177 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Radzen.Blazor.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace Radzen.Blazor
 {
     /// <summary>
-    /// RadzenDatePicker component.
+    /// A date and time picker component that provides a calendar popup for selecting dates and optional time selection.
+    /// RadzenDatePicker supports DateTime, DateTime?, DateTimeOffset, DateTimeOffset?, DateOnly, and DateOnly? types with extensive customization options.
+    /// Displays a text input with a calendar icon button. Clicking opens a popup calendar for date selection.
+    /// Optional time selection can be enabled via ShowTime property, supporting both 12-hour and 24-hour formats.
+    /// Supports features like min/max date constraints, disabled dates, initial view configuration, calendar week display,
+    /// inline calendar mode (always visible), time-only mode, multiple date selection, and culture-specific formatting.
     /// </summary>
-    /// <typeparam name="TValue">The type of the t value.</typeparam>
+    /// <typeparam name="TValue">The type of the date/time value. Supports DateTime, DateTime?, DateTimeOffset, DateTimeOffset?, DateOnly, and DateOnly?.</typeparam>
     /// <example>
+    /// Basic date picker:
     /// <code>
-    /// &lt;RadzenDatePicker @bind-Value=@someValue TValue="DateTime" Change=@(args => Console.WriteLine($"Selected date: {args}")) /&gt;
+    /// &lt;RadzenDatePicker @bind-Value=@birthDate TValue="DateTime" Placeholder="Select date" /&gt;
+    /// </code>
+    /// Date and time picker with 12-hour format:
+    /// <code>
+    /// &lt;RadzenDatePicker @bind-Value=@appointmentDate TValue="DateTime" ShowTime="true" TimeOnly="false" HoursStep="1" MinutesStep="15" /&gt;
+    /// </code>
+    /// Date picker with constraints:
+    /// <code>
+    /// &lt;RadzenDatePicker @bind-Value=@selectedDate TValue="DateTime" Min="@DateTime.Today" Max="@DateTime.Today.AddMonths(6)" /&gt;
     /// </code>
     /// </example>
     public partial class RadzenDatePicker<TValue> : RadzenComponent, IRadzenFormComponent
     {
-        RadzenDropDown<int> monthDropDown;
-        RadzenDropDown<int> yearDropDown;
+        /// <summary>
+        /// Gets or sets a value indicating whether the component should update its value on every input event
+        /// rather than waiting for the input to lose focus (onchange event).
+        /// When enabled, the bound value is updated as the user types, provided the input can be parsed as a valid date.
+        /// Invalid intermediate input is ignored to avoid clearing the value while the user is still typing.
+        /// </summary>
+        /// <value><c>true</c> for immediate updates; <c>false</c> for deferred updates. Default is <c>false</c>.</value>
+        [Parameter]
+        public bool Immediate { get; set; }
 
-        async Task AmToPm()
+        /// <summary>
+        /// Gets or sets whether the calendar week number column should be displayed in the calendar popup.
+        /// When enabled, each week row shows its corresponding week number according to ISO 8601.
+        /// </summary>
+        /// <value><c>true</c> to show calendar week numbers; otherwise, <c>false</c>. Default is <c>false</c>.</value>
+        [Parameter]
+        public bool ShowCalendarWeek { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether multiple dates can be selected.
+        /// When enabled, users can select multiple dates from the calendar, and the value will be a collection of DateTimes.
+        /// </summary>
+        /// <value><c>true</c> to enable multiple date selection; otherwise, <c>false</c>. Default is <c>false</c>.</value>
+        [Parameter]
+        public bool Multiple { get; set; }
+
+        // Holds selected dates when Multiple is true
+        List<DateTime> selectedDates = new List<DateTime>();
+
+        /// <summary>
+        /// Gets or sets the previous month aria label text.
+        /// </summary>
+        /// <value>The previous month aria label text.</value>
+        [Parameter]
+        public string CalendarWeekTitle { get; set; } = "#";
+
+        /// <summary>
+        /// Gets or sets the toggle popup aria label text.
+        /// </summary>
+        /// <value>The toggle popup aria label text.</value>
+        [Parameter]
+        public string ToggleAriaLabel { get; set; } = "Toggle";
+
+        /// <summary>
+        /// Gets or sets the popup aria label text.
+        /// </summary>
+        /// <value>The popup aria label text.</value>
+        [Parameter]
+        public string PopupAriaLabel { get; set; } = "Date picker";
+
+        /// <summary>
+        /// Gets or sets the clear button aria label text.
+        /// </summary>
+        /// <value>The clear button aria label text.</value>
+        [Parameter]
+        public string ClearAriaLabel { get; set; } = "Clear";
+
+        /// <summary>
+        /// Gets or sets the hour input aria label text.
+        /// </summary>
+        /// <value>The hour input aria label text.</value>
+        [Parameter]
+        public string HourAriaLabel { get; set; } = "Hour";
+
+        /// <summary>
+        /// Gets or sets the minutes input aria label text.
+        /// </summary>
+        /// <value>The minutes input aria label text.</value>
+        [Parameter]
+        public string MinutesAriaLabel { get; set; } = "Minutes";
+
+        /// <summary>
+        /// Gets or sets the seconds input aria label text.
+        /// </summary>
+        /// <value>The seconds input aria label text.</value>
+        [Parameter]
+        public string SecondsAriaLabel { get; set; } = "Seconds";
+
+        /// <summary>
+        /// Gets or sets the OK button aria label text.
+        /// </summary>
+        /// <value>The OK button aria label text.</value>
+        [Parameter]
+        public string OkAriaLabel { get; set; } = "Ok";
+
+        /// <summary>
+        /// Gets or sets the previous month aria label text.
+        /// </summary>
+        /// <value>The previous month aria label text.</value>
+        [Parameter]
+        public string PrevMonthAriaLabel { get; set; } = "Previous month";
+
+        /// <summary>
+        /// Gets or sets the next month aria label text.
+        /// </summary>
+        /// <value>The next month aria label text.</value>
+        [Parameter]
+        public string NextMonthAriaLabel { get; set; } = "Next month";
+
+        /// <summary>
+        /// Gets or sets the toggle Am/Pm aria label text.
+        /// </summary>
+        /// <value>The toggle Am/Pm aria label text.</value>
+        [Parameter]
+        public string ToggleAmPmAriaLabel { get; set; } = "Toggle Am/Pm";
+
+        /// <summary>
+        /// Specifies additional custom attributes that will be rendered by the input.
+        /// </summary>
+        /// <value>The attributes.</value>
+        [Parameter]
+        public IReadOnlyDictionary<string, object>? InputAttributes { get; set; }
+
+        RadzenDropDown<int>? monthDropDown;
+        RadzenDropDown<int>? yearDropDown;
+
+        async Task ToggleAmPm()
         {
-            if (amPm == "am" && !Disabled)
-            {
-                amPm = "pm";
+            if (Disabled) return;
 
-                var currentHour = ((CurrentDate.Hour + 11) % 12) + 1;
+            var newHour = (CurrentDate.Hour + 12) % 24;
 
-                var newHour = currentHour - 12;
+            var newValue = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, newHour, CurrentDate.Minute, CurrentDate.Second);
 
-                if (newHour < 1)
-                {
-                    newHour = currentHour;
-                }
-
-                var newValue = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, newHour, CurrentDate.Minute, CurrentDate.Second);
-
-                if (!object.Equals(newValue, Value))
-                {
-                    await UpdateValueFromTime(newValue);
-                }
-            }
+            hour = newValue.Hour;
+            await UpdateValueFromTime(newValue);
         }
 
-        async Task PmToAm()
+        int GetHour24FormatFrom12Format(int hour12)
         {
-            if (amPm == "pm" && !Disabled)
-            {
-                amPm = "am";
+            hour12 = Math.Max(Math.Min(hour12, 12), 1);
 
-                var currentHour = ((CurrentDate.Hour + 11) % 12) + 1;
-
-                var newHour = currentHour + 12;
-
-                if (newHour > 23)
-                {
-                    newHour = 0;
-                }
-
-                var newValue = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, newHour, CurrentDate.Minute, CurrentDate.Second);
-
-                if (!object.Equals(newValue, Value))
-                {
-                    await UpdateValueFromTime(newValue);
-                }
-            }
+            return CurrentDate.Hour < 12 ?
+                (hour12 == 12 ? 0 : hour12) // AM
+                : (hour12 == 12 ? 12 : hour12 + 12); // PM
         }
 
         int? hour;
@@ -79,25 +179,27 @@ namespace Radzen.Blazor
         void OnUpdateHourInput(ChangeEventArgs args)
         {
             var value = $"{args.Value}";
-            if (!string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int v))
             {
-                int outValue;
-                hour = int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out outValue) ? (int?)outValue : null;
+                hour = null;
+                return;
             }
-        }
 
+            hour = HourFormat == "12" ? GetHour24FormatFrom12Format(v) : Math.Max(Math.Min(v, 23), 0);
+        }
 
         int? minutes;
 
         void OnUpdateHourMinutes(ChangeEventArgs args)
         {
             var value = $"{args.Value}";
-            if (!string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int v))
             {
-                int outValue;
-                minutes = int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out outValue) ? (int?)outValue : null;
-
+                minutes = null;
+                return;
             }
+
+            minutes = Math.Max(Math.Min(v, 59), 0);
         }
 
         int? seconds;
@@ -105,17 +207,29 @@ namespace Radzen.Blazor
         void OnUpdateHourSeconds(ChangeEventArgs args)
         {
             var value = $"{args.Value}";
-            if (!string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int v))
             {
-                int outValue;
-                seconds = int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out outValue) ? (int?)outValue : null;
+                seconds = null;
+                return;
             }
+
+            seconds = Math.Max(Math.Min(v, 59), 0);
         }
+
+        DateTime? _valueBeforeTimeEdit;
+        bool _hasUncommittedTimeChange;
 
         async Task UpdateValueFromTime(DateTime newValue)
         {
             if (ShowTimeOkButton)
             {
+                if (!_hasUncommittedTimeChange)
+                {
+                    _valueBeforeTimeEdit = _dateTimeValue;
+                    _hasUncommittedTimeChange = true;
+                }
+
+                DateTimeValue = newValue;
                 CurrentDate = newValue;
             }
             else
@@ -125,17 +239,59 @@ namespace Radzen.Blazor
                 await OnChange();
             }
         }
+
+        void RevertUncommittedTimeChange()
+        {
+            if (!ShowTimeOkButton || !_hasUncommittedTimeChange) return;
+
+            _hasUncommittedTimeChange = false;
+
+            if (_valueBeforeTimeEdit.HasValue)
+            {
+                _dateTimeValue = _valueBeforeTimeEdit;
+                _value = ConvertToTValue(_dateTimeValue);
+            }
+            else
+            {
+                _dateTimeValue = null;
+                _value = null;
+            }
+
+            _currentDate = default(DateTime);
+            hour = null;
+            minutes = null;
+            seconds = null;
+        }
+
+        /// <summary>
+        /// Called from JavaScript when the popup is closed (e.g. by clicking outside) in Initial render mode.
+        /// </summary>
+        [JSInvokable("OnPopupClose")]
+        public void OnPopupClose()
+        {
+            RevertUncommittedTimeChange();
+            contentStyle = "display:none;";
+            StateHasChanged();
+        }
+
+        void OnPopupCloseFromEvent()
+        {
+            RevertUncommittedTimeChange();
+            contentStyle = "display:none;";
+            StateHasChanged();
+        }
+
         async Task UpdateHour(int v)
         {
-            var newHour = HourFormat == "12" && CurrentDate.Hour > 12 ? v + 12 : v;
+            var newHour = HourFormat == "12" ? GetHour24FormatFrom12Format(v) : v;
             var newMinute = CurrentDate.Minute;
             var newSecond = CurrentDate.Second;
 
             if (v < 0)
             {
-                newHour = 23;
-                newMinute = 59;
-                newSecond = 59;
+                newHour = string.IsNullOrEmpty(HoursStep) ? 23 : 0;
+                newMinute = string.IsNullOrEmpty(MinutesStep) ? 59 : 0;
+                newSecond = string.IsNullOrEmpty(SecondsStep) ? 59 : 0;
             }
 
             var newValue = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, newHour > 23 || newHour < 0 ? 0 : newHour, newMinute, newSecond);
@@ -160,16 +316,58 @@ namespace Radzen.Blazor
             await UpdateValueFromTime(newValue);
         }
 
-        async Task OkClick()
+        async Task OnOkClick(bool shouldClose = true, bool fromOkButton = false)
         {
+            // Prevent single-value change path in Multiple mode
+            if (Multiple)
+            {
+                if (Min.HasValue && CurrentDate < Min.Value || Max.HasValue && CurrentDate > Max.Value)
+                {
+                    return;
+                }
+
+                if (!Disabled)
+                {
+                    // Use the currently selected date (with current time if shown) and update the multi-selection
+                    var date = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, CurrentDate.Hour, CurrentDate.Minute, CurrentDate.Second);
+                    ToggleSelectedDate(date);
+                    await UpdateValueFromSelectedDates(date);
+                }
+
+                _hasUncommittedTimeChange = false;
+
+                if (shouldClose)
+                {
+                    Close();
+                }
+
+                if (fromOkButton && OkClick.HasDelegate)
+                {
+                    await OkClick.InvokeAsync(DateTimeValue);
+                }
+
+                return;
+            }
+
+            _hasUncommittedTimeChange = false;
+
+            if (shouldClose)
+            {
+                Close();
+            }
+
+            if(Min.HasValue && CurrentDate < Min.Value || Max.HasValue && CurrentDate > Max.Value)
+            {
+                return;
+            }
+
             if (!Disabled)
             {
                 DateTime date = CurrentDate;
 
                 if (CurrentDate.Hour != hour && hour != null)
                 {
-                    var newHour = HourFormat == "12" && CurrentDate.Hour > 12 ? hour.Value + 12 : hour.Value;
-                    date = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, newHour > 23 || newHour < 0 ? 0 : newHour, CurrentDate.Minute, CurrentDate.Second);
+                    date = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, hour.Value, CurrentDate.Minute, CurrentDate.Second);
                 }
 
                 if (CurrentDate.Minute != minutes && minutes != null)
@@ -186,14 +384,19 @@ namespace Radzen.Blazor
 
                 await OnChange();
 
+                if (fromOkButton && OkClick.HasDelegate)
+                {
+                    await OkClick.InvokeAsync(DateTimeValue);
+                }
+
                 if (monthDropDown != null)
                 {
-                    await monthDropDown.ClosePopup();
+                    await monthDropDown.PopupClose();
                 }
 
                 if (yearDropDown != null)
                 {
-                    await yearDropDown.ClosePopup();
+                    await yearDropDown.PopupClose();
                 }
             }
         }
@@ -204,7 +407,7 @@ namespace Radzen.Blazor
             /// Gets or sets the name.
             /// </summary>
             /// <value>The name.</value>
-            public string Name { get; set; }
+            public string? Name { get; set; }
             /// <summary>
             /// Gets or sets the value.
             /// </summary>
@@ -212,18 +415,58 @@ namespace Radzen.Blazor
             public int Value { get; set; }
         }
 
-        IList<NameValue> months;
-        IList<NameValue> years;
+        IList<NameValue> months = new List<NameValue>();
+        IList<NameValue> years = new List<NameValue>();
+
+        int YearFrom { get; set; }
+        int YearTo { get; set; }
 
         /// <inheritdoc />
         protected override void OnInitialized()
         {
             base.OnInitialized();
 
-            months = Enumerable.Range(1, 12).Select(i => new NameValue() { Name = Culture.DateTimeFormat.GetMonthName(i), Value = i }).ToList();
-            years = Enumerable.Range(int.Parse(YearRange.Split(':').First()), int.Parse(YearRange.Split(':').Last()) - int.Parse(YearRange.Split(':').First()) + 1)
-                .Select(i => new NameValue() { Name = $"{i}", Value = i }).ToList();
+            YearFormatter = FormatYear;
+
+            UpdateYearsAndMonths(Min, Max);
+
+            if (typeof(TValue) == typeof(TimeOnly) || typeof(TValue) == typeof(TimeOnly?))
+            {
+                TimeOnly = true;
+                ShowTime = true;
+            }
         }
+
+        void UpdateYearsAndMonths(DateTime? min, DateTime? max)
+        {
+            YearFrom = min.HasValue ? min.Value.Year : int.Parse(YearRange.Split(':').First(), CultureInfo.InvariantCulture);
+            YearTo = max.HasValue ? max.Value.Year : int.Parse(YearRange.Split(':').Last(), CultureInfo.InvariantCulture);
+            months = Enumerable.Range(1, 12).Select(i => new NameValue() { Name = Culture?.DateTimeFormat?.GetMonthName(i) ?? string.Empty, Value = i }).ToList();
+            years = YearFrom <= YearTo ? Enumerable.Range(YearFrom, YearTo - YearFrom + 1)
+                .Select(i => new NameValue() { Name = YearFormatter != null ? YearFormatter(i) : null, Value = i }).ToList() : Enumerable.Empty<NameValue>().ToList();
+        }
+
+        private string FormatYear(int year)
+        {
+            year = Culture.Calendar.GetYear(new DateTime(year, 1, 1));
+
+            var date = new DateTime(year, 1, 1, Culture.Calendar);
+
+            return date.ToString(YearFormat, Culture);
+        }
+
+        /// <summary>
+        /// Gets or sets the year formatter. Set to <c>FormatYear</c> by default.
+        /// If set, this function will take precedence over <see cref="YearFormat"/>.
+        /// </summary>
+        [Parameter]
+        public Func<int, string>? YearFormatter { get; set; }
+
+        /// <summary>
+        /// Gets ot sets the year format. Set to <c>yyyy</c> by default.
+        /// </summary>
+        [Parameter]
+        public string YearFormat { get; set; } = "yyyy";
 
         /// <summary>
         /// Gets or sets a value indicating whether value can be cleared.
@@ -239,21 +482,46 @@ namespace Radzen.Blazor
         [Parameter]
         public int TabIndex { get; set; } = 0;
 
-        string amPm = "am";
-
         /// <summary>
         /// Gets or sets the name of the form component.
         /// </summary>
         /// <value>The name.</value>
         [Parameter]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Gets or sets the input CSS class.
         /// </summary>
         /// <value>The input CSS class.</value>
         [Parameter]
-        public string InputClass { get; set; }
+        public string InputClass { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets or sets the button CSS class.
+        /// </summary>
+        /// <value>The button CSS class.</value>
+        [Parameter]
+        public string ButtonClass { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the Minimum Selectable Date.
+        /// </summary>
+        /// <value>The Minimum Selectable Date.</value>
+        [Parameter]
+        public DateTime? Min { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Maximum Selectable Date.
+        /// </summary>
+        /// <value>The Maximum Selectable Date.</value>
+        [Parameter]
+        public DateTime? Max { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Initial Date/Month View.
+        /// </summary>
+        /// <value>The Initial Date/Month View.</value>
+        [Parameter]
+        public DateTime? InitialViewDate { get; set; }
 
         DateTime? _dateTimeValue;
 
@@ -278,11 +546,11 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The date render callback.</value>
         [Parameter]
-        public Action<DateRenderEventArgs> DateRender { get; set; }
+        public Action<DateRenderEventArgs>? DateRender { get; set; }
 
         DateRenderEventArgs DateAttributes(DateTime value)
         {
-            var args = new Radzen.DateRenderEventArgs() { Date = value, Disabled = false };
+            var args = new DateRenderEventArgs() { Date = value, Disabled = (Min.HasValue && value < Min.Value) || (Max.HasValue && value > Max.Value) };
 
             if (DateRender != null)
             {
@@ -292,20 +560,30 @@ namespace Radzen.Blazor
             return args;
         }
 
+        async Task OnDayKeyDown(KeyboardEventArgs args, DateTime date, DateRenderEventArgs dateArgs)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+            if ((key == "Enter" || key == "Space") && !Disabled && !dateArgs.Disabled)
+            {
+                await SetDay(date);
+            }
+        }
+
         /// <summary>
         /// Gets or sets the kind of DateTime bind to control
         /// </summary>
         [Parameter]
         public DateTimeKind Kind { get; set; } = DateTimeKind.Unspecified;
 
-        object _value;
+        object? _value;
+        TimeSpan? dateTimeOffsetValueOffset;
 
         /// <summary>
         /// Gets or sets the value.
         /// </summary>
         /// <value>The value.</value>
         [Parameter]
-        public object Value
+        public object? Value
         {
             get
             {
@@ -313,36 +591,173 @@ namespace Radzen.Blazor
             }
             set
             {
-                if (_value != value)
+                if (!EqualityComparer<object>.Default.Equals(value, _value))
                 {
-                    _value = value;
                     _currentDate = default(DateTime);
 
-                    DateTimeOffset? offset = value as DateTimeOffset?;
-                    if (offset != null && offset.HasValue)
+                    if (Multiple)
                     {
-                        _dateTimeValue = offset.Value.DateTime;
-                        _value = _dateTimeValue;
-                    }
-                    else
-                    {
-                        if (value is DateTime dateTime)
+                        if (value == null)
                         {
-                            DateTimeValue = DateTime.SpecifyKind(dateTime, Kind);
+                            selectedDates.Clear();
+                            _value = null;
+                            _dateTimeValue = null;
+                        }
+                        else if (value is IEnumerable<DateTime> dtEnum)
+                        {
+                            selectedDates = dtEnum.Where(d => d != default(DateTime) && d != DateTime.MaxValue)
+                                .Select(d => DateTime.SpecifyKind(d.Date, Kind))
+                                .Distinct()
+                                .OrderBy(d => d)
+                                .ToList();
+                            _value = dtEnum;
+                            _dateTimeValue = selectedDates.LastOrDefault();
+                        }
+                        else if (value is IEnumerable<DateTime?> ndtEnum)
+                        {
+                            selectedDates = ndtEnum.Where(d => d.HasValue && d.Value != default(DateTime) && d.Value != DateTime.MaxValue)
+                                .Select(d => DateTime.SpecifyKind(d!.Value.Date, Kind))
+                                .Distinct()
+                                .OrderBy(d => d)
+                                .ToList();
+                            _value = ndtEnum;
+                            _dateTimeValue = selectedDates.LastOrDefault();
+                        }
+                        else if (value is IEnumerable<DateOnly> doEnum)
+                        {
+                            selectedDates = doEnum.Select(d => d.ToDateTime(System.TimeOnly.MinValue, Kind).Date)
+                                .Distinct()
+                                .OrderBy(d => d)
+                                .ToList();
+                            _value = doEnum;
+                            _dateTimeValue = selectedDates.LastOrDefault();
+                        }
+                        else if (value is IEnumerable<DateTimeOffset?> dtoEnum)
+                        {
+                            selectedDates = dtoEnum.Where(o => o.HasValue)
+                                .Select(o =>
+                                {
+                                    var offset = o!.Value;
+                                    if (offset.Offset == TimeSpan.Zero && Kind == DateTimeKind.Local)
+                                    {
+                                        return offset.LocalDateTime.Date;
+                                    }
+                                    else if (offset.Offset != TimeSpan.Zero && Kind == DateTimeKind.Utc)
+                                    {
+                                        return offset.UtcDateTime.Date;
+                                    }
+                                    else
+                                    {
+                                        return DateTime.SpecifyKind(offset.DateTime, Kind).Date;
+                                    }
+                                })
+                                .Distinct()
+                                .OrderBy(d => d)
+                                .ToList();
+                            _value = dtoEnum;
+                            _dateTimeValue = selectedDates.LastOrDefault();
+                        }
+                        else if (value is IEnumerable<DateOnly?> doNullableEnum)
+                        {
+                            selectedDates = doNullableEnum.Where(d => d.HasValue)
+                                .Select(d => d!.Value.ToDateTime(System.TimeOnly.MinValue, Kind).Date)
+                                .Distinct()
+                                .OrderBy(d => d)
+                                .ToList();
+                            _value = doNullableEnum;
+                            _dateTimeValue = selectedDates.LastOrDefault();
+                        }
+                        else if (value is IEnumerable<TimeOnly?> toNullableEnum)
+                        {
+                            // Map times to dates using CurrentDate's date component
+                            var baseDate = CurrentDate == default(DateTime) ? DateTime.Today : CurrentDate.Date;
+                            selectedDates = toNullableEnum.Where(t => t.HasValue)
+                                .Select(t => new DateTime(baseDate.Year, baseDate.Month, baseDate.Day, t!.Value.Hour, t.Value.Minute, t.Value.Second, t.Value.Millisecond, Kind).Date)
+                                .Distinct()
+                                .OrderBy(d => d)
+                                .ToList();
+                            _value = toNullableEnum;
+                            _dateTimeValue = selectedDates.LastOrDefault();
+                        }
+                        else if (value is DateTime dt && dt != default(DateTime) && dt != DateTime.MaxValue)
+                        {
+                            selectedDates = new List<DateTime> { DateTime.SpecifyKind(dt.Date, Kind) };
+                            _value = selectedDates;
+                            _dateTimeValue = dt;
                         }
                         else
                         {
-                            DateTimeValue = null;
-                        }
-
-                        if (DateTimeValue.HasValue && DateTimeValue.Value == default(DateTime))
-                        {
+                            selectedDates.Clear();
                             _value = null;
                             _dateTimeValue = null;
                         }
                     }
+                    else
+                    {
+                        _value = ConvertToTValue(value);
+
+                        if (value is DateTimeOffset offset)
+                        {
+                            dateTimeOffsetValueOffset = offset.Offset;
+                            if (offset.Offset == TimeSpan.Zero && Kind == DateTimeKind.Local)
+                            {
+                                _dateTimeValue = offset.LocalDateTime;
+                            }
+                            else if (offset.Offset != TimeSpan.Zero && Kind == DateTimeKind.Utc)
+                            {
+                                _dateTimeValue = offset.UtcDateTime;
+                            }
+                            else
+                            {
+                                _dateTimeValue = DateTime.SpecifyKind(offset.DateTime, Kind);
+                            }
+
+                            _value = _dateTimeValue;
+                        }
+                        else
+                        {
+                            if (value is DateTime dateTime && dateTime != default(DateTime) && dateTime != DateTime.MaxValue)
+                            {
+                                _dateTimeValue = DateTime.SpecifyKind(dateTime, Kind);
+                            }
+                            else if (value is DateOnly dateOnly)
+                            {
+                                _dateTimeValue = dateOnly.ToDateTime(System.TimeOnly.MinValue, Kind);
+                            }
+                            else if (value is TimeOnly timeOnly)
+                            {
+                                _dateTimeValue = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, timeOnly.Hour, timeOnly.Minute, timeOnly.Second, timeOnly.Millisecond, Kind);
+                                _currentDate = _dateTimeValue.Value;
+                            }
+                            else
+                            {
+                                _dateTimeValue = null;
+                            }
+
+                            _value = ConvertToTValue(_dateTimeValue);
+                        }
+                    }
                 }
             }
+        }
+
+        private static object? ConvertToTValue(object? value)
+        {
+            var typeofTValue = typeof(TValue);
+            if (value is DateTime dt)
+            {
+                if (typeofTValue == typeof(DateOnly) || typeofTValue == typeof(DateOnly?))
+                {
+                    value = DateOnly.FromDateTime(dt);
+                    return (TValue)value;
+                }
+                if (typeofTValue == typeof(TimeOnly) || typeofTValue == typeof(TimeOnly?))
+                {
+                    value = System.TimeOnly.FromDateTime(dt);
+                    return (TValue)value;
+                }
+            }
+            return value;
         }
 
         DateTime _currentDate;
@@ -353,13 +768,15 @@ namespace Radzen.Blazor
             {
                 if (_currentDate == default(DateTime))
                 {
-                    _currentDate = HasValue && DateTimeValue.Value != default(DateTime) ? DateTimeValue.Value : DateTime.Today;
+                    _currentDate = HasValue ? DateTimeValue!.Value : InitialViewDate ?? DateTime.Today;
+                    FocusedDate = _currentDate;
                 }
                 return _currentDate;
             }
-            set 
+            set
             {
                 _currentDate = value;
+                FocusedDate = value;
                 CurrentDateChanged.InvokeAsync(value);
             }
         }
@@ -374,34 +791,31 @@ namespace Radzen.Blazor
         {
             get
             {
+                if (CurrentDate == DateTime.MinValue)
+                {
+                    return DateTime.MinValue;
+                }
+
                 var firstDayOfTheMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+
+                if (firstDayOfTheMonth == DateTime.MinValue)
+                {
+                    return DateTime.MinValue;
+                }
 
                 int diff = (7 + (firstDayOfTheMonth.DayOfWeek - Culture.DateTimeFormat.FirstDayOfWeek)) % 7;
                 return firstDayOfTheMonth.AddDays(-1 * diff).Date;
             }
         }
 
-        IList<string> _abbreviatedDayNames;
-
-        IList<string> AbbreviatedDayNames
+        IEnumerable<string> ShiftedAbbreviatedDayNames
         {
             get
             {
-                if (_abbreviatedDayNames == null)
+                for (int current = (int)Culture.DateTimeFormat.FirstDayOfWeek, to = current + 7; current < to; current++)
                 {
-                    _abbreviatedDayNames = new List<string>();
-
-                    for (int i = (int)Culture.DateTimeFormat.FirstDayOfWeek; i < 7; i++)
-                    {
-                        _abbreviatedDayNames.Add(Culture.DateTimeFormat.AbbreviatedDayNames[i]);
-                    }
-
-                    for (int i = 0; i < (int)Culture.DateTimeFormat.FirstDayOfWeek; i++)
-                    {
-                        _abbreviatedDayNames.Add(Culture.DateTimeFormat.AbbreviatedDayNames[i]);
-                    }
+                    yield return Culture.DateTimeFormat.AbbreviatedDayNames[current % 7];
                 }
-                return _abbreviatedDayNames;
             }
         }
 
@@ -425,7 +839,7 @@ namespace Radzen.Blazor
         {
             get
             {
-                return DateTimeValue.HasValue;
+                return Multiple ? selectedDates.Count > 0 : (DateTimeValue.HasValue && DateTimeValue != default(DateTime) && DateTimeValue != DateTime.MaxValue);
             }
         }
 
@@ -437,18 +851,29 @@ namespace Radzen.Blazor
         {
             get
             {
-                return string.Format("{0:" + DateFormat + "}", Value);
+                if (!HasValue)
+                {
+                    return "";
+                }
+
+                if (Multiple)
+                {
+                    var format = string.IsNullOrEmpty(DateFormat) ? "d" : DateFormat;
+                    return string.Join(", ", selectedDates.Select(d => d.ToString(format, Culture)));
+                }
+
+                return HasValue ? string.Format(Culture, "{0:" + DateFormat + "}", Value) : "";
             }
         }
 
-        IRadzenForm _form;
+        IRadzenForm? _form;
 
         /// <summary>
         /// Gets or sets the form.
         /// </summary>
         /// <value>The form.</value>
         [CascadingParameter]
-        public IRadzenForm Form
+        public IRadzenForm? Form
         {
             get
             {
@@ -474,21 +899,16 @@ namespace Radzen.Blazor
         /// </summary>
         protected async Task ParseDate()
         {
+            if (JSRuntime == null) return;
             DateTime? newValue;
-            DateTime value;
             var inputValue = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", input);
+            bool valid = TryParseInput(inputValue, out DateTime value);
 
-            var valid = DateTime.TryParseExact(inputValue, DateFormat, null, DateTimeStyles.None, out value);
-            var nullable = Nullable.GetUnderlyingType(typeof(TValue)) != null;
-
-            if (!valid)
-            {
-                valid = DateTime.TryParse(inputValue, out value);
-            }
+            var nullable = Nullable.GetUnderlyingType(typeof(TValue)) != null || AllowClear;
 
             if (valid && !DateAttributes(value).Disabled)
             {
-                newValue = value;
+                newValue = TimeOnly && CurrentDate != default(DateTime) ? new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, value.Hour, value.Minute, value.Second) : value;
             }
             else
             {
@@ -496,26 +916,43 @@ namespace Radzen.Blazor
 
                 if (nullable)
                 {
-                    await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", input, "");
+                    await JSRuntime!.InvokeAsync<string>("Radzen.setInputValue", input, "");
                 }
                 else
                 {
-                    await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", input, FormattedValue);
+                    await JSRuntime!.InvokeAsync<string>("Radzen.setInputValue", input, FormattedValue);
                 }
 
             }
 
-            if (DateTimeValue != newValue && (newValue != null || nullable))
+            if (Multiple)
+            {
+                if (valid)
+                {
+                    selectedDates = new List<DateTime>() { value.Date };
+                    await UpdateValueFromSelectedDates(value.Date);
+                }
+                else if (nullable)
+                {
+                    selectedDates.Clear();
+                    await UpdateValueFromSelectedDates(null);
+                }
+            }
+            else if (DateTimeValue != newValue && (newValue != null || nullable))
             {
                 DateTimeValue = newValue;
                 if ((typeof(TValue) == typeof(DateTimeOffset) || typeof(TValue) == typeof(DateTimeOffset?)) && Value != null)
                 {
-                    DateTimeOffset? offset = DateTime.SpecifyKind((DateTime)Value, DateTimeKind.Utc);
+                    DateTimeOffset? offset = DateTime.SpecifyKind((DateTime)Value, Kind);
                     await ValueChanged.InvokeAsync((TValue)(object)offset);
+                }
+                else if ((typeof(TValue) == typeof(DateTime) || typeof(TValue) == typeof(DateTime?)) && Value != null)
+                {
+                    await ValueChanged.InvokeAsync((TValue)(object)DateTime.SpecifyKind((DateTime)Value, Kind));
                 }
                 else
                 {
-                    await ValueChanged.InvokeAsync((TValue)Value);
+                    await ValueChanged.InvokeAsync(Value == null ? default(TValue) : (TValue)Value);
                 }
 
                 if (FieldIdentifier.FieldName != null)
@@ -528,19 +965,130 @@ namespace Radzen.Blazor
             }
         }
 
-        async Task Clear()
+        /// <summary>
+        /// Parses the date on input. Ignores invalid intermediate input to avoid clearing the value while the user is typing.
+        /// </summary>
+        protected async Task ParseDateImmediate()
         {
-            Value = null;
+            if (JSRuntime == null) return;
+            var inputValue = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", input);
+            bool valid = TryParseInput(inputValue, out DateTime value);
 
-            await ValueChanged.InvokeAsync(default(TValue));
-
-            if (FieldIdentifier.FieldName != null)
+            if (!valid || DateAttributes(value).Disabled)
             {
-                EditContext?.NotifyFieldChanged(FieldIdentifier);
+                return;
             }
 
-            await Change.InvokeAsync(DateTimeValue);
-            StateHasChanged();
+            DateTime? newValue = TimeOnly && CurrentDate != default(DateTime)
+                ? new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, value.Hour, value.Minute, value.Second)
+                : value;
+
+            if (Multiple)
+            {
+                selectedDates = new List<DateTime>() { value.Date };
+                await UpdateValueFromSelectedDates(value.Date);
+            }
+            else if (DateTimeValue != newValue)
+            {
+                DateTimeValue = newValue;
+                if ((typeof(TValue) == typeof(DateTimeOffset) || typeof(TValue) == typeof(DateTimeOffset?)) && Value != null)
+                {
+                    DateTimeOffset? offset = DateTime.SpecifyKind((DateTime)Value, Kind);
+                    await ValueChanged.InvokeAsync((TValue)(object)offset);
+                }
+                else if ((typeof(TValue) == typeof(DateTime) || typeof(TValue) == typeof(DateTime?)) && Value != null)
+                {
+                    await ValueChanged.InvokeAsync((TValue)(object)DateTime.SpecifyKind((DateTime)Value, Kind));
+                }
+                else
+                {
+                    await ValueChanged.InvokeAsync(Value == null ? default(TValue) : (TValue)Value);
+                }
+
+                if (FieldIdentifier.FieldName != null)
+                {
+                    EditContext?.NotifyFieldChanged(FieldIdentifier);
+                }
+
+                await Change.InvokeAsync(DateTimeValue);
+                StateHasChanged();
+            }
+        }
+
+        /// <summary>
+        /// Parse the input using an function outside the Radzen-library
+        /// </summary>
+        [Parameter]
+        public Func<string, DateTime?>? ParseInput { get; set; }
+
+        private bool TryParseInput(string inputValue, out DateTime value)
+        {
+            value = DateTime.MinValue;
+            bool valid = false;
+
+            if (ParseInput != null)
+            {
+                DateTime? custom = ParseInput.Invoke(inputValue);
+
+                if (custom.HasValue)
+                {
+                    valid = true;
+                    value = custom.Value;
+                }
+            }
+            else
+            {
+                valid = DateTime.TryParseExact(inputValue, DateFormat, null, DateTimeStyles.None, out value);
+
+                if (!valid)
+                {
+                    valid = DateTime.TryParse(inputValue, out value);
+                }
+            }
+
+            return valid;
+        }
+
+        async Task Clear()
+        {
+            if (Disabled || ReadOnly)
+                return;
+
+            if (Multiple)
+            {
+                selectedDates.Clear();
+                _value = null;
+                _dateTimeValue = null;
+
+                await ValueChanged.InvokeAsync(default(TValue));
+
+                if (FieldIdentifier.FieldName != null)
+                {
+                    EditContext?.NotifyFieldChanged(FieldIdentifier);
+                }
+
+                await Change.InvokeAsync(null);
+                StateHasChanged();
+            }
+            else
+            {
+                Value = null;
+
+                await ValueChanged.InvokeAsync(default(TValue));
+
+                if (FieldIdentifier.FieldName != null)
+                {
+                    EditContext?.NotifyFieldChanged(FieldIdentifier);
+                }
+
+                await Change.InvokeAsync(DateTimeValue);
+                StateHasChanged();
+            }
+        }
+
+        private string ButtonClasses
+        {
+            get => $"notranslate rz-button-icon-left rzi rzi-{(TimeOnly ? "time" : "calendar")}";
         }
 
         /// <summary>
@@ -571,6 +1119,20 @@ namespace Radzen.Blazor
         [Parameter]
         public bool AllowInput { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether popup datepicker button is shown.
+        /// </summary>
+        /// <value><c>true</c> if need show button open datepicker popup; <c>false</c> if need hide button, click for input field open datepicker popup.</value>
+        [Parameter]
+        public bool ShowButton { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the input box is shown. Ignored if ShowButton is false.
+        /// </summary>
+        /// <value><c>true</c> to show the input box; <c>false</c> to hide the input box.</value>
+        [Parameter]
+        public bool ShowInput { get; set; } = true;
+
         private bool IsReadonly => ReadOnly || !AllowInput;
 
         /// <summary>
@@ -581,11 +1143,38 @@ namespace Radzen.Blazor
         public bool Disabled { get; set; }
 
         /// <summary>
+        /// Gets or sets the FormFieldContext of the component
+        /// </summary>
+        [CascadingParameter]
+        public IFormFieldContext? FormFieldContext { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether days part is shown.
+        /// </summary>
+        /// <value><c>true</c> if days part is shown; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool ShowDays { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets a value indicating whether time part is shown.
         /// </summary>
         /// <value><c>true</c> if time part is shown; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool ShowTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether hour is shown.
+        /// </summary>
+        /// <value><c>true</c> if hour is shown; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool ShowHour { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether minutes are shown.
+        /// </summary>
+        /// <value><c>true</c> if minutes are shown; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool ShowMinutes { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a value indicating whether seconds are shown.
@@ -599,21 +1188,42 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The hours step.</value>
         [Parameter]
-        public string HoursStep { get; set; }
+        public string HoursStep { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the minutes step.
         /// </summary>
         /// <value>The minutes step.</value>
         [Parameter]
-        public string MinutesStep { get; set; }
+        public string MinutesStep { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the seconds step.
         /// </summary>
         /// <value>The seconds step.</value>
         [Parameter]
-        public string SecondsStep { get; set; }
+        public string SecondsStep { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the hour picker is padded with a leading zero.
+        /// </summary>
+        /// <value><c>true</c> if hour component is padded; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool PadHours { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the minute picker is padded with a leading zero.
+        /// </summary>
+        /// <value><c>true</c> if hour component is padded; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool PadMinutes { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the second picker is padded with a leading zero.
+        /// </summary>
+        /// <value><c>true</c> if hour component is padded; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool PadSeconds { get; set; }
 
         enum StepType
         {
@@ -653,7 +1263,7 @@ namespace Radzen.Blazor
 
         double parseStep(string step)
         {
-            return string.IsNullOrEmpty(step) || step == "any" ? 1 : double.Parse(step.Replace(",", "."), System.Globalization.CultureInfo.InvariantCulture);
+            return string.IsNullOrEmpty(step) || step == "any" ? 1 : double.Parse(step.Replace(",", ".", StringComparison.Ordinal), CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -668,14 +1278,14 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The date format.</value>
         [Parameter]
-        public string DateFormat { get; set; }
+        public string DateFormat { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the year range.
         /// </summary>
         /// <value>The year range.</value>
         [Parameter]
-        public string YearRange { get; set; } = "1950:2050";
+        public string YearRange { get; set; } = $"1950:{DateTime.Now.AddYears(30).Year}";
 
         /// <summary>
         /// Gets or sets the hour format.
@@ -689,7 +1299,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The input placeholder.</value>
         [Parameter]
-        public string Placeholder { get; set; }
+        public string Placeholder { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the change callback.
@@ -699,29 +1309,62 @@ namespace Radzen.Blazor
         public EventCallback<DateTime?> Change { get; set; }
 
         /// <summary>
+        /// Gets or sets the OK click callback. Fires only when the user clicks the OK button
+        /// (visible when <see cref="ShowTimeOkButton"/> is <c>true</c>), allowing developers to
+        /// distinguish between intermediate day-selection changes and the final user confirmation.
+        /// </summary>
+        /// <value>The OK click callback.</value>
+        [Parameter]
+        public EventCallback<DateTime?> OkClick { get; set; }
+
+        /// <summary>
         /// Gets or sets the value changed callback.
         /// </summary>
         /// <value>The value changed callback.</value>
         [Parameter]
         public EventCallback<TValue> ValueChanged { get; set; }
 
+        /// <summary>
+        /// Gets or sets the footer template.
+        /// </summary>
+        /// <value>The footer template.</value>
+        [Parameter]
+        public RenderFragment? FooterTemplate { get; set; }
+
         string contentStyle = "display:none;";
 
-        private string getStyle()
+        private string GetStyle()
         {
-            return $"display: inline-block;{(Inline ? "overflow:auto;" : "")}{(Style != null ? Style : "")}";
+            return $"{(Inline ? "overflow:auto;" : "")}{(Style != null ? Style : "")}";
         }
+
+        /// <summary> Gets the current placeholder. Returns empty string if this component is inside a RadzenFormField.</summary>
+        protected string CurrentPlaceholder => FormFieldContext?.AllowFloatingLabel == true ? " " : Placeholder;
 
         /// <summary>
         /// Closes this instance popup.
         /// </summary>
         public void Close()
         {
-            if (!Disabled)
+            if (Disabled || ReadOnly || Inline)
+                return;
+
+            RevertUncommittedTimeChange();
+
+            if (PopupRenderMode == PopupRenderMode.OnDemand)
             {
-                contentStyle = "display:none;";
-                StateHasChanged();
+                if (popup != null)
+                {
+                    InvokeAsync(() => popup.CloseAsync(Element));
+                }
             }
+            else if (JSRuntime != null)
+            {
+                _ = JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+            }
+
+            contentStyle = "display:none;";
+            StateHasChanged();
         }
 
         private string PopupStyle
@@ -730,25 +1373,46 @@ namespace Radzen.Blazor
             {
                 if (Inline)
                 {
-                    return "white-space: nowrap";
+                    return "";
                 }
                 else
                 {
-                    return $"width: 320px; {contentStyle}";
+                    return $"{contentStyle}";
                 }
             }
         }
 
-        async System.Threading.Tasks.Task OnChange()
+        async Task OnChange()
         {
-            if ((typeof(TValue) == typeof(DateTimeOffset) || typeof(TValue) == typeof(DateTimeOffset?)) && Value != null)
+            // In Multiple mode we update and raise ValueChanged/Change elsewhere
+            if (Multiple)
             {
-                DateTimeOffset? offset = DateTime.SpecifyKind((DateTime)Value, DateTimeKind.Utc);
-                await ValueChanged.InvokeAsync((TValue)(object)offset);
+                return;
+            }
+
+            // IMPORTANT: internally we often store DateTime even when TValue is DateTimeOffset.
+            // Always decide the outgoing type from TValue to avoid InvalidCastException.
+            var typeofTValue = typeof(TValue);
+
+            if ((typeofTValue == typeof(DateTimeOffset) || typeofTValue == typeof(DateTimeOffset?)) && Value is DateTime dateTimeValue)
+            {
+                var specified = DateTime.SpecifyKind(dateTimeValue, Kind);
+
+                // Preserve the original offset when possible; otherwise fall back to the DateTime's offset.
+                var adjusted = dateTimeOffsetValueOffset.HasValue
+                    ? new DateTimeOffset(specified, dateTimeOffsetValueOffset.Value)
+                    : new DateTimeOffset(specified);
+
+                await ValueChanged.InvokeAsync((TValue)(object)adjusted);
+            }
+            else if (Value is DateTime dtValue)
+            {
+                var specified = DateTime.SpecifyKind(dtValue, Kind);
+                await ValueChanged.InvokeAsync((TValue)(object)specified);
             }
             else
             {
-                await ValueChanged.InvokeAsync((TValue)Value);
+                await ValueChanged.InvokeAsync(Value != null ? (TValue)Value : default(TValue)!);
             }
 
             if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }
@@ -759,18 +1423,27 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return ClassList.Create()
-                            .Add("rz-calendar-inline", Inline)
+            return ClassList.Create("rz-datepicker")
+                            .Add("rz-datepicker-inline", Inline)
+                            .AddDisabled(Disabled)
+                            .Add("rz-state-empty", !HasValue)
                             .Add(FieldIdentifier, EditContext)
                             .ToString();
+
         }
 
-        private async System.Threading.Tasks.Task SetDay(DateTime newValue)
+        private async Task SetDay(DateTime newValue)
         {
-            if (ShowTimeOkButton)
+            if (Multiple)
             {
-                CurrentDate = new DateTime(newValue.Year, newValue.Month,newValue.Day, CurrentDate.Hour, CurrentDate.Minute, CurrentDate.Second);
-                await OkClick();
+                var picked = new DateTime(newValue.Year, newValue.Month, newValue.Day, 0, 0, 0);
+                ToggleSelectedDate(picked);
+                await UpdateValueFromSelectedDates(picked);
+            }
+            else if (ShowTimeOkButton)
+            {
+                CurrentDate = new DateTime(newValue.Year, newValue.Month, newValue.Day, CurrentDate.Hour, CurrentDate.Minute, CurrentDate.Second);
+                await OnOkClick(!ShowTime);
             }
             else
             {
@@ -782,6 +1455,85 @@ namespace Radzen.Blazor
                     Close();
                 }
             }
+            if (!Multiple)
+            {
+                await FocusAsync();
+            }
+        }
+
+        void ToggleSelectedDate(DateTime date)
+        {
+            date = date.Date;
+            var index = selectedDates.FindIndex(d => d.Date == date);
+            if (index >= 0)
+            {
+                selectedDates.RemoveAt(index);
+            }
+            else
+            {
+                selectedDates.Add(DateTime.SpecifyKind(date, Kind));
+            }
+        }
+
+        async Task UpdateValueFromSelectedDates(DateTime? lastSelected)
+        {
+            object? newValue = null;
+
+            var typeofTValue = typeof(TValue);
+            if (typeofTValue.IsArray && typeofTValue.GetElementType() == typeof(DateTime))
+            {
+                newValue = selectedDates.ToArray();
+            }
+            else if (typeof(IEnumerable<DateTime>).IsAssignableFrom(typeofTValue))
+            {
+                newValue = selectedDates.ToList();
+            }
+            else if (typeof(IEnumerable<DateTimeOffset?>).IsAssignableFrom(typeofTValue))
+            {
+                var list = new List<DateTimeOffset?>();
+                foreach (var d in selectedDates)
+                {
+                    var kinded = DateTime.SpecifyKind(d, Kind);
+                    list.Add(new DateTimeOffset(kinded));
+                }
+                newValue = list;
+            }
+            else if (typeof(IEnumerable<DateTime?>).IsAssignableFrom(typeofTValue))
+            {
+                newValue = selectedDates.Select(d => (DateTime?)d).ToList();
+            }
+            else if (typeof(IEnumerable<DateOnly>).IsAssignableFrom(typeofTValue))
+            {
+                newValue = selectedDates.Select(d => DateOnly.FromDateTime(d)).ToList();
+            }
+            else if (typeof(IEnumerable<DateOnly?>).IsAssignableFrom(typeofTValue))
+            {
+                newValue = selectedDates.Select(d => (DateOnly?)DateOnly.FromDateTime(d)).ToList();
+            }
+            else if (typeof(IEnumerable<TimeOnly?>).IsAssignableFrom(typeofTValue))
+            {
+                newValue = selectedDates.Select(d => (TimeOnly?)new TimeOnly(d.Hour, d.Minute, d.Second, d.Millisecond)).ToList();
+            }
+            else
+            {
+                newValue = selectedDates.ToList();
+            }
+
+            _value = newValue;
+            _dateTimeValue = lastSelected;
+
+            if (ValueChanged.HasDelegate)
+            {
+                await ValueChanged.InvokeAsync((TValue)(object)newValue);
+            }
+
+            if (FieldIdentifier.FieldName != null)
+            {
+                EditContext?.NotifyFieldChanged(FieldIdentifier);
+            }
+
+            await Change.InvokeAsync(_dateTimeValue);
+            StateHasChanged();
         }
 
         private void SetMonth(int month)
@@ -790,7 +1542,6 @@ namespace Radzen.Blazor
             var newValue = new DateTime(currentValue.Year, month, Math.Min(currentValue.Day, DateTime.DaysInMonth(currentValue.Year, month)), currentValue.Hour, currentValue.Minute, currentValue.Second);
 
             CurrentDate = newValue;
-            Close();
         }
 
         private void SetYear(int year)
@@ -799,12 +1550,6 @@ namespace Radzen.Blazor
             var newValue = new DateTime(year, currentValue.Month, Math.Min(currentValue.Day, DateTime.DaysInMonth(year, currentValue.Month)), currentValue.Hour, currentValue.Minute, currentValue.Second);
 
             CurrentDate = newValue;
-            Close();
-        }
-
-        private string getOpenPopup()
-        {
-            return !Disabled && !ReadOnly && !Inline ? $"Radzen.togglePopup(this.parentNode, '{PopupID}')" : "";
         }
 
         /// <summary>
@@ -812,24 +1557,38 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The edit context.</value>
         [CascadingParameter]
-        public EditContext EditContext { get; set; }
+        public EditContext? EditContext { get; set; }
 
         /// <summary>
         /// Gets the field identifier.
         /// </summary>
         /// <value>The field identifier.</value>
-        public FieldIdentifier FieldIdentifier { get; private set; }
+        [Parameter]
+        public FieldIdentifier FieldIdentifier { get; set; }
 
         /// <summary>
         /// Gets or sets the value expression.
         /// </summary>
         /// <value>The value expression.</value>
         [Parameter]
-        public Expression<Func<TValue>> ValueExpression { get; set; }
+        public Expression<Func<TValue>>? ValueExpression { get; set; }
 
         /// <inheritdoc />
         public override async Task SetParametersAsync(ParameterView parameters)
         {
+            if (parameters.DidParameterChange(nameof(InitialViewDate), InitialViewDate) &&
+                (DateTimeValue == default(DateTime) || DateTimeValue == null))
+            {
+                _currentDate = default(DateTime);
+            }
+
+            if (parameters.DidParameterChange(nameof(Min), Min) || parameters.DidParameterChange(nameof(Max), Max))
+            {
+                var min = parameters.GetValueOrDefault<DateTime?>(nameof(Min));
+                var max = parameters.GetValueOrDefault<DateTime?>(nameof(Max));
+                UpdateYearsAndMonths(min, max);
+            }
+
             var shouldClose = false;
 
             if (parameters.DidParameterChange(nameof(Visible), Visible))
@@ -838,9 +1597,16 @@ namespace Radzen.Blazor
                 shouldClose = !visible;
             }
 
+            var disabledChanged = parameters.DidParameterChange(nameof(Disabled), Disabled);
+
             await base.SetParametersAsync(parameters);
 
-            if (shouldClose && !firstRender)
+            if (disabledChanged)
+            {
+                FormFieldContext?.DisabledChanged(Disabled);
+            }
+
+            if (shouldClose && !firstRender && IsJSRuntimeAvailable && JSRuntime != null)
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.destroyPopup", PopupID);
             }
@@ -848,11 +1614,27 @@ namespace Radzen.Blazor
             if (EditContext != null && ValueExpression != null && FieldIdentifier.Model != EditContext.Model)
             {
                 FieldIdentifier = FieldIdentifier.Create(ValueExpression);
+                EditContext.OnValidationStateChanged -= ValidationStateChanged;
                 EditContext.OnValidationStateChanged += ValidationStateChanged;
             }
         }
 
-        private void ValidationStateChanged(object sender, ValidationStateChangedEventArgs e)
+        bool firstRender;
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            this.firstRender = firstRender;
+
+            if (Visible && !Disabled && !ReadOnly && !Inline && PopupRenderMode == PopupRenderMode.Initial && JSRuntime != null)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.createDatePicker", Element, PopupID, Reference, nameof(OnPopupClose));
+            }
+        }
+
+        private void ValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
         {
             StateHasChanged();
         }
@@ -869,17 +1651,23 @@ namespace Radzen.Blazor
 
             Form?.RemoveComponent(this);
 
-            if (IsJSRuntimeAvailable)
+            if (IsJSRuntimeAvailable && JSRuntime != null)
             {
-                JSRuntime.InvokeVoidAsync("Radzen.destroyPopup", PopupID);
+                JSRuntime.InvokeVoid("Radzen.destroyPopup", PopupID);
+                if (UniqueID != null)
+                {
+                    JSRuntime.InvokeVoid("Radzen.destroyDatePicker", UniqueID, Element);
+                }
             }
+
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
         /// Gets the value.
         /// </summary>
         /// <returns>System.Object.</returns>
-        public object GetValue()
+        public object? GetValue()
         {
             return Value;
         }
@@ -888,22 +1676,208 @@ namespace Radzen.Blazor
         {
             get
             {
-                return $"popup{UniqueID}";
+                return $"popup{GetId()}";
             }
         }
 
-        private bool firstRender = true;
+        Popup? popup;
 
         /// <summary>
-        /// Called when [after render asynchronous].
+        /// Gets or sets the render mode.
         /// </summary>
-        /// <param name="firstRender">if set to <c>true</c> [first render].</param>
-        /// <returns>Task.</returns>
-        protected override Task OnAfterRenderAsync(bool firstRender)
-        {
-            this.firstRender = firstRender;
+        /// <value>The render mode.</value>
+        [Parameter]
+        public PopupRenderMode PopupRenderMode { get; set; } = PopupRenderMode.Initial;
 
-            return base.OnAfterRenderAsync(firstRender);
+        async Task OnToggle()
+        {
+            if (PopupRenderMode == PopupRenderMode.OnDemand && !Disabled && !ReadOnly && !Inline)
+            {
+                if (popup != null)
+                {
+                    await popup.ToggleAsync(Element);
+                }
+                await FocusAsync();
+            }
+        }
+        DateTime FocusedDate { get; set; } = DateTime.Now;
+
+        string GetDayCssClass(DateTime date, DateRenderEventArgs dateArgs, bool forCell = true)
+        {
+            var list = ClassList.Create()
+                               .Add("rz-state-default", !forCell)
+                               .Add("rz-calendar-other-month", CurrentDate.Month != date.Month)
+                               .Add("rz-state-active", !forCell && (Multiple ? selectedDates.Any(d => d.Date == date.Date) : (DateTimeValue.HasValue && DateTimeValue.Value.Date.CompareTo(date.Date) == 0)))
+                               .Add("rz-calendar-today", !forCell && DateTime.Now.Date.CompareTo(date.Date) == 0)
+                               .Add("rz-state-focused", !forCell && FocusedDate.Date.CompareTo(date.Date) == 0)
+                               .Add("rz-state-disabled", !forCell && dateArgs.Disabled);
+
+            if (dateArgs.Attributes != null && dateArgs.Attributes.TryGetValue("class", out var @class) && !string.IsNullOrEmpty(Convert.ToString(@class, CultureInfo.InvariantCulture)))
+            {
+                list.Add($"{@class}", true);
+            }
+
+            return list.ToString();
+        }
+        async Task OnCalendarKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "ArrowLeft" || key == "ArrowRight")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                FocusedDate = FocusedDate.AddDays(key == "ArrowLeft" ? -1 : 1);
+                CurrentDate = FocusedDate;
+            }
+            else if (key == "ArrowUp" || key == "ArrowDown")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                FocusedDate = FocusedDate.AddDays(key == "ArrowUp" ? -7 : 7);
+                CurrentDate = FocusedDate;
+            }
+            else if (key == "Enter" || (key == "Space" && Multiple))
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                if (!DateAttributes(FocusedDate).Disabled && !ReadOnly)
+                {
+                    await SetDay(FocusedDate);
+
+                    if (!Multiple)
+                    {
+                        await ClosePopup();
+                        await FocusAsync();
+                    }
+                }
+            }
+            else if (key == "Escape")
+            {
+                preventKeyPress = false;
+                stopKeydownPropagation = false;
+
+                await ClosePopup();
+                await FocusAsync();
+            }
+            else if (key == "Tab")
+            {
+                preventKeyPress = false;
+                stopKeydownPropagation = false;
+
+                await ClosePopup();
+                await FocusAsync();
+            }
+            else
+            {
+                preventKeyPress = false;
+                stopKeydownPropagation = false;
+            }
+        }
+
+        async Task OnPopupKeyDown(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+            if(key == "Escape")
+            {
+                preventKeyPress = false;
+
+                await ClosePopup();
+                await FocusAsync();
+            }
+        }
+
+        async Task OnKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (args.AltKey && key == "ArrowDown")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                if (PopupRenderMode == PopupRenderMode.Initial && JSRuntime != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.openPopup", Element, PopupID, false, null, null, null, Reference, nameof(OnPopupClose), true, true);
+                }
+                else if (popup != null)
+                {
+                    await popup.CloseAsync(Element);
+                    await popup.ToggleAsync(Element);
+                }
+            }
+            else if (key == "Enter")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                await TogglePopup();
+            }
+            else if (key == "Escape")
+            {
+                preventKeyPress = false;
+                stopKeydownPropagation = false;
+
+                await ClosePopup();
+                await FocusAsync();
+            }
+            else
+            {
+                preventKeyPress = false;
+                stopKeydownPropagation = false;
+            }
+        }
+
+        internal async Task TogglePopup()
+        {
+            if (Inline) return;
+
+            if (PopupRenderMode == PopupRenderMode.Initial && JSRuntime != null)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID, false, Reference, nameof(OnPopupClose), true, true);
+            }
+            else if (popup != null)
+            {
+                await popup.ToggleAsync(Element);
+            }
+        }
+
+        async Task ClosePopup()
+        {
+            if (Inline) return;
+
+            RevertUncommittedTimeChange();
+
+            if (PopupRenderMode == PopupRenderMode.Initial && JSRuntime != null)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+            }
+            else if (popup != null)
+            {
+                await popup.CloseAsync(Element);
+            }
+        }
+
+        bool preventKeyPress;
+        bool stopKeydownPropagation;
+
+        /// <inheritdoc/>
+        public async ValueTask FocusAsync()
+        {
+            // If ShowButton is false, the input box is always shown
+            if (ShowInput || !ShowButton)
+            {
+                try
+                {
+                    await input.FocusAsync();
+                }
+                catch
+                { }
+            }
+            
         }
     }
 }

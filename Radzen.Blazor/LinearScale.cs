@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -20,10 +21,10 @@ namespace Radzen.Blazor
 
             if (String.IsNullOrEmpty(format))
             {
-                return value.ToString();
+                return value.ToString() ?? String.Empty;
             }
 
-            return string.Format(format, value);
+            return string.Format(CultureInfo.InvariantCulture, format, value);
         }
 
         public override double Scale(double value, bool padding)
@@ -53,7 +54,7 @@ namespace Radzen.Blazor
 
         protected virtual double CalculateTickCount(int distance)
         {
-            return Math.Ceiling(Math.Abs(Output.End - Output.Start) / distance);
+            return  Math.Max(1, Math.Ceiling(Math.Abs(Output.End - Output.Start) / distance));
         }
 
         public override (double Start, double End, double Step) Ticks(int distance)
@@ -62,10 +63,25 @@ namespace Radzen.Blazor
             var start = Input.Start;
             var end = Input.End;
 
+
             if (start == end)
             {
-                start = 0;
-                end = end + NiceNumber(end / ticks, false);
+                if (end < 0)
+                {
+                    start += NiceNumber(end / ticks, false);
+                    end = 0;
+                }
+                else
+                {
+                    start = 0;
+                    end += NiceNumber(end / ticks, false);
+                }
+            }
+
+            if (Round && end < 0)
+            {
+                end = 0;
+                start += NiceNumber(start / ticks, false);
             }
 
             var range = end - start;
@@ -81,12 +97,7 @@ namespace Radzen.Blazor
             {
                 if (Step is IConvertible)
                 {
-                    step = Convert.ToDouble(Step);
-
-                    if (step <= 0)
-                    {
-                        throw new ArgumentOutOfRangeException("Step must be greater than zero");
-                    }
+                    step = Convert.ToDouble(Step, CultureInfo.InvariantCulture);
                 }
             }
 
@@ -96,7 +107,7 @@ namespace Radzen.Blazor
                 end = Math.Ceiling(end / step) * step;
             }
 
-            if (!Double.IsFinite(Input.Start) && !Double.IsFinite(Input.End))
+            if (!double.IsFinite(Input.Start) || !double.IsFinite(Input.End))
             {
                 Input.Start = start = 0;
                 Input.End = end = 2;
@@ -104,7 +115,7 @@ namespace Radzen.Blazor
                 Round = false;
             }
 
-            if (!Double.IsFinite(start) && !Double.IsFinite(end))
+            if (!double.IsFinite(start) || !double.IsFinite(end))
             {
                 Input.Start = start = 0;
                 Input.End = end = 2;
@@ -112,7 +123,12 @@ namespace Radzen.Blazor
                 Round = false;
             }
 
-            return (start, end, step);
+            if (step == 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(distance), "Step must be non-zero");
+            }
+
+            return (start, end, Math.Abs(step));
         }
     }
 }

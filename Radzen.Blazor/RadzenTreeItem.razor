@@ -1,30 +1,37 @@
 @using Radzen
 @using Radzen.Blazor.Rendering
 @implements IDisposable
-<li class="rz-treenode">
-    <div class=@ContentClassList @onclick="@Select">
+@{var itemArgs = Tree?.ItemAttributes(this); }
+<li class="rz-treenode" @attributes="@(itemArgs?.Item1.Attributes.Any() == true ? itemArgs.Item1.Attributes : Attributes)" 
+    @oncontextmenu="OnContextMenu" @oncontextmenu:preventDefault="@(Tree?.ItemContextMenu.HasDelegate ?? false)" @oncontextmenu:stopPropagation>
+    <div class=@ContentClass role="treeitem" tabindex="0"
+         aria-selected="@(selected.ToString().ToLowerInvariant())"
+         aria-expanded="@(ChildContent != null || HasChildren ? clientExpanded.ToString().ToLowerInvariant() : null)"
+         @onclick="@Select" @onkeydown="OnKeyDown">
         @if (ChildContent != null || HasChildren)
         {
-            <span class=@IconClassList @onclick="@Toggle" @onclick:stopPropagation></span>
+            <span class=@IconClass role="button" tabindex="-1" aria-label="@Text" @onclick="@Toggle" @onclick:stopPropagation @onkeydown="OnToggleKeyDown"></span>
         }
         @if(Tree != null && Tree.AllowCheckBoxes)
         {
-            <RadzenCheckBox TValue="bool?" Value="@IsChecked()" Change="@CheckedChange" Style="@(ParentItem != null && !HasChildren ? "margin-left:25px;margin-right:5px;" : "margin-right:5px;")" />
+            <RadzenCheckBox TabIndex=-1 Name="@($"{GetHashCode()}")" TValue="bool?" Disabled="@(!Checkable)" Value="@(itemArgs?.Item1.CheckedSet() == true ? itemArgs.Item1.Checked : IsChecked())" Change="@CheckedChange" InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", Tree?.SelectItemAriaLabel ?? "" }})" />
         }
         @if (Template != null)
         {
-            <div class="rz-treenode-label">@Template(this)</div>
+            <div class=@LabelClass @onkeydown:stopPropagation="stopKeydownPropagation" @onkeydown="OnGuardKeyDown">@Template(this)</div>
         } else
         {
-            <span class="rz-treenode-label">@Text</span>
+            <label for="@(GetHashCode())" class=@LabelClass>@Text</label>
         }
     </div>
     @if (ChildContent != null && expanded)
     {
     <CascadingValue Value=this>
-    <ul class="rz-treenode-children">
+    <Expander Expanded=@clientExpanded>
+    <ul class="rz-treenode-children" @onkeydown:stopPropagation="stopKeydownPropagation" @onkeydown="OnGuardKeyDown">
         @ChildContent
     </ul>
+    </Expander>
     </CascadingValue>
     }
 </li>

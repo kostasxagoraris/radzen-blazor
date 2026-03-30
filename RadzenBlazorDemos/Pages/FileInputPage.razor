@@ -1,40 +1,40 @@
-﻿@page "/fileinput"
+@page "/fileinput"
 
-@using RadzenBlazorDemos.Data
-@using RadzenBlazorDemos.Models.Northwind
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Blazor FileInput
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    File input with preview and byte array support.
+</RadzenText>
 
-@inject NorthwindContext dbContext
-
-<RadzenExample Name="FileInput">
-<div class="row px-3">
-    <div class="col-lg-6 offset-lg-3 p-3">
-        <RadzenCard>
-        <h4 class="mb-4">Employee: <b>@(firstEmployee.FirstName + " " + firstEmployee.LastName)</b></h4>
-        <RadzenFileInput @bind-Value=@firstEmployee.Photo TValue="string" Class="w-100" 
-            Change=@(args => OnChange(args, "FileInput")) Error=@(args => OnError(args, "FileInput")) />
-        </RadzenCard>
-    </div>
-</div>
+<RadzenExample ComponentName="FileInput" Example="FileInputConfig">
+    <FileInputConfig />
 </RadzenExample>
 
-<EventConsole @ref=@console Class="mt-4" />
+<RadzenText Anchor="fileinput#byte-array" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Byte Array Support
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The <strong>FileInput</strong> component also supports the use of the <strong>byte[]</strong> type.
+</RadzenText>
+<RadzenExample ComponentName="FileInput" Example="FileInputByteArray">
+    <FileInputByteArray />
+</RadzenExample>
+
+<RadzenText Anchor="fileinput#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor FileInput component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@shortcuts" />
 
 @code {
-    Employee firstEmployee;
-    EventConsole console;
-
-    protected override async Task OnInitializedAsync()
+    public List<KeyboardShortcut> shortcuts = new()
     {
-        firstEmployee = await Task.FromResult(dbContext.Employees.FirstOrDefault());
-    }
-
-    void OnChange(string value, string name)
-    {
-        console.Log($"{name} value changed");
-    }
-
-    void OnError(UploadErrorEventArgs args, string name)
-    {
-        console.Log($"{args.Message}");
-    }
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate forward across FileInput buttons." },
+        new KeyboardShortcut { Key = "Shift + Tab", Action = "Navigate backward across FileInput buttons." },
+        new KeyboardShortcut { Key = "Enter or Space", Action = "Click the focused FileInput button." }
+    };
 }

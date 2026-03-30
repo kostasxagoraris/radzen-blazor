@@ -1,174 +1,111 @@
-﻿@page "/dropdown"
+@page "/dropdown"
 
-@using RadzenBlazorDemos.Data
-@using RadzenBlazorDemos.Models.Northwind
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Blazor DropDown
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    Single selection, templates, and filtering support.
+</RadzenText>
 
-@inject NorthwindContext dbContext
-<style>
-</style>
-
-<RadzenExample Name="DropDown">
-<div class="row px-3">
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Binding to simple collection</h4>
-            <RadzenDropDown AllowClear="true" TValue="string" Class="w-100" 
-                            Data=@(customers.Select(c => c.CompanyName).Distinct())
-                            Change=@(args => OnChange(args, "DropDown")) />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Disabled DropDown</h4>
-            <div style="display: flex; align-items: center">
-                <RadzenDropDown Disabled=@disabled AllowClear="true" TValue="string" Class="w-100" 
-                                Data=@(customers.Select(c => new { CustomerID = c.CustomerID, CompanyName = c.CompanyName }).Distinct())
-                                TextProperty="CompanyName" ValueProperty="CustomerID" Change=@(args => OnChange(args, "DropDown")) />
-                <RadzenSwitch style="margin-left: 1rem" @bind-Value=@disabled />
-            </div>
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Virtualization using IQueryable</h4>
-            <RadzenDropDown AllowClear="true" TValue="string" AllowVirtualization="true" Class="w-100" 
-                            AllowFiltering="true" Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID"
-                            Change=@(args => OnChange(args, "DropDown with virtualization")) />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Virtualization using LoadData event</h4>
-            <RadzenDropDown AllowClear="true" TValue="string" AllowVirtualization="true" Class="w-100" 
-                            LoadData=@LoadDataVirtualization AllowFiltering="true" Count="@count"
-                            Data=@customCustomersDataVirtualization TextProperty="CompanyName" ValueProperty="CustomerID"
-                            Change=@(args => OnChange(args, "DropDown with virtualization")) />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Custom filter operator</h4>
-            <RadzenDropDown AllowClear="true" TValue="string" Class="w-100" 
-                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" FilterOperator="StringFilterOperator.StartsWith" AllowFiltering="true"
-                            Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID" Change=@(args => OnChange(args, "DropDown with custom filter operator")) />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Custom filtering</h4>
-            <RadzenDropDown AllowClear="true" TValue="string" Class="w-100" 
-                            LoadData=@LoadData AllowFiltering="true"
-                            Data=@customCustomersData TextProperty="CompanyName" ValueProperty="CustomerID"
-                            Change=@(args => OnChange(args, "DropDown with custom filtering")) />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">DropDown with placeholder</h4>
-            <RadzenDropDown AllowClear="true" TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" Class="w-100" 
-                            Placeholder="Select..." Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID" Change=@(args => OnChange(args, "DropDown with placeholder")) />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">DropDown with template</h4>
-            <RadzenDropDown AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value=@value Placeholder="Select..."
-                            Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID" Change=@(args => OnChange(args, "DropDown with placeholder")) Class="w-100" >
-                <Template>
-                    Company: @((context as Customer).CompanyName)
-                </Template>
-            </RadzenDropDown>
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Multiple selection</h4>
-            <RadzenDropDown AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                            @bind-Value=@multipleValues Multiple="true" Placeholder="Select..." Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID"
-                            Change=@(args => OnChange(args, "DropDown with multiple selection")) Class="w-100" />
-        </RadzenCard>
-    </div>
-    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
-        <RadzenCard>
-            <h4 class="mb-4">Bind Value to model property</h4>
-            <RadzenDropDown AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@products @bind-Value=@myModel.MyValue
-                            TextProperty="ProductName" ValueProperty="ProductID" Change=@(args => ChangeBound(args, "DropDown with bound Value")) Class="w-100" />
-        </RadzenCard>
-    </div>
-</div>
+<RadzenText Anchor="dropdown#get-set-value" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Get and Set the value of DropDown
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    As all Radzen Blazor input components the <strong>DropDown</strong> has a Value property which gets and sets the value of the component. Use <code>@@bind-Value</code> to get the user input.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownBindValue">
+    <DropDownBindValue />
 </RadzenExample>
 
-<EventConsole @ref=@console Class="mt-4" />
+<RadzenText Anchor="dropdown#value-and-change-event" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Get and Set the value of DropDown using Value and Change event
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Value property can be used to set the value of the component and <code>Change</code> event to get the user input.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownChangeEvent">
+    <DropDownChangeEvent />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown#text-and-value-properties" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Define Text and Value properties
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>TextProperty</code> and <code>ValueProperty</code> properties to specify which fields to display and use as values.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownTextValueProperties">
+    <DropDownTextValueProperties />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown#template" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    DropDown with templates
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>Template</code>,<code>HeaderTemplate</code> and <code>FooterTemplate</code> properties to customize the dropdown list.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownTemplate">
+    <DropDownTemplate />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown#disable-item" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Disable specific item
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>IsDisabled</code> parameter of <code>RadzenDropDownItem</code> to disable specific items in the dropdown.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownDisabledItem">
+    <DropDownDisabledItem />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown#clear-selected-item" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Clear selected item
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>AllowClear</code> property to enable a clear button that allows users to deselect the current selection.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownClear">
+    <DropDownClear/>
+</RadzenExample>
+
+<RadzenText Anchor="dropdown#editable-dropdown" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Editable DropDown
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>AllowFiltering</code> property to enable editable mode, allowing users to type and filter dropdown items.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownEdit">
+    <DropDownEdit/>
+</RadzenExample>
+<RadzenText Anchor="dropdown#open-and-close-event" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Open and close events
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Handle the <code>Open</code> and <code>Close</code> events to respond when the dropdown popup is opened or closed.
+</RadzenText>
+<RadzenExample ComponentName="DropDown" Example="DropDownOpenCloseEvent">
+    <DropDownOpenCloseEvent />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor DropDown component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@shortcuts" />
 
 @code {
-    bool disabled = true;
-    IEnumerable<Customer> customers;
-    IEnumerable<Customer> customCustomersData;
-    IEnumerable<Product> products;
-    MyObject myModel = new MyObject();
-
-    int count;
-    IEnumerable<Customer> customCustomersDataVirtualization;
-
-    IEnumerable<string> multipleValues = new string[] { "ALFKI", "ANATR" };
-    string value = "ALFKI";
-
-    EventConsole console;
-
-    protected override void OnInitialized()
+    public List<KeyboardShortcut> shortcuts = new()
     {
-        customers = dbContext.Customers.ToList();
-        products = dbContext.Products.ToList();
-    }
-
-    void OnChange(object value, string name)
-    {
-        var str = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
-
-        console.Log($"{name} value changed to {str}");
-    }
-
-    void ChangeBound(object value, string name)
-    {
-        console.Log($"{name} value changed to {myModel.MyValue}");
-    }
-
-    class MyObject
-    {
-        public int? MyValue { get; set; } = 3;
-    }
-
-    void LoadData(LoadDataArgs args)
-    {
-        var query = dbContext.Customers.AsQueryable();
-
-        if (!string.IsNullOrEmpty(args.Filter))
-        {
-            query = query.Where(c => c.CustomerID.ToLower().Contains(args.Filter.ToLower()) || c.ContactName.ToLower().Contains(args.Filter.ToLower()));
-        }
-
-        console.Log($"LoadData with filter: {args.Filter}");
-
-        customCustomersData = query.ToList();
-
-        InvokeAsync(StateHasChanged);
-    }
-
-    void LoadDataVirtualization(LoadDataArgs args)
-    {
-        var query = dbContext.Customers.AsQueryable();
-
-        if (!string.IsNullOrEmpty(args.Filter))
-        {
-            query = query.Where(c => c.CustomerID.ToLower().Contains(args.Filter.ToLower()) || c.ContactName.ToLower().Contains(args.Filter.ToLower()));
-        }
-
-        console.Log($"LoadData with virtualization: Skip:{args.Skip}, Top:{args.Top}, Filter:{args.Filter}");
-
-        count = query.Count();
-
-        customCustomersDataVirtualization = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
-
-        InvokeAsync(StateHasChanged);
-    }
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate to a DropDown." },
+        new KeyboardShortcut { Key = "Alt + DownArrow", Action = "Open DropDown popup." },
+        new KeyboardShortcut { Key = "DownArrow on closed popup", Action = "Select next DropDown item." },
+        new KeyboardShortcut { Key = "UpArrow on closed popup", Action = "Select previous DropDown item." },
+        new KeyboardShortcut { Key = "DownArrow in an opened popup", Action = "Focus next DropDown item." },
+        new KeyboardShortcut { Key = "UpArrow in an opened popup", Action = "Focus previous DropDown item." },
+        new KeyboardShortcut { Key = "Enter in an opened popup", Action = "Select the focused DropDown item and close the popup." },
+        new KeyboardShortcut { Key = "Esc or Alt + DownArrow in an opened popup", Action = "Close the DropDown popup." },
+        new KeyboardShortcut { Key = "Alphanumeric", Action = "Focus next DropDown item starting with typed key." }
+    };
 }

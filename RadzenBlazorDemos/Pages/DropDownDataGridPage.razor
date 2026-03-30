@@ -1,192 +1,155 @@
-﻿@page "/dropdown-datagrid"
-@using System.Linq.Dynamic.Core
-@using RadzenBlazorDemos.Data
-@using RadzenBlazorDemos.Models.Northwind
+@page "/dropdown-datagrid"
 
-@inject NorthwindContext dbContext
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Blazor DropDownDataGrid
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    DropDown with columns and multiple selection support.
+</RadzenText>
 
-<RadzenExample Name="DropDownDataGrid">
-<div class="row">
-    <div class="col-xl-6">
-        <div class="row">
-            <div class="col-xl-6 mb-5">
-                <h3>Binding to simple collection</h3>
-                <RadzenDropDownDataGrid TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" AllowClear="true"
-                                        Data=@(customers.Select(c => c.CompanyName).Distinct().AsQueryable())
-                                        Change=@(args => OnChange(args, "DropDownDataGrid")) Style="width:100%"    />
-            </div>
-            <div class="col-xl-6 mb-5">
-                <h3>Filtering by all string columns</h3>
-                <RadzenDropDownDataGrid TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowFiltering="true" AllowClear="true"
-                                        Data=@(customers) Style="width:100%" 
-                                        TextProperty="CompanyName" ValueProperty="CustomerID" AllowFilteringByAllStringColumns="true"
-                                        Change=@(args => OnChange(args, "DropDownDataGrid with filtering by all string columns"))  >
-                    <Columns>
-                        <RadzenDropDownDataGridColumn Property="CustomerID" Title="CustomerID" Width="100px" />
-                        <RadzenDropDownDataGridColumn Property="CompanyName" Title="CompanyName" Width="200px" />
-                        <RadzenDropDownDataGridColumn Property="City" Title="City" Width="100px" />
-                        <RadzenDropDownDataGridColumn Property="Country" Title="Country" Width="100px" />
-                    </Columns>
-                </RadzenDropDownDataGrid>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-6 mb-5">
-                <h3>Filter operator</h3>
-                <RadzenDropDownDataGrid TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" FilterOperator="StringFilterOperator.StartsWith"
-                                        AllowFiltering="true" AllowClear="true" Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID"
-                                        Change=@(args => OnChange(args, "DropDownDataGrid with custom filter operator")) Style="width:100%" />
-
-            </div>
-            <div class="col-xl-6 mb-5">
-                <h3>Custom filtering</h3>
-                <RadzenDropDownDataGrid TValue="string" LoadData="@LoadData" AllowFiltering="true" AllowClear="true"
-                                        Data=@customCustomersData Count="@count" TextProperty="CompanyName" ValueProperty="CustomerID"
-                                        Change=@(args => OnChange(args, "DropDownDataGrid with custom filtering")) Style="width:100%" />
-
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-6 mb-5">
-                <h3>Multiple selection</h3>
-                <RadzenDropDownDataGrid @ref="grid" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true" @bind-Value=@multipleValues
-                                        Multiple="true" Placeholder="Select..." Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID"
-                                        Change=@(args => OnChange(args, "DropDownDataGrid with multiple selection")) Style="width:100%">
-                    <Columns>
-                        <RadzenDropDownDataGridColumn Width="40px" Sortable="false">
-                            <HeaderTemplate>
-                                <RadzenCheckBox TriState="false" TValue="bool" Value="@(customers.Any(c => multipleValues != null && multipleValues.Contains(c.CustomerID)))"
-                                                Change="@(args => multipleValues = args ? grid.View.Cast<Customer>().Select(c => c.CustomerID) : multipleValues = Enumerable.Empty<string>())" />
-                            </HeaderTemplate>
-                            <Template Context="data">
-                                <RadzenCheckBox TriState="false" Value="@(multipleValues != null && multipleValues.Contains(((Customer)data).CustomerID))" />
-                            </Template>
-                        </RadzenDropDownDataGridColumn>
-                        <RadzenDropDownDataGridColumn Property="CustomerID" Title="CustomerID" Width="100px" />
-                        <RadzenDropDownDataGridColumn Property="CompanyName" Title="CompanyName" Width="200px" />
-                        <RadzenDropDownDataGridColumn Property="City" Title="City" Width="100px" />
-                        <RadzenDropDownDataGridColumn Property="Country" Title="Country" Width="100px" />
-                    </Columns>
-                </RadzenDropDownDataGrid>
-            </div>
-            <div class="col-xl-6 mb-5">
-                <h3>Custom template</h3>
-                <RadzenDropDownDataGrid AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true"
-                                        @bind-Value="value" Placeholder="Select..." Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID"
-                                        Change=@(args => OnChange(args, "DropDownDataGrid with placeholder")) Style="width:100%">
-                    <Template>
-                        Company: @((context as Customer).CompanyName)
-                    </Template>
-                </RadzenDropDownDataGrid>
-
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-6 mb-5">
-                <h3>Virtualization using IQueryable</h3>
-                <RadzenDropDownDataGrid TValue="string" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" FilterOperator="StringFilterOperator.StartsWith" AllowVirtualization="true"
-                                        AllowFiltering="true" AllowClear="true" Data=@customers TextProperty="CompanyName" ValueProperty="CustomerID"
-                                        Change=@(args => OnChange(args, "DropDownDataGrid with virtualization using IQueryable")) Style="width:100%">
-                    <Columns>
-                        <RadzenDropDownDataGridColumn Property="CustomerID" Title="Customer ID"  />
-                        <RadzenDropDownDataGridColumn Property="CompanyName" Title="Company Name" />
-                    </Columns>
-                </RadzenDropDownDataGrid>
-
-            </div>
-            <div class="col-xl-6 mb-5">
-                <h3>Virtualization using LoadData event</h3>
-                <RadzenDropDownDataGrid TValue="string" LoadData="@LoadDataVirtualization" AllowFiltering="true" AllowClear="true" AllowVirtualization="true"
-                                        Data=@customCustomersDataVirtualization Count="@customCustomersDataVirtualizationCount" TextProperty="CompanyName" ValueProperty="CustomerID"
-                                        Change=@(args => OnChange(args, "DropDownDataGrid with virtualization using LoadData event")) Style="width:100%" />
-
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-6">
-        <EventConsole @ref=@console />
-    </div>
-</div>
+<RadzenText Anchor="dropdown-datagrid#get-set-value" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Get and Set the value of DropDownDataGrid
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    As all Radzen Blazor input components the <strong>DropDownDataGrid</strong> has a Value property which gets and sets the value of the component. Use <code>@@bind-Value</code> to get the user input.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridBindValue">
+    <DropDownDataGridBindValue />
 </RadzenExample>
 
+<RadzenText Anchor="dropdown-datagrid#value-and-change-event" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Get and Set the value of DropDownDataGrid using Value and Change event
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Value property can be used to set the value of the component and <code>Change</code> event to get the user input.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridChangeEvent">
+    <DropDownDataGridChangeEvent />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#text-value-properties" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Define Text and Value properties
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>TextProperty</code> and <code>ValueProperty</code> properties to specify which fields to display and use as values.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridTextValueProperties">
+    <DropDownDataGridTextValueProperties />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#template" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    DropDownDataGrid with custom header, footer, value and item templates
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>HeaderTemplate</code>, <code>FooterTemplate</code>, <code>ValueTemplate</code>, and <code>Template</code> properties to customize the appearance.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridTemplate">
+    <DropDownDataGridTemplate />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#multiple-columns" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Define multiple columns
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Add multiple <code>RadzenDropDownDataGridColumn</code> components to display additional data columns in the dropdown grid.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridColumns">
+    <DropDownDataGridColumns />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#filtering-case-sensitivity-and-filter-operator" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Filtering case sensitivity and filter operator
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Configure filtering behavior with <code>FilterCaseSensitivity</code> and <code>FilterOperator</code> properties.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridFiltering">
+    <DropDownDataGridFiltering />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#custom-filtering-with-loaddata" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Custom filtering with <strong>LoadData</strong> event
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>LoadData</code> event to implement custom filtering logic and load data on-demand.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridFilteringLoadData">
+    <DropDownDataGridFilteringLoadData />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#multiple-selection" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Multiple selection
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use <code>Multiple="true"</code> to enable selection of multiple items from the dropdown grid.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridMultiple">
+    <DropDownDataGridMultiple />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#virtualization-with-iqueryable" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    DropDownDataGrid virtualization with <strong>IQueryable</strong> event
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Enable virtualization with <code>IQueryable</code> to efficiently handle large datasets by loading items on demand.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridVirtualization">
+    <DropDownDataGridVirtualization />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#virtualization-with-loaddata" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    DropDownDataGrid virtualization with <strong>LoadData</strong> event
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Combine virtualization with the <code>LoadData</code> event for custom data loading with large datasets.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridVirtualizationLoadData">
+    <DropDownDataGridVirtualizationLoadData />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#density" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Control DropDown's DataGrid Density with <strong>Density</strong> parameter
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>Density</code> property to control the spacing and compactness of rows in the dropdown grid.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridDensity">
+    <DropDownDataGridDensity />
+</RadzenExample>
+
+<RadzenText Anchor="dropdown-datagrid#dynamic" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    DropDownDataGrid binding to dynamic data
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Bind the DropDownDataGrid to dynamic data sources where columns and data are determined at runtime.
+</RadzenText>
+<RadzenExample ComponentName="DropDownDataGrid" Example="DropDownDataGridDynamicData">
+    <DropDownDataGridDynamicData />
+</RadzenExample>
+
+
+
+<RadzenText Anchor="dropdown-datagrid#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor DropDownDataGrid component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@shortcuts" />
+
 @code {
-    RadzenDropDownDataGrid<IEnumerable<string>> grid;
-    IEnumerable<Customer> customers;
-
-    IEnumerable<string> multipleValues;
-    string value;
-
-    int count;
-    IEnumerable<Customer> customCustomersData;
-
-    protected override void OnInitialized()
+    public List<KeyboardShortcut> shortcuts = new()
     {
-        customers = dbContext.Customers.ToList();
-    }
-
-    EventConsole console;
-
-    void OnChange(object value, string name)
-    {
-        var str = value is IEnumerable<object> ? string.Join(", ", (IEnumerable<object>)value) : value;
-
-        console.Log($"{name} value changed to {str}");
-    }
-
-    void LoadData(LoadDataArgs args)
-    {
-        var query = dbContext.Customers.AsQueryable();
-
-        if (!string.IsNullOrEmpty(args.Filter))
-        {
-            query = query.Where(c => c.CustomerID.Contains(args.Filter) || c.ContactName.Contains(args.Filter));
-        }
-
-        count = query.Count();
-
-        if (!string.IsNullOrEmpty(args.OrderBy))
-        {
-            query = query.OrderBy(args.OrderBy);
-        }
-
-        if (args.Skip != null)
-        {
-            query = query.Skip(args.Skip.Value);
-        }
-
-        if (args.Top != null)
-        {
-            query = query.Take(args.Top.Value);
-        }
-
-        customCustomersData = query;
-
-        InvokeAsync(StateHasChanged);
-    }
-
-    int customCustomersDataVirtualizationCount;
-    IEnumerable<Customer> customCustomersDataVirtualization;
-
-    void LoadDataVirtualization(LoadDataArgs args)
-    {
-        var query = dbContext.Customers.AsQueryable();
-
-        if (!string.IsNullOrEmpty(args.Filter))
-        {
-            query = query.Where(c => c.CustomerID.ToLower().Contains(args.Filter.ToLower()) || c.ContactName.ToLower().Contains(args.Filter.ToLower()));
-        }
-
-        if (!string.IsNullOrEmpty(args.OrderBy))
-        {
-            query = query.OrderBy(args.OrderBy);
-        }
-
-        console.Log($"LoadData with virtualization: Skip:{args.Skip}, Top:{args.Top}, OrderBy:{args.OrderBy}, Filter:{args.Filter}");
-
-        customCustomersDataVirtualizationCount = query.Count();
-
-        customCustomersDataVirtualization = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
-
-        InvokeAsync(StateHasChanged);
-    }
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate to a DropDownDataGrid." },
+        new KeyboardShortcut { Key = "Alt + DownArrow", Action = "Open DropDownDataGrid popup." },
+        new KeyboardShortcut { Key = "DownArrow on closed popup", Action = "Select next DropDownDataGrid item." },
+        new KeyboardShortcut { Key = "UpArrow on closed popup", Action = "Select previous DropDownDataGrid item." },
+        new KeyboardShortcut { Key = "DownArrow in an opened popup", Action = "Focus next DropDownDataGrid item." },
+        new KeyboardShortcut { Key = "UpArrow in an opened popup", Action = "Focus previous DropDownDataGrid item." },
+        new KeyboardShortcut { Key = "LeftArrow in an opened popup", Action = "Goes to previous DropDownDataGrid page." },
+        new KeyboardShortcut { Key = "RightArrow in an opened popup", Action = "Goes to next DropDownDataGrid page." },
+        new KeyboardShortcut { Key = "Enter in an opened popup", Action = "Select the focused DropDownDataGrid item and close the popup." },
+        new KeyboardShortcut { Key = "Esc or Alt + DownArrow in an opened popup", Action = "Close the DropDownDataGrid popup." }
+    };
 }

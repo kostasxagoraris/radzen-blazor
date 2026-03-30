@@ -25,7 +25,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The child content.</value>
         [Parameter]
-        public RenderFragment ChildContent { get; set; }
+        public RenderFragment? ChildContent { get; set; }
 
         /// <summary>
         /// Sets <see cref="RadzenColorPicker.ShowColors" /> of the built-in RadzenColorPicker.
@@ -80,9 +80,43 @@ namespace Radzen.Blazor
         /// Handles the change event of built-in RadzenColorPicker.
         /// </summary>
         /// <param name="value">The new color.</param>
-        protected async Task OnChange(string value)
+        protected virtual async Task OnChange(string value)
         {
-            await Editor.ExecuteCommandAsync(CommandName, value);
+            if (Editor != null && CommandName != null)
+            {
+                await Editor.ExecuteCommandAsync(CommandName, value);
+            }
+        }
+
+        /// <summary>
+        /// The default value of the color picker.
+        /// </summary>
+        public abstract string Value { get; set; }
+
+        /// <summary>
+        /// The internal state of the component.
+        /// </summary>
+        protected string? value;
+
+        /// <inheritdoc />
+        protected override void OnInitialized()
+        {
+            value = Value;
+
+            base.OnInitialized();
+        }
+
+        /// <inheritdoc />
+        public override async Task SetParametersAsync(ParameterView parameters)
+        {
+            var valueChanged = parameters.DidParameterChange(nameof(Value), Value);
+
+            await base.SetParametersAsync(parameters);
+
+            if (valueChanged)
+            {
+                value = Value;
+            }
         }
     }
 }

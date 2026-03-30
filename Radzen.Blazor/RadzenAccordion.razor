@@ -1,4 +1,5 @@
-﻿@using System.Linq
+@using System.Linq
+@using Radzen.Blazor.Rendering
 
 @inherits RadzenComponent
 
@@ -10,43 +11,40 @@
 }
 @if (Visible)
 {
-<div @ref="@Element" role="tablist" @attributes="Attributes" class="@GetCssClass()" id="@GetId()">
+<div @ref="@Element" style=@Style @attributes="Attributes" class="@GetCssClass()" id="@GetId()"
+    tabindex="0" @onkeydown="@((args) => OnKeyPress(args))" @onkeydown:preventDefault=preventKeyPress @onkeydown:stopPropagation=preventKeyPress>
     @for (var i = 0; i < items.Count; i++)
     {
         var item = items[i];
         if (!item.Visible)
             continue;
 
-        <div class="rz-accordion-header" @attributes="item.Attributes" style="@item.Style">
-            <a @onclick="@((args) => SelectItem(item))" href="javascript:void(0)" role="tab" tabindex="0"
-               id="@($"rz-accordiontab-{items.IndexOf(item)}")" aria-controls="@($"rz-accordiontab-{items.IndexOf(item)}-content")" aria-expanded="true">
-                @if (IsSelected(i, item))
-                {
-                    <span class="rz-accordion-toggle-icon rzi rzi-chevron-down"></span>
-                }
-                else
-                {
-                    <span class="rz-accordion-toggle-icon rzi rzi-chevron-right"></span>
-                }
+        var accordionId = $"{GetId()}-accordiontab-{items.IndexOf(item)}";
+        <div @ref="@item.Element" id="@item.GetItemId()" @attributes="item.Attributes" class="@item.GetItemCssClass()" style="@item.Style" @onkeydown:stopPropagation="stopKeydownPropagation" @onkeydown="OnGuardKeyDown">
+            <button type="button" @onclick="@((args) => SelectItem(item))" aria-label="@ItemAriaLabel(i, item)" title="@ItemTitle(i, item)"
+                    id="@accordionId" aria-controls="@($"{accordionId}-content")" aria-expanded="@(item.GetSelected() ? "true" : "false")"
+                    tabindex="@(item.GetSelected() ? "0" : "-1")">
+                <span class="@ToggleIconClass(item)">keyboard_arrow_down</span>
                 @if (!string.IsNullOrEmpty(item.Icon))
                 {
-            <i class="rzi">@((MarkupString)item.Icon)</i>
+            <i class="notranslate rzi" style="@(!string.IsNullOrEmpty(item.IconColor) ? $"color:{item.IconColor}" : null)">@item.Icon</i>
                 }
-                @if (!string.IsNullOrEmpty(item.Text))
+                @if (item.Template != null)
+                {
+                    @item.Template
+                }
+                else if(!string.IsNullOrEmpty(item.Text))
                 {
                     <span>@item.Text</span>
                 }
-            </a>
+            </button>
         </div>
-        @if (IsSelected(i, item))
-        {
-            <div class="rz-accordion-content-wrapper" role="tabpanel"
-                 id="@($"rz-accordiontab-{items.IndexOf(item)}-content")" aria-hidden="false" aria-labelledby="@($"rz-accordiontab-{items.IndexOf(item)}")">
-                <div class="rz-accordion-content ">
-                    @item.ChildContent
-                </div>
+        <Expander Expanded=@item.GetSelected()
+                id="@($"{accordionId}-content")" aria-labelledby="@accordionId">
+            <div class="rz-accordion-content" @onkeydown:stopPropagation="stopKeydownPropagation" @onkeydown="OnGuardKeyDown">
+                @item.ChildContent
             </div>
-        }
+        </Expander>
     }
 </div>
 }

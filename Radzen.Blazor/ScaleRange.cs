@@ -28,8 +28,15 @@ namespace Radzen.Blazor
         /// <param name="selector">The selector.</param>
         public static ScaleRange From<T>(IEnumerable<T> data, Func<T, double> selector)
         {
-            var start = data.Min(selector);
-            var end = data.Max(selector);
+            var values = data.Select(selector).Where(v => !double.IsNaN(v));
+
+            if (!values.Any())
+            {
+                return new ScaleRange();
+            }
+
+            var start = values.Min();
+            var end = values.Max();
 
             return new ScaleRange() { Start = start, End = end };
         }
@@ -83,6 +90,8 @@ namespace Radzen.Blazor
         /// <param name="range">The range.</param>
         public void MergeWidth(ScaleRange range)
         {
+          ArgumentNullException.ThrowIfNull(range);
+
           Start = Math.Min(Start, range.Start);
           End = Math.Max(End, range.End);
         }
@@ -94,6 +103,8 @@ namespace Radzen.Blazor
         /// <returns><c>true</c> if the ranges are equal; otherwise, <c>false</c>.</returns>
         public bool IsEqualTo(ScaleRange range)
         {
+            ArgumentNullException.ThrowIfNull(range);
+
             return Start == range.Start && End == range.End;
         }
     }

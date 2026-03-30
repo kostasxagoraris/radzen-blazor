@@ -1,29 +1,33 @@
-$listbox-background-color: $input-background-color !default;
-$listbox-border-radius: $input-border-radius !default;
-$listbox-border: $input-border !default;
-$listbox-filter-border: $input-border !default;
-$listbox-padding: 0.5rem !default;
-
-$listbox-item-padding: $dropdown-item-padding !default;
-$listbox-item-margin: 1px 0 !default;
-
-$listbox-checkbox-margin: 0 0.5rem 0 0 !default;
-
-$listbox-header-padding: 0.5625rem 1.25rem 0.625rem 1.125rem !default;
-$listbox-header-icon-width: 1.25rem !default;
+$listbox-background-color: var(--rz-input-background-color) !default;
+$listbox-border-radius: var(--rz-input-border-radius) !default;
+$listbox-border: var(--rz-input-border) !default;
+$listbox-focus-border: var(--rz-input-focus-border) !default;
+$listbox-focus-shadow: var(--rz-input-focus-shadow) !default;
+$listbox-filter-border: var(--rz-border-base-100) !default;
+$listbox-padding: 0 !default;
+$listbox-item-padding: var(--rz-dropdown-item-padding) !default;
+$listbox-item-margin: 0 !default;
+$listbox-checkbox-margin-block: 0 !default;
+$listbox-checkbox-margin-inline: 0 0.5rem !default;
+$listbox-header-padding-block: 0.5rem !default;
+$listbox-header-padding-inline: 0.5rem !default;
+$listbox-header-icon-width: var(--rz-icon-size) !default;
 $listbox-header-icon-height: $listbox-header-icon-width !default;
 $listbox-header-icon-margin: 0 !default;
 
 .rz-listbox {
+  box-sizing: border-box;
   display: inline-flex;
   flex-direction: column;
-
-  background-color: $listbox-background-color;
-  border: $listbox-border;
-  border-radius: $listbox-border-radius;
+  overflow: hidden;
+  background-color: var(--rz-listbox-background-color);
+  border: var(--rz-listbox-border);
+  border-radius: var(--rz-listbox-border-radius);
+  text-align: start;
 
   .rz-chkbox {
-    margin: $listbox-checkbox-margin;
+    margin-block: var(--rz-listbox-checkbox-margin-block);
+    margin-inline: var(--rz-listbox-checkbox-margin-inline);
   }
 
   &.rz-state-disabled {
@@ -37,6 +41,13 @@ $listbox-header-icon-margin: 0 !default;
       }
     }
   }
+
+  &:focus,
+  &:focus-within {
+    outline: var(--rz-outline-normal);
+    border: var(--rz-listbox-focus-border);
+    box-shadow: var(--rz-listbox-focus-shadow);
+  }
 }
 
 .rz-listbox-list {
@@ -46,8 +57,8 @@ $listbox-header-icon-margin: 0 !default;
 
 .rz-listbox-item {
   cursor: default;
-  padding: $listbox-item-padding;
-  margin: $listbox-item-margin;
+  padding: var(--rz-listbox-item-padding);
+  margin: var(--rz-listbox-item-margin);
 
   @include dropdown-item();
 }
@@ -55,14 +66,25 @@ $listbox-header-icon-margin: 0 !default;
 .rz-listbox-header {
   display: flex;
   align-items: center;
-  padding: $listbox-header-padding;
-  border-bottom: $listbox-filter-border;
+  padding-block: var(--rz-listbox-header-padding-block);
+  padding-inline: var(--rz-listbox-header-padding-inline);
+  border-bottom: var(--rz-listbox-filter-border);
 }
 
 .rz-listbox-list-wrapper {
   flex: auto;
   overflow: auto;
-  padding: $listbox-padding;
+  padding: var(--rz-listbox-padding);
+}
+
+.rz-listbox-empty-message {
+  padding: var(--rz-listbox-item-padding);
+  text-align: center;
+  color: var(--rz-text-disabled-color);
+
+  p {
+    margin: 0;
+  }
 }
 
 %filter-container {
@@ -74,7 +96,8 @@ $listbox-header-icon-margin: 0 !default;
     flex: auto;
     width: 0;
     border: none;
-    line-height: $input-line-height;
+    line-height: var(--rz-input-line-height);
+    font-family: inherit;
 
     &:focus {
       outline: none;
@@ -82,10 +105,10 @@ $listbox-header-icon-margin: 0 !default;
   }
 
   .rzi-search {
-    width: $listbox-header-icon-width;
-    height: $listbox-header-icon-height;
-    line-height: $listbox-header-icon-height;
-    font-size: $listbox-header-icon-height;
+    width: var(--rz-listbox-header-icon-width);
+    height: var(--rz-listbox-header-icon-height);
+    line-height: var(--rz-listbox-header-icon-height);
+    font-size: var(--rz-listbox-header-icon-height);
 
     &:before {
       content: 'search';

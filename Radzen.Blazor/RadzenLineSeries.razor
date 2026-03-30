@@ -13,30 +13,25 @@
 
     var value = ComposeValue(valueScale);
 
-    IPathGenerator pathGenerator;
-      
-    if (Smooth)
-    {
-      pathGenerator = new SplineGenerator();
-    }
-    else
-    {
-      pathGenerator = new LineGenerator();
-    }
+    var pathGenerator = GetPathGenerator();
 
-    var data = Items.Select(item => 
+    var valueNullable = IsValueNullable();
+    var rawValueGetter = valueNullable ? GetRawValueGetter() : null;
+
+    var data = Items.Select(item =>
     {
       var x = category(item);
-      var y = value(item);
+      var y = valueNullable && rawValueGetter!(item) == null ? double.NaN : value(item);
 
-      return new Point { X = x, Y = y };
+      return new Point<TItem> { X = x, Y = y, Data = item };
     }).ToList();
 
-    var style = $"clip-path: url(#{Chart.ClipPath}); -webkit-clip-path: url(#{Chart.ClipPath});";
-    var index = Chart.Series.IndexOf(this);
+    var chart = RequireChart();
+    var style = $"clip-path: url(#{chart.ClipPath}); -webkit-clip-path: url(#{chart.ClipPath});";
+    var index = chart.Series.IndexOf(this);
     var className = $"rz-line-series rz-series-{index}";
 
-    return 
+    return
     @<g class="@className">
       @if (Items.Any())
       {
@@ -44,7 +39,7 @@
         var key = $"{path}-{LineType}";
         <Path @key=@key Style="@style" D="@path" StrokeWidth="@StrokeWidth" Stroke="@Stroke" LineType="@LineType" Fill="none" />
       }
-      <Markers Data="@Items" Category="@category" Value="@value" MarkerType="@MarkerType" Stroke="@Markers.Stroke" Fill="@(Markers.Fill ?? Stroke)" StrokeWidth="@Markers.StrokeWidth" Size="@Markers.Size" />
+      <Markers Visible="@Markers.Visible" Series="@this" Data="@data" MarkerType="@MarkerType" Stroke="@Markers.Stroke" Fill="@(Markers.Fill ?? Stroke)" StrokeWidth="@Markers.StrokeWidth" Size="@Markers.Size" />
     </g>;
   }
 }

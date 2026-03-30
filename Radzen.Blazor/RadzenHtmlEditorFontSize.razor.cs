@@ -22,7 +22,13 @@ namespace Radzen.Blazor
         /// The RadzenHtmlEditor component which this tool is part of.
         /// </summary>
         [CascadingParameter]
-        public RadzenHtmlEditor Editor { get; set; }
+        public RadzenHtmlEditor? Editor { get; set; }
+
+        /// <summary>
+        /// Specifies the placeholder displayed to the user. Set to <c>"Font size"</c> by default.
+        /// </summary>
+        [Parameter]
+        public string Placeholder { get; set; } = "Font size";
 
         /// <summary>
         /// Specifies the title (tooltip) displayed when the user hovers the tool. Set to <c>"Font size"</c> by default.
@@ -32,7 +38,10 @@ namespace Radzen.Blazor
 
         async Task OnChange(string value)
         {
-            await Editor.ExecuteCommandAsync("fontSize", value);
+            if (Editor != null)
+            {
+                await Editor.ExecuteCommandAsync("fontSize", value);
+            }
         }
 
     }

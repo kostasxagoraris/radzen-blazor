@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -37,7 +38,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The data.</value>
         [Parameter]
-        public IEnumerable<RadzenGoogleMapMarker> Data { get; set; }
+        public IEnumerable<RadzenGoogleMapMarker>? Data { get; set; }
 
         /// <summary>
         /// Gets or sets the map click callback.
@@ -58,28 +59,88 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The Google API key.</value>
         [Parameter]
-        public string ApiKey { get; set; }
+        public string? ApiKey { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Google Map Id.
+        /// </summary>
+        /// <value>The Google Map Id.</value>
+        [Parameter]
+        public string? MapId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Google map options: https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.
+        /// </summary>
+        /// <value>The Google map options.</value>
+        [Parameter]
+        public Dictionary<string, object>? Options { get; set; }
+
+        double zoom = 8;
         /// <summary>
         /// Gets or sets the zoom.
         /// </summary>
         /// <value>The zoom.</value>
         [Parameter]
-        public double Zoom { get; set; } = 8;
+        public double Zoom
+        {
+            get
+            {
+                return zoom;
+            }
+            set
+            {
+                if (zoom != value)
+                {
+                    zoom = value;
 
+                    InvokeAsync(UpdateMap);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Flag indicating whether map will be zoomed to marker bounds on update or not.
+        /// </summary>
+        [Parameter]
+        public bool FitBoundsToMarkersOnUpdate { get; set; } = false;
+
+        GoogleMapPosition center = new GoogleMapPosition() { Lat = 0, Lng = 0 };
         /// <summary>
         /// Gets or sets the center map position.
         /// </summary>
         /// <value>The center.</value>
         [Parameter]
-        public GoogleMapPosition Center { get; set; } = new GoogleMapPosition() { Lat = 0, Lng = 0 };
+        public GoogleMapPosition Center
+        {
+            get
+            {
+                return center;
+            }
+            set
+            {
+                if (!object.Equals(center, value))
+                {
+                    center = value;
+
+                    InvokeAsync(UpdateMap);
+                }
+            }
+        }
+
+        async Task UpdateMap()
+        {
+            if (!firstRender && JSRuntime != null)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.updateMap", UniqueID, ApiKey, Zoom, Center);
+            }
+        }
 
         /// <summary>
         /// Gets or sets the markers.
         /// </summary>
         /// <value>The markers.</value>
         [Parameter]
-        public RenderFragment Markers { get; set; }
+        public RenderFragment? Markers { get; set; }
 
         List<RadzenGoogleMapMarker> markers = new List<RadzenGoogleMapMarker>();
 
@@ -114,7 +175,7 @@ namespace Radzen.Blazor
         }
 
         /// <summary>
-        /// Handles the <see cref="E:MapClick" /> event.
+        /// Handles the MapClick event.
         /// </summary>
         /// <param name="args">The <see cref="GoogleMapClickEventArgs"/> instance containing the event data.</param>
         [JSInvokable("RadzenGoogleMap.OnMapClick")]
@@ -133,22 +194,29 @@ namespace Radzen.Blazor
             await MarkerClick.InvokeAsync(marker);
         }
 
+        bool firstRender = true;
+
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
 
+            this.firstRender = firstRender;
+
             var data = Data != null ? Data : markers;
 
-            if (firstRender)
+            if (JSRuntime != null)
             {
-                await JSRuntime.InvokeVoidAsync("Radzen.createMap", Element, Reference, UniqueID, ApiKey, Zoom, Center,
-                     data.Select(m => new { Title = m.Title, Label = m.Label, Position = m.Position }));
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("Radzen.updateMap", UniqueID, Zoom, Center,
-                             data.Select(m => new { Title = m.Title, Label = m.Label, Position = m.Position }));
+                if (firstRender)
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.createMap", Element, Reference, UniqueID, ApiKey, MapId, Zoom, Center,
+                         data.Select(m => new { Title = m.Title, Label = m.Label, Position = m.Position }), Options, FitBoundsToMarkersOnUpdate, Culture.TwoLetterISOLanguageName);
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.updateMap", UniqueID, ApiKey, null, null,
+                                 data.Select(m => new { Title = m.Title, Label = m.Label, Position = m.Position }), Options, FitBoundsToMarkersOnUpdate, Culture.TwoLetterISOLanguageName);
+                }
             }
         }
 
@@ -157,10 +225,12 @@ namespace Radzen.Blazor
         {
             base.Dispose();
 
-            if (IsJSRuntimeAvailable)
+            if (IsJSRuntimeAvailable && JSRuntime != null && UniqueID != null)
             {
-                JSRuntime.InvokeVoidAsync("Radzen.destroyMap", UniqueID);
+                JSRuntime.InvokeVoid("Radzen.destroyMap", UniqueID);
             }
+
+            GC.SuppressFinalize(this);
         }
     }
 }

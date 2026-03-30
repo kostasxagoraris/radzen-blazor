@@ -1,193 +1,294 @@
-$button-base-background-color: $primary !default;
-$button-base-color: $white !default;
+$button-base-background-color: var(--rz-primary) !default;
+$button-base-color: var(--rz-on-primary) !default;
+$button-background-size: auto !default;
+$button-border-radius: var(--rz-border-radius) !default;
+$button-shadow: none !default;
+$button-transition: var(--rz-transition-all), width 0, height 0 !default;
+$button-line-height: 1.25rem !default;
+$button-vertical-align: top !default;
 $button-hover-shadow: inset 0 -3px 0 0 rgba(255, 255, 255, 0.2) !default;
 $button-hover-gradient: linear-gradient(rgba(#fff, 0.1), rgba(#fff, 0.1)) !default;
+$button-hover-background-size: $button-background-size !default;
+$button-focus-shadow: inset 0 -3px 0 0 rgba(255, 255, 255, 0.2) !default;
+$button-focus-gradient: linear-gradient(rgba(#fff, 0.1), rgba(#fff, 0.1)) !default;
+$button-focus-background-size: $button-background-size !default;
+$button-focus-outline: var(--rz-outline-focus) !default;
+$button-focus-outline-offset: var(--rz-outline-offset) !default;
 $button-active-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.1) !default;
 $button-active-gradient: linear-gradient(rgba(#000, 0.1), rgba(#000, 0.1)) !default;
-$button-focus-outline: none !default;
-$button-border-radius: $border-radius !default;
-$button-shadow: none !default;
-$button-transition: none !default;
-$button-disabled-opacity: 0.2 !default;
-$button-line-height: initial !default;
-$button-vertical-align: middle !default;
-$button-background-size: auto !default;
-$button-hover-background-size: $button-background-size !default;
 $button-active-background-size: $button-background-size !default;
+$button-disabled-opacity: 0.2 !default;
+$button-empty-opacity: 0.4 !default;
 
 $button-sizes: () !default;
 
 $button-sizes: map-merge(
   (
-    md: (
-      font-size: 1.0625rem,
-      padding: 0 2rem,
-      line-height: 2.1875rem,
-      height: 2.1875rem,
-      font-weight: normal,
+    lg: (
+      font-size: 1rem,
+      padding: 0.875rem 1.5rem,
+      line-height: 1.5rem,
+      height: auto,
+      min-height: 3.25rem,
+      min-width: 3.25rem,
+      font-weight: 600,
+      border-radius: calc(2 * var(--rz-border-radius)),
+      gap: 0.25rem,
       icon: (
-        font-size: 1.0625rem,
-        height: auto,
-        line-height: 2.1875rem,
-        width: 1.25rem
+        font-size: 1.5rem,
+        height: 1.5rem,
+        line-height: 1.5rem,
+        width: 1.5rem
       ),
       text-with-icon-padding: 0 1.375rem,
-      icon-only-padding: 0 0.5rem
+      icon-only-padding: 0.875rem
+    ),
+    md: (
+      font-size: var(--rz-body-font-size),
+      padding: 0.5rem 1rem,
+      line-height: 1.25rem,
+      height: auto,
+      min-height: 2.25rem,
+      min-width: 2.25rem,
+      font-weight: 600,
+      gap: 0.25rem,
+      icon: (
+        font-size: var(--rz-icon-size),
+        line-height: var(--rz-icon-size),
+        width: var(--rz-icon-size),
+        height: var(--rz-icon-size)
+      ),
+      text-with-icon-padding: 0.5rem 1rem 0.5rem 0.5rem,
+      icon-only-padding: 0.5rem
     ),
     sm: (
-      font-size: 0.875rem,
-      padding: 0 2.875rem,
-      line-height: 1.75rem,
-      height: 1.75rem,
+      font-size: var(--rz-body-font-size),
+      padding: 0.25rem 0.75rem,
+      line-height: 1.25rem,
+      height: auto,
+      min-height: 1.75rem,
+      min-width: 1.75rem,
+      gap: 0.25rem,
       icon: (
-        font-size: 0.9375rem,
-        height: auto,
-        line-height: 1.75rem,
-        width: 1.125rem
+        font-size: var(--rz-icon-size),
+        line-height: var(--rz-icon-size),
+        width: var(--rz-icon-size),
+        height: var(--rz-icon-size)
       ),
-      text-with-icon-padding: 0 1.375rem,
-      icon-only-padding: 0 0.3125rem
+      text-with-icon-padding: 0.25rem 0.75rem 0.25rem 0.25rem,
+      icon-only-padding: 0.25rem
+    ),
+    xs: (
+      font-size: 0.75rem,
+      padding: 0.125rem 0.25rem,
+      line-height: 1rem,
+      height: auto,
+      min-height: 1.25rem,
+      min-width: 1.25rem,
+      font-weight: 600,
+      gap: 0.125rem,
+      icon: (
+        font-size: calc(0.8 * var(--rz-icon-size)),
+        line-height: calc(0.8 * var(--rz-icon-size)),
+        width: calc(0.8 * var(--rz-icon-size)),
+        height: calc(0.8 * var(--rz-icon-size))
+      ),
+      text-with-icon-padding: 0.125rem 0.5rem 0.125rem 0.125rem,
+      icon-only-padding: 0.125rem
     )
   ),
   $button-sizes
 );
 
-rz-button[type],
-p-button[type] {
-  -webkit-appearance: none;
-}
-
-$button-styles: () !default;
-
-$button-styles: map-merge(
-  (
-    primary: (
-      background-color: $primary,
-      color: $white
-    ),
-    light: (
-      background-color: $light,
-      color: $charcoal-grey
-    ),
-    secondary: (
-      background-color: $secondary,
-      color: $white
-    ),
-    info: (
-      background-color: $info,
-      color: $white
-    ),
-    warning: (
-      background-color: $warning,
-      color: $white
-    ),
-    error: (
-      background-color: $danger,
-      color: $white
-    ),
-    danger: (
-      background-color: $danger,
-      color: $white
-    ),
-    success: (
-      background-color: $success,
-      color: $white
-    )
-  ),
-  $button-styles
-);
-
-.rz-button {
-  -webkit-appearance: none;
-  border-radius: $button-border-radius;
-  background-color: $button-base-background-color;
-  color: $button-base-color;
-  border: none;
-  outline: none;
-  line-height: $button-line-height;
-  font-size: 1.0625rem;
-  box-shadow: $button-shadow;
-  transition: $button-transition;
-  background-size: $button-background-size;
+%button, .rz-button {
+  box-sizing: border-box;
+  display: inline-block;
+  margin: 0;
+  color: var(--rz-button-base-color);
+  background-color: var(--rz-button-base-background-color);
+  background-size: var(--rz-button-background-size);
   background-repeat: no-repeat;
+  border: none;
+  border-radius: var(--rz-button-border-radius);
+  outline: none;
+  box-shadow: var(--rz-button-shadow);
+  font-size: 1.0625rem;
+  font-family: inherit;
+  line-height: var(--rz-button-line-height);
+  text-decoration: none;
+  transition: var(--rz-button-transition);
+  -webkit-appearance: none;
 
   &:focus {
-    outline: $button-focus-outline;
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-button-focus-outline);
+    outline-offset: var(--rz-button-focus-outline-offset);
   }
 
   &:not(.rz-state-disabled) {
     cursor: pointer;
 
-    &:hover {
-      &:not(:active) {
-        background-image: $button-hover-gradient;
-        background-size: $button-hover-background-size;
-        box-shadow: $button-hover-shadow;
+    &:not(:active) {
+      @include rz-hover-state {
+        text-decoration: none;
+        background-image: var(--rz-button-hover-gradient);
+        background-size: var(--rz-button-hover-background-size);
+        box-shadow: var(--rz-button-hover-shadow);
+      }
+      
+      &:focus-visible {
+        text-decoration: none;
+        background-image: var(--rz-button-focus-gradient);
+        background-size: var(--rz-button-focus-background-size);
+        box-shadow: var(--rz-button-focus-shadow);
       }
     }
 
     &:active {
-      background-image: $button-active-gradient;
-      background-size: $button-active-background-size;
-      box-shadow: $button-active-shadow;
+      text-decoration: none;
+      background-image: var(--rz-button-active-gradient);
+      background-size: var(--rz-button-active-background-size);
+      box-shadow: var(--rz-button-active-shadow);
     }
   }
 
   &.rz-state-disabled {
-    opacity: $button-disabled-opacity;
+    opacity: var(--rz-button-disabled-opacity);
     cursor: initial;
   }
 
+  &.rz-state-empty {
+    opacity: var(--rz-button-empty-opacity);
+    cursor: initial;
+  }
+
+  .rz-button-box {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    vertical-align: var(--rz-button-vertical-align);
+    line-height: var(--rz-button-line-height);
+  }
+
   .rz-button-text {
-    vertical-align: $button-vertical-align;
-    line-height: 1.5rem;
+    vertical-align: var(--rz-button-vertical-align);
   }
 
   .rzi {
-    vertical-align: $button-vertical-align;
+    vertical-align: var(--rz-button-vertical-align);
   }
+}
 
-  @each $style, $button in $button-styles {
-    &.btn-#{$style} {
-      @each $name, $value in $button {
+// Focus Styles
+@each $style, $button in map-merge($severity-styles-map, $base-styles-map) {
+  .rz-button.rz-#{$style}:focus-visible {
+    @if $style != 'dark' and $style != 'light' {
+      outline-color: var(--rz-#{$style});
+    } @else {
+      outline-color: var(--rz-outline-color);
+    }
+  }
+}
+
+@each $style, $button in map-merge($severity-styles-map, $base-styles-map) {
+  .rz-button.rz-#{$style} {
+    @each $name, $value in $button {
+      @if $style == 'dark' {
         #{$name}: #{$value};
+      } 
+      @else if $style == 'light' {
+        #{$name}: #{$value};
+      } 
+      @else {
+        #{$name}: #{$value};
+        @if $name == 'background-color' {
+          @include filled-shades($style);
+        }
+      }
+    }
+    &.rz-variant-flat {
+      box-shadow: none !important;
+
+      &:focus-visible {
+        @if $style != 'dark' and $style != 'light' {
+          outline-color: var(--rz-#{$style});
+        } 
+        @else {
+          outline-color: var(--rz-outline-color);
+        }
       }
     }
   }
+}
 
-  @each $size, $button in $button-sizes {
-    &-#{$size} {
-      font-size: map-get($button, font-size);
-      font-weight: map-get($button, font-weight);
-      padding: map-get($button, padding);
-      height: map-get($button, height);
+@each $style, $button in map-merge($severity-styles-map, $base-styles-map) {
+  .rz-button.rz-variant-outlined.rz-#{$style} {
+    @include outlined-shades($style, $button);
 
-      &.rz-button-text-icon-left {
-        padding: map-get($button, text-with-icon-padding);
+    &:not(.rz-state-disabled) {
+      @include rz-hover-state {
+        @include variant-hover-bg($style);
+        background-image: none;
+      }
+    
+      &:active {
+        @include variant-hover-bg($style);
+        background-image: none;
+      }
+    }
+  }
+}
+
+@each $style, $button in map-merge($severity-styles-map, $base-styles-map) {
+  .rz-button.rz-variant-text.rz-#{$style} {
+    @include text-color-shades($style, $button);
+    box-shadow: none;
+
+    &:not(.rz-state-disabled) {
+      @include rz-hover-state {
+        @include variant-hover-bg($style);
+        background-image: none;
+        box-shadow: none;
       }
 
-      &.rz-button-icon-only {
-        padding: map-get($button, icon-only-padding);
+      &:active {
+        @include variant-hover-bg($style);
+        background-image: none;
+        box-shadow: none;
       }
+    }
+  }
+}
 
-      .rzi {
-        @each $name, $value in map-get($button, icon) {
-          #{$name}: #{$value};
-        }
-      }
+@each $size, $button in $button-sizes {
+  %button-#{$size}, .rz-button-#{$size} {
+    padding: map-get($button, padding);
+    height: map-get($button, height);
+    line-height: map-get($button, line-height);
+    min-height: map-get($button, min-height);
+    min-width: map-get($button, min-width);
+    border-radius: map-get($button, border-radius);
+    font-size: map-get($button, font-size);
+    font-weight: map-get($button, font-weight);
+    letter-spacing: map-get($button, letter-spacing);
+    text-transform: map-get($button, text-transform);
 
-      .rz-button-text {
-        line-height: map-get($button, line-height);
+    & .rz-button-box { line-height: map-get($button, line-height); gap: map-get($button, gap);}
+    &.rz-button-icon-left { padding: map-get($button, text-with-icon-padding); }
+    &.rz-button-icon-only { padding: map-get($button, icon-only-padding); }
+
+    .rzi {
+      @each $name, $value in map-get($button, icon) {
+        #{$name}: #{$value};
       }
     }
   }
 }
 
 @keyframes button-icon-spin {
-    from {
-        transform:rotate(0deg);
-    }
-    to {
-        transform:rotate(360deg);
-    }
+  from { transform:rotate(0deg); }
+  to { transform:rotate(360deg); }
 }

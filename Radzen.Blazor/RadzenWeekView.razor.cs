@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Radzen.Blazor.Rendering;
 using System;
+using System.Globalization;
 
 namespace Radzen.Blazor
 {
@@ -15,6 +16,9 @@ namespace Radzen.Blazor
     public partial class RadzenWeekView : SchedulerViewBase
     {
         /// <inheritdoc />
+        public override string Icon => "calendar_view_week";
+
+        /// <inheritdoc />
         [Parameter]
         public override string Text { get; set; } = "Week";
 
@@ -24,6 +28,13 @@ namespace Radzen.Blazor
         /// <value>The time format. Set to <c>h tt</c> by default.</value>
         [Parameter]
         public string TimeFormat { get; set; } = "h tt";
+
+        /// <summary>
+        /// Gets or sets the format used to display the header text.
+        /// </summary>
+        /// <value>The header text format. Set to <c>ddd</c> by default.</value>
+        [Parameter]
+        public string HeaderFormat { get; set; } = "ddd";
 
         /// <summary>
         /// Gets or sets the start time.
@@ -50,7 +61,8 @@ namespace Radzen.Blazor
         {
             get
             {
-                return Scheduler.CurrentDate.Date.StartOfWeek();
+                var culture = Scheduler?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+                return Scheduler?.CurrentDate.Date.StartOfWeek(culture) ?? DateTime.Today.StartOfWeek(culture);
             }
         }
 
@@ -59,7 +71,8 @@ namespace Radzen.Blazor
         {
             get
             {
-                return StartDate.EndOfWeek().AddDays(1);
+                var culture = Scheduler?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+                return StartDate.EndOfWeek(culture).AddDays(1);
             }
         }
 
@@ -68,20 +81,22 @@ namespace Radzen.Blazor
         {
             get
             {
-                return $"{StartDate.ToString(Scheduler.Culture.DateTimeFormat.ShortDatePattern)} - {StartDate.EndOfWeek().ToString(Scheduler.Culture.DateTimeFormat.ShortDatePattern)}";
+                var culture = Scheduler?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+                return $"{StartDate.ToString(culture.DateTimeFormat.ShortDatePattern, culture)} - {StartDate.EndOfWeek(culture).ToString(culture.DateTimeFormat.ShortDatePattern, culture)}";
             }
         }
+
 
         /// <inheritdoc />
         public override DateTime Next()
         {
-            return Scheduler.CurrentDate.Date.AddDays(7);
+            return Scheduler?.CurrentDate.Date.AddDays(7) ?? DateTime.Today.AddDays(7);
         }
 
         /// <inheritdoc />
         public override DateTime Prev()
         {
-            return Scheduler.CurrentDate.Date.AddDays(-7);
+            return Scheduler?.CurrentDate.Date.AddDays(-7) ?? DateTime.Today.AddDays(-7);
         }
     }
 }

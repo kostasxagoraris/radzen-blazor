@@ -6,14 +6,13 @@
 @code {
     public override RenderFragment Render()
     {
-        var date = Scheduler.CurrentDate.Date;
+        var appointments = Scheduler?.GetAppointmentsInRange(StartDate, EndDate).ToList() ?? new List<AppointmentData>();
 
-        var appointments = Scheduler.GetAppointmentsInRange(date, date.AddDays(1)).ToList();
-
-        return 
+        return
     @<CascadingValue Value=@Scheduler>
         <DayView StartDate=@StartDate EndDate=@EndDate StartTime=@StartTime EndTime=@EndTime Appointments=@appointments
-        TimeFormat=@TimeFormat MinutesPerSlot=@MinutesPerSlot />
+            TimeFormat=@TimeFormat MinutesPerSlot=@MinutesPerSlot
+            AppointmentMove=OnAppointmentMove />
     </CascadingValue>
     ;
     }

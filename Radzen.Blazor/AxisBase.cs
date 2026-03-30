@@ -13,7 +13,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The stroke.</value>
         [Parameter]
-        public string Stroke { get; set; }
+        public string? Stroke { get; set; }
         /// <summary>
         /// Gets or sets the pixel width of axis.
         /// </summary>
@@ -26,21 +26,21 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The child content.</value>
         [Parameter]
-        public RenderFragment ChildContent { get; set; }
+        public RenderFragment? ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets the format string used to display the axis values.
         /// </summary>
         /// <value>The format string.</value>
         [Parameter]
-        public string FormatString { get; set; }
+        public string? FormatString { get; set; }
 
         /// <summary>
         /// Gets or sets a formatter function that formats the axis values.
         /// </summary>
         /// <value>The formatter.</value>
         [Parameter]
-        public Func<object, string> Formatter { get; set; }
+        public Func<object, string>? Formatter { get; set; }
 
         /// <summary>
         /// Gets or sets the type of the line used to display the axis.
@@ -67,27 +67,33 @@ namespace Radzen.Blazor
         /// <value>The ticks.</value>
         public RadzenTicks Ticks { get; set; } = new RadzenTicks();
 
-        internal int TickDistance { get; set; } = 100;
+        /// <summary>
+        /// Gets or sets the pixel distance between axis ticks. It is used to calculate the number of visible ticks depending on the available space. Set to 100 by default;
+        /// Setting <see cref="Step" /> will override this value.
+        /// </summary>
+        /// <value>The desired pixel distance between ticks.</value>
+        [Parameter]
+        public int TickDistance { get; set; } = 100;
 
         /// <summary>
         /// Specifies the minimum value of the axis.
         /// </summary>
         /// <value>The minimum.</value>
         [Parameter]
-        public object Min { get; set; }
+        public object? Min { get; set; }
 
         /// <summary>
         /// Specifies the maximum value of the axis.
         /// </summary>
         /// <value>The maximum.</value>
         [Parameter]
-        public object Max { get; set; }
+        public object? Max { get; set; }
 
         /// <summary>
         /// Specifies the step of the axis.
         /// </summary>
         [Parameter]
-        public object Step { get; set; }
+        public object? Step { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this <see cref="AxisBase"/> is visible.
@@ -95,6 +101,17 @@ namespace Radzen.Blazor
         /// <value><c>true</c> if visible; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool Visible { get; set; } = true;
+    /// <summary>
+        /// Specifies the label rotation angle in degrees. Set to <c>null</c> by default which means no rotation is applied. Has higher precedence than <see cref="LabelAutoRotation"/>.
+        /// </summary>
+        [Parameter]
+        public double? LabelRotation { get; set; } = null;
+
+        /// <summary>
+        /// Specifies the automatic label rotation angle in degrees. If set RadzenChart will automatically rotate the labels to fit the available space by the specified value. Has lower precedence than <see cref="LabelRotation"/>.
+        /// </summary>
+        [Parameter]
+        public double? LabelAutoRotation { get; set; } = null;
 
         /// <inheritdoc />
         protected override bool ShouldRefreshChart(ParameterView parameters)
@@ -102,6 +119,8 @@ namespace Radzen.Blazor
             return DidParameterChange(parameters, nameof(Min), Min) ||
                    DidParameterChange(parameters, nameof(Max), Max) ||
                    DidParameterChange(parameters, nameof(Visible), Visible) ||
+                   DidParameterChange(parameters, nameof(LabelRotation), LabelRotation) ||
+                   DidParameterChange(parameters, nameof(LabelAutoRotation), LabelAutoRotation) ||
                    DidParameterChange(parameters, nameof(Step), Step);
         }
 
@@ -120,7 +139,7 @@ namespace Radzen.Blazor
             }
             else
             {
-                return scale.FormatTick(FormatString, value);
+                return scale.FormatTick(FormatString ?? string.Empty, value);
             }
         }
 

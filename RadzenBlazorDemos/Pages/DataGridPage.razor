@@ -1,47 +1,45 @@
-﻿@page "/datagrid"
+@page "/datagrid"
 
-@using RadzenBlazorDemos.Data
-@using RadzenBlazorDemos.Models.Northwind
-@using Microsoft.EntityFrameworkCore
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Blazor DataGrid
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    Display tabular data with ease. Perform paging, sorting and filtering through Entity Framework without extra code.
+</RadzenText>
 
-@inject NorthwindContext dbContext
-
-<h1>DataGrid</h1>
-
-<p>Display tabular data with ease. Perform paging, sorting and filtering through Entity Framework without extra code.</p>
-
-<RadzenExample Name="DataGrid" Heading="false">
-    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-        Data="@employees" TItem="Employee" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
-        <Columns>
-            <RadzenDataGridColumn TItem="Employee" Property="EmployeeID" Filterable="false" Title="ID" Frozen="true" Width="70px" TextAlign="TextAlign.Center" />
-            <RadzenDataGridColumn TItem="Employee" Title="Photo" Frozen="true" Sortable="false" Filterable="false" Width="60px" >
-                <Template Context="data">
-                    <RadzenImage Path="@data.Photo" style="width: 40px; height: 40px; border-radius: 8px;" />
-                </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Employee" Property="FirstName" Title="First Name" Frozen="true" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="LastName" Title="Last Name" Width="140px"/>
-            <RadzenDataGridColumn TItem="Employee" Property="Title" Title="Job Title" Width="200px" />
-            <RadzenDataGridColumn TItem="Employee" Property="TitleOfCourtesy" Title="Title" Width="100px" />
-            <RadzenDataGridColumn TItem="Employee" Property="BirthDate" Title="Birth Date" FormatString="{0:d}" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="HireDate" Title="Hire Date" FormatString="{0:d}" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="Address" Title="Address" Width="200px" />
-            <RadzenDataGridColumn TItem="Employee" Property="City" Title="City" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="Region" Title="Region" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="PostalCode" Title="Postal Code" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="Country" Title="Country" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="HomePhone" Title="Home Phone" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="Extension" Title="Extension" Width="140px" />
-            <RadzenDataGridColumn TItem="Employee" Property="Notes" Title="Notes" Width="300px" />
-        </Columns>
-    </RadzenDataGrid>
+<RadzenExample ComponentName="DataGrid" Example="DataGridIQueryable">
+    <DataGridIQueryable />
 </RadzenExample>
-@code {
-    IEnumerable<Employee> employees;
 
-    protected override void OnInitialized()
+<RadzenText Anchor="datagrid#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor DataGrid component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@data" />
+
+@code {
+    List<KeyboardShortcut> data = new List<KeyboardShortcut>
     {
-        employees = dbContext.Employees;
-    }
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate to a DataGrid." },
+        new KeyboardShortcut { Key = "DownArrow", Action = "Focus next DataGrid item." },
+        new KeyboardShortcut { Key = "UpArrow", Action = "Focus previous DataGrid item." },
+        new KeyboardShortcut { Key = "Enter or Space", Action = "Select the focused DataGrid item." },
+        new KeyboardShortcut { Key = "Shift + Enter or Space", Action = "Select/deselect multiple DataGrid items." },
+        new KeyboardShortcut { Key = "LeftArrow when header row is focused", Action = "Focus previous DataGrid header cell." },
+        new KeyboardShortcut { Key = "RightArrow when header row is focused", Action = "Focus next DataGrid header cell." },
+        new KeyboardShortcut { Key = "LeftArrow when data row is focused", Action = "Collapse item." },
+        new KeyboardShortcut { Key = "RightArrow when data row is focused", Action = "Expand items." },
+        new KeyboardShortcut { Key = "Enter on focused header cell", Action = "Sort DataGrid by focused header cell column." },
+        new KeyboardShortcut { Key = "Alt + DownArrow on focused header cell", Action = "Open DataGrid column filter popup." },
+        new KeyboardShortcut { Key = "Tab in an opened DataGrid column filter popup", Action = "Navigate forward across available filter options." },
+        new KeyboardShortcut { Key = "Shift + Tab in an opened DataGrid column filter popup", Action = "Navigate backward across available filter options." },
+        new KeyboardShortcut { Key = "Esc in an opened DataGrid column filter popup", Action = "Close the DataGrid column filter popup." },
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate to a DataGrid pager." },
+        new KeyboardShortcut { Key = "LeftArrow on focused pager", Action = "Focus previous DataGrid pager page." },
+        new KeyboardShortcut { Key = "RightArrow on focused pager", Action = "Focus next DataGrid pager page." },
+        new KeyboardShortcut { Key = "Enter or Space on focused pager", Action = "Go to the focused DataGrid pager page." }
+    };
 }

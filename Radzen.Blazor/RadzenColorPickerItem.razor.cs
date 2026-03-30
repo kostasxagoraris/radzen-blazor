@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Radzen.Blazor.Rendering;
+using System;
 using System.Threading.Tasks;
 
 namespace Radzen.Blazor
@@ -7,20 +9,20 @@ namespace Radzen.Blazor
     /// <summary>
     /// RadzenColorPickerItem component.
     /// </summary>
-    public partial class RadzenColorPickerItem
+    public partial class RadzenColorPickerItem : IDisposable
     {
         /// <summary>
         /// Gets or sets the value.
         /// </summary>
         /// <value>The value.</value>
         [Parameter]
-        public string Value { get; set; }
+        public string Value { get; set; } = string.Empty;
 
-        string Background
+        string? Background
         {
             get
             {
-                RGB rgb = RGB.Parse(Value);
+                RGB? rgb = RGB.Parse(Value);
 
                 return rgb?.ToCSS();
             }
@@ -31,11 +33,76 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The color picker.</value>
         [CascadingParameter]
-        public RadzenColorPicker ColorPicker { get; set; }
+        public RadzenColorPicker? ColorPicker { get; set; }
+
+        private bool isSelected;
+
+        /// <inheritdoc/>
+        protected override Task OnInitializedAsync()
+        {
+            if (ColorPicker != null)
+            {
+                ColorPicker.SelectedColorChanged += ColorPickerColorChanged;
+                isSelected = ColorPicker.Value == Background;
+            }
+            return base.OnInitializedAsync();
+        }
+
+        /// <summary>
+        /// Detaches events from <see cref="ColorPicker" />.
+        /// </summary>
+        public virtual void Dispose()
+        {
+            if (ColorPicker != null)
+            {
+                ColorPicker.SelectedColorChanged -= ColorPickerColorChanged;
+            }
+        }
+
+        private void ColorPickerColorChanged(object? colorPicker, string newValue)
+        {
+            var shouldBeSelected = newValue == Background;
+            if (isSelected != shouldBeSelected)
+            {
+                isSelected = shouldBeSelected;
+                StateHasChanged();
+            }
+        }
 
         async Task OnClick()
         {
-            await ColorPicker.SelectColor(Value);
+            if (ColorPicker != null)
+            {
+                await ColorPicker.SelectColor(Value);
+            }
+        }
+
+        bool preventKeyPress;
+        bool stopKeypressPropagation;
+        async Task OnKeyPress(KeyboardEventArgs args, Task task)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "Space" || key == "Enter")
+            {
+                preventKeyPress = true;
+                stopKeypressPropagation = true;
+
+                await task;
+            }
+            else if (key == "Escape")
+            {
+                stopKeypressPropagation = true;
+                if (ColorPicker != null)
+                {
+                    await ColorPicker.ClosePopup();
+                }
+            }
+            else
+            {
+                preventKeyPress = false;
+                stopKeypressPropagation = false;
+            }
         }
     }
 }

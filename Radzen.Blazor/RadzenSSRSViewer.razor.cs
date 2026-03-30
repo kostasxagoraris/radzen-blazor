@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Radzen.Blazor
 {
@@ -21,28 +23,28 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The report server URL.</value>
         [Parameter]
-        public string ReportServer { get; set; }
+        public string? ReportServer { get; set; }
 
         /// <summary>
         /// Gets or sets the local server URL.
         /// </summary>
         /// <value>The local server URL.</value>
         [Parameter]
-        public string LocalServer { get; set; }
+        public string? LocalServer { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the report.
         /// </summary>
         /// <value>The name of the report.</value>
         [Parameter]
-        public string ReportName { get; set; }
+        public string? ReportName { get; set; }
 
         /// <summary>
         /// Gets or sets the parameters.
         /// </summary>
         /// <value>The parameters.</value>
         [Parameter]
-        public RenderFragment Parameters { get; set; }
+        public RenderFragment? Parameters { get; set; }
 
         /// <summary>
         /// Gets the report URL.
@@ -100,6 +102,18 @@ namespace Radzen.Blazor
         protected override string GetComponentCssClass()
         {
             return "ssrsviewer";
+        }
+
+        /// <summary>
+        /// Gets or sets the load callback.
+        /// </summary>
+        /// <value>The load callback.</value>
+        [Parameter]
+        public EventCallback<ProgressEventArgs> Load { get; set; }
+
+        async Task OnLoad(ProgressEventArgs args)
+        {
+            await Load.InvokeAsync(args);
         }
     }
 }

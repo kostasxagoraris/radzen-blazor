@@ -1,73 +1,102 @@
-$scheduler-border: solid 1px #cecece !default;
+$scheduler-toolbar-color: var(--rz-on-secondary) !default;
+$scheduler-toolbar-button-background-color: var(--rz-secondary) !default;
+$scheduler-border: var(--rz-border-normal) !default;
+$scheduler-border-color: var(--rz-base-300) !default;
+$scheduler-minor-border-color: var(--rz-base-200) !default;
+$scheduler-border-radius: var(--rz-border-radius) !default;
 $scheduler-shadow: 0 8px 10px 0 rgba(0, 0, 0, 0.01) !default;
-$scheduler-padding: 0.625rem !default;
-$scheduler-background-color: $white !default;
-
-$scheduler-toolbar-padding: 0.625rem !default;
-$scheduler-toolbar-background-color: #e6ecef !default;
-$scheduler-toolbar-font-size: 0.875rem !default;
-$scheduler-toolbar-color: $white !default;
-$scheduler-toolbar-button-background-color: $default-link !default;
-$scheduler-toolbar-button-font-size: 1.25rem !default;
-$scheduler-toolbar-button-width: 1.125rem !default;
-$scheduler-toolbar-button-height: 1.125rem !default;
-$scheduler-toolbar-text-transform: uppercase;
-
-$scheduler-toolbar-title-font-size: inherit !default;
-$scheduler-toolbar-title-font-weight: inherit !default;
-
-$scheduler-button-padding: 0.25rem 0.5rem !default;
-$scheduler-button-font-size: 0.6875rem !default;
-$scheduler-prev-next-button-padding: $scheduler-button-padding !default;
-$scheduler-prev-next-button-font-size: $scheduler-button-font-size !default;
-$scheduler-button-line-height: 1.25rem !default;
-$scheduler-today-button-margin-left: 0.5rem !default;
-
-$scheduler-view-button-border: solid 1px #dadfe2 !default;
-$scheduler-view-button-color: $cool-grey !default;
-$scheduler-view-button-background-color: $white !default;
-$scheduler-view-selected-background-color: $default-link !default;
+$scheduler-background-color: var(--rz-base-background-color) !default;
+$scheduler-color: var(--rz-text-tertiary-color) !default;
+$scheduler-toolbar-padding: 0.5rem !default;
+$scheduler-toolbar-background-color: var(--rz-base-200) !default;
+$scheduler-toolbar-title-font-size: 1rem !default;
+$scheduler-toolbar-title-font-weight: 700 !default;
+$scheduler-toolbar-title-color: var(--rz-text-title-color) !default;
+$scheduler-prev-next-button-background-color: $scheduler-toolbar-button-background-color !default;
+$scheduler-prev-next-button-color: $scheduler-toolbar-color !default;
+$scheduler-prev-next-button-padding-block: 0.5rem !default;
+$scheduler-prev-next-button-padding-inline: 0.5rem !default;
+$scheduler-prev-next-button-font-size: var(--rz-icon-size) !default;
+$scheduler-prev-button-border-start-start-radius: var(--rz-border-radius) !default;
+$scheduler-prev-button-border-start-end-radius: 0 !default;
+$scheduler-prev-button-border-end-start-radius: var(--rz-border-radius) !default;
+$scheduler-prev-button-border-end-end-radius: 0 !default;
+$scheduler-next-button-border-start-start-radius: 0 !default;
+$scheduler-next-button-border-start-end-radius: var(--rz-border-radius) !default;
+$scheduler-next-button-border-end-start-radius: 0 !default;
+$scheduler-next-button-border-end-end-radius: var(--rz-border-radius) !default;
+$scheduler-today-button-margin-inline-start: 0.5rem !default;
+$scheduler-today-button-padding: 0.5rem 1rem !default;
+$scheduler-today-button-font-size: 0.75rem !default;
+$scheduler-today-button-text-transform: uppercase !default;
+$scheduler-view-button-border: var(--rz-border-normal) !default;
+$scheduler-view-button-color: var(--rz-text-secondary-color) !default;
+$scheduler-view-button-background-color: var(--rz-base-background-color) !default;
+$scheduler-view-selected-color: var(--rz-on-secondary) !default;
+$scheduler-view-selected-background-color: var(--rz-secondary) !default;
 $scheduler-view-selected-border-color: $scheduler-view-selected-background-color !default;
-$scheduler-view-selected-color: $white !default;
-
-$scheduler-header-background-color: rgba(#e6ecef, 0.4) !default;
-$scheduler-header-font-size: 0.6875rem !default;
+$scheduler-header-background-color: var(--rz-base-200) !default;
+$scheduler-header-font-size: 0.75rem !default;
+$scheduler-header-font-size-small: 0.5rem !default;
+$scheduler-header-text-transform: uppercase !default;
 $scheduler-header-color: inherit !default;
-$scheduler-header-border: solid 1px #dfe7ec !default;
+$scheduler-header-border: var(--rz-border-normal) !default;
 $scheduler-header-padding: 0.5rem 0 !default;
-
-$scheduler-border-color: #dfe7eb !default;
-$scheduler-minor-border-color: rgba(#dfe7eb, 0.2) !default;
-$scheduler-color: #6a6a6a !default;
-
-$scheduler-slot-title-padding: 0 11px !default;
-
-$scheduler-event-color: $white !default;
-$scheduler-event-background-color: $tip !default;
-$scheduler-event-font-size: 0.6875rem !default;
-$scheduler-event-line-height: 12px !default;
-$scheduler-event-padding: 2px 1px !default;
-$scheduler-event-content-padding: 4px !default;
-
-$scheduler-day-number-padding: 0 0.6875rem !default;
-$scheduler-border-radius: $border-radius !default;
+$scheduler-event-color: var(--rz-on-info) !default;
+$scheduler-event-background-color: var(--rz-info) !default;
+$scheduler-event-font-size: 0.75rem !default;
+$scheduler-event-line-height: 1.25rem !default;
+$scheduler-event-padding-block: 0 1px !default;
+$scheduler-event-padding-inline: 1px !default;
+$scheduler-event-content-padding: 0.125rem 0.25rem !default;
+$scheduler-event-list-button-color: var(--rz-secondary);
+$scheduler-event-list-button-font-size: 0.75rem;
+$scheduler-slot-title-font-size: 0.875rem !default;
+$scheduler-slot-title-font-size-small: 0.6rem !default;
+$scheduler-slot-title-padding: 0 0.25rem !default;
+$scheduler-day-number-padding: 0 0.5rem !default;
+$scheduler-weekend-color: var(--rz-text-disabled-color) !default;
+$scheduler-weekend-background-color: var(--rz-base-50) !default;
+$scheduler-other-month-background-color: var(--rz-base-100) !default;
+$scheduler-timeline-slot-width: 7rem !default;
+$scheduler-timeline-slot-height: 7rem !default;
+$scheduler-year-padding: 1.5rem !default;
+$scheduler-year-slot-padding: 1px !default;
+$scheduler-year-slot-title-width: 100% !default;
+$scheduler-year-slot-title-border-radius: 0.25rem !default;
+$scheduler-planner-slot-width: 3rem !default;
+$scheduler-planner-slot-height: 4.5rem !default;
+$scheduler-focus-outline: var(--rz-outline-focus) !default;
+$scheduler-focus-outline-offset: calc(-1 * var(--rz-outline-width)) !default;
+$scheduler-highlight-background-color: rgba(255,220,40,.2) !default;
 
 .rz-scheduler {
+  box-sizing: border-box;
+  container-name: scheduler;
+  container-type: inline-size;
   display: flex;
   height: 400px;
   flex-direction: column;
-  border-radius: $scheduler-border-radius;
-  border: 1px solid $scheduler-border-color;
-  box-shadow: $scheduler-shadow;
-  color: $scheduler-color;
-  background: $scheduler-background-color;
+  border-radius: var(--rz-scheduler-border-radius);
+  border: 1px solid var(--rz-scheduler-border-color);
+  box-shadow: var(--rz-scheduler-shadow);
+  color: var(--rz-scheduler-color);
+  background: var(--rz-scheduler-background-color);
+  overflow: hidden;
+  background-clip: border-box;
 
   .rz-event-list-btn {
-    position: absolute;
-    color: $scheduler-toolbar-button-background-color;
+    color: var(--rz-scheduler-event-list-button-color);
+    font-size: var(--rz-scheduler-event-list-button-font-size);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    margin-inline-start: auto;
 
     &:hover {
-      cursor: pointer;
+      color: var(--rz-scheduler-event-list-button-color);
       text-decoration: underline;
     }
   }
@@ -76,45 +105,57 @@ $scheduler-border-radius: $border-radius !default;
 .rz-slot {
   display: flex;
   height: 1.5em;
-  border-top: 1px solid $scheduler-border-color;
-  border-left: 1px solid $scheduler-border-color;
+  border-block-start: 1px solid var(--rz-scheduler-border-color);
+  border-inline-start: 1px solid var(--rz-scheduler-border-color);
+}
+
+.rz-slot-title {
+  text-align: end;
+  font-size: var(--rz-scheduler-slot-title-font-size);
+  padding: var(--rz-scheduler-slot-title-padding);
 }
 
 .rz-slot-hours {
+  flex: 0 0 5rem;
+
   .rz-slot-header {
-    height: 1.5em;
-    text-align: right;
-    padding: 0 4px;
-    width: 80px;
-    border-right: 1px solid $scheduler-border-color;
+    height: 1.5rem;
+    text-align: end;
+    font-size: var(--rz-scheduler-header-font-size);
+    padding: 0 0.25rem;
+    border-inline-end: 1px solid var(--rz-scheduler-border-color);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
 .rz-slot-minor {
-  border-top: 1px solid $scheduler-minor-border-color;
+  border-block-start: 1px solid var(--rz-scheduler-minor-border-color);
 }
 
 .rz-day-view,
 .rz-slots:first-child {
   .rz-slot {
-    border-left: none;
+    border-inline-start: none;
   }
 }
 
 .rz-event {
   position: absolute;
-  padding: $scheduler-event-padding;
+  padding-block: var(--rz-scheduler-event-padding-block);
+  padding-inline: var(--rz-scheduler-event-padding-inline);
+  cursor: pointer;
 }
 
 .rz-event-content {
-  background: $scheduler-event-background-color;
-  border-radius: $scheduler-border-radius;
-  color: $scheduler-event-color;
+  background: var(--rz-scheduler-event-background-color);
+  border-radius: var(--rz-scheduler-border-radius);
+  color: var(--rz-scheduler-event-color);
   height: 100%;
-  padding: $scheduler-event-content-padding;
-  font-size: $scheduler-event-font-size;
-  line-height: $scheduler-event-line-height;
+  padding: var(--rz-scheduler-event-content-padding);
+  font-size: var(--rz-scheduler-event-font-size);
+  line-height: var(--rz-scheduler-event-line-height);
   overflow: hidden;
 }
 
@@ -122,52 +163,42 @@ $scheduler-border-radius: $border-radius !default;
   position: relative;
 }
 
-.rz-month-view {
-  .rz-view-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-}
-
-.rz-slot-title {
-  text-align: right;
-  padding: $scheduler-slot-title-padding;
-}
-
 .rz-scheduler-nav {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  padding: $scheduler-toolbar-padding;
-  background: $scheduler-toolbar-background-color;
+  padding: var(--rz-scheduler-toolbar-padding);
+  background: var(--rz-scheduler-toolbar-background-color);
 
   .rz-scheduler-nav-title {
     display: flex;
     align-self: center;
-    font-size: $scheduler-toolbar-title-font-size;
-    font-weight: $scheduler-toolbar-title-font-weight;
+    font-size: var(--rz-scheduler-toolbar-title-font-size);
+    font-weight: var(--rz-scheduler-toolbar-title-font-weight);
+    color: var(--rz-scheduler-toolbar-title-color);
   }
 }
 
 .rz-view-header {
-  border-top: $scheduler-header-border;
-  border-bottom: $scheduler-header-border;
-  background-color: $scheduler-header-background-color;
-  text-transform: $scheduler-toolbar-text-transform;
-  color: $scheduler-header-color;
+  border-block-start: var(--rz-scheduler-header-border);
+  border-block-end: var(--rz-scheduler-header-border);
+  background-color: var(--rz-scheduler-header-background-color);
+  text-transform: var(--rz-scheduler-header-text-transform);
+  color: var(--rz-scheduler-header-color);
   display: flex;
 
   .rz-slot-header {
     flex: 1;
     text-align: center;
-    font-size: $scheduler-header-font-size;
-    padding: $scheduler-header-padding;
+    font-size: var(--rz-scheduler-header-font-size);
+    padding: var(--rz-scheduler-header-padding);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .rz-slot-hour-header {
-    flex: none;
-    width: 80px;
+    flex: 0 0 5rem;
   }
 }
 
@@ -182,119 +213,117 @@ $scheduler-border-radius: $border-radius !default;
   display: flex;
   overflow: auto;
   height: 0;
-}
 
-.rz-week-view-content {
-  flex: 1;
-  display: flex;
-}
-
-.rz-slots {
-  flex: 1;
-}
-
-.rz-week {
-  flex: 1;
-
-  .rz-slots {
-    display: flex;
-    height: 100%;
+  &:focus {
+    outline: var(--rz-outline-normal);
   }
 
-  &:first-child .rz-slot {
-    border-top: none;
-  }
-}
+  &:focus-visible {
+    outline: var(--rz-scheduler-focus-outline);
+    outline-offset: var(--rz-scheduler-focus-outline-offset);
 
-.rz-month-view {
-  .rz-slot {
-    flex: 1;
-    height: 100%;
+    .rz-slot:has(.rz-state-focused) {
+      outline: var(--rz-scheduler-focus-outline);
+      outline-offset: var(--rz-scheduler-focus-outline-offset);
+    }
 
-    &:first-child {
-      border-left: none;
+    .rz-event {
+      &.rz-state-focused {
+        .rz-event-content {
+          outline: var(--rz-scheduler-focus-outline);
+          outline-offset: var(--rz-outline-offset);
+        }
+      }
     }
   }
 }
 
-.rz-day-view,
-.rz-week-view {
-  .rz-slot:nth-of-type(2) {
-    border-top: none;
-  }
-}
-
-.rz-week-view,
-.rz-day-view {
-  .rz-view-header {
-    padding-right: 15px;
-  }
+.rz-slots {
+  flex: 1;
+  font-size: 1rem;
 }
 
 .rz-scheduler-nav-views {
   display: flex;
 
-  .rz-button {
-    background: $scheduler-view-button-background-color;
-    color: $scheduler-view-button-color;
-    text-transform: $scheduler-toolbar-text-transform;
-    padding: $scheduler-button-padding;
-    font-size: $scheduler-button-font-size;
-    line-height: $scheduler-button-line-height;
-    border: $scheduler-view-button-border;
+  .rz-button.rz-primary {
+    background: var(--rz-scheduler-view-button-background-color);
+    color: var(--rz-scheduler-view-button-color);
+    border: var(--rz-scheduler-view-button-border);
     border-radius: 0;
-
-    span {
-      margin-left: 0.25rem;
-    }
+    border-inline-end: none;
 
     &:first-child {
-      border-top-left-radius: $scheduler-border-radius;
-      border-bottom-left-radius: $scheduler-border-radius;
-      border-right: none;
+      border-start-start-radius: var(--rz-scheduler-border-radius);
+      border-end-start-radius: var(--rz-scheduler-border-radius);
     }
 
     &:last-child {
-      border-top-right-radius: $scheduler-border-radius;
-      border-bottom-right-radius: $scheduler-border-radius;
-      border-left: none;
+      border-start-end-radius: var(--rz-scheduler-border-radius);
+      border-end-end-radius: var(--rz-scheduler-border-radius);
+      border-inline-end: var(--rz-scheduler-view-button-border);
     }
-  }
 
-  .rz-state-active {
-    background-color: $scheduler-view-selected-background-color;
-    border-color: $scheduler-view-selected-border-color;
-    color: $scheduler-view-selected-color;
+    &.rz-state-active {
+      background-color: var(--rz-scheduler-view-selected-background-color);
+      border-color: var(--rz-scheduler-view-selected-border-color);
+      color: var(--rz-scheduler-view-selected-color);
+    }
+
+    &:focus-visible {
+      z-index: 1;
+    }
   }
 }
 
 .rz-scheduler-nav-prev-next {
   display: flex;
 
-  .rz-today {
-    margin-left: $scheduler-today-button-margin-left;
-  }
-
   .rz-button {
-    background-color: $scheduler-toolbar-button-background-color;
-    color: $scheduler-toolbar-color;
-    text-transform: $scheduler-toolbar-text-transform;
-    padding: $scheduler-button-padding;
-    font-size: $scheduler-button-font-size;
-  }
+    background-color: var(--rz-scheduler-prev-next-button-background-color);
+    color: var(--rz-scheduler-prev-next-button-color);
+    padding-block: var(--rz-scheduler-prev-next-button-padding-block);
+    padding-inline: var(--rz-scheduler-prev-next-button-padding-inline);
+    font-size: var(--rz-scheduler-prev-next-button-font-size);
 
-  .rz-prev {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    padding: $scheduler-prev-next-button-padding;
-    font-size: $scheduler-prev-next-button-font-size;
-  }
+    &.rz-today {
+      margin-inline-start: var(--rz-scheduler-today-button-margin-inline-start);
+      padding: var(--rz-scheduler-today-button-padding);
+      font-size: var(--rz-scheduler-today-button-font-size);
+      text-transform: var(--rz-scheduler-today-button-text-transform);
+    }
 
-  .rz-next {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    padding: $scheduler-prev-next-button-padding;
-    font-size: $scheduler-prev-next-button-font-size;
+    &.rz-zoom-to-fit {
+      margin-inline-start: var(--rz-scheduler-today-button-margin-inline-start);
+    }
+
+    &.rz-prev {
+      border-start-start-radius: var(--rz-scheduler-prev-button-border-start-start-radius);
+      border-start-end-radius: var(--rz-scheduler-prev-button-border-start-end-radius);
+      border-end-start-radius: var(--rz-scheduler-prev-button-border-end-start-radius);
+      border-end-end-radius: var(--rz-scheduler-prev-button-border-end-end-radius);
+    }
+
+    &.rz-next {
+      border-start-start-radius: var(--rz-scheduler-next-button-border-start-start-radius);
+      border-start-end-radius: var(--rz-scheduler-next-button-border-start-end-radius);
+      border-end-start-radius: var(--rz-scheduler-next-button-border-end-start-radius);
+      border-end-end-radius: var(--rz-scheduler-next-button-border-end-end-radius);
+    }
+
+    &:focus-visible {
+      z-index: 1;
+    }
+  }
+}
+
+/* Right-to-left .rz-scheduler-nav-prev-next */
+*[dir="rtl"] .rz-scheduler-nav-prev-next {
+  .rz-button.rz-prev,
+  .rz-button.rz-next {
+    .rzi {
+      transform: rotate(180deg);
+    }
   }
 }
 
@@ -304,12 +333,375 @@ $scheduler-border-radius: $border-radius !default;
   }
 }
 
-@media (max-width: 576px) {
+// Week range slots
+
+.rz-week {
+  flex: 1;
+  font-size: 1rem;
+
+  .rz-slots {
+    display: flex;
+    height: 100%;
+  }
+
+  &:first-child .rz-slot {
+    border-block-start: none;
+  }
+}
+
+// Month range slots
+.rz-month {
+  flex: 1;
+  font-size: 1rem;
+
+  .rz-slots {
+    display: flex;
+    height: 100%;
+  }
+
+  &:nth-child(2) .rz-slot {
+    border-block-start: none;
+  }
+
+  .rz-slot {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    border-block-start: 1px solid var(--rz-scheduler-border-color);
+    border-inline-start: 1px solid var(--rz-scheduler-border-color);
+  
+    &:first-child {
+      position: sticky;
+      z-index: 1;
+      inset-inline-start: 0;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--rz-scheduler-header-background-color);
+      border-inline-start: none;
+      border-inline-end: 1px solid var(--rz-scheduler-border-color);
+
+
+      .rz-slot-header {
+        text-align: center;
+        font-size: var(--rz-scheduler-header-font-size);
+        padding: var(--rz-scheduler-header-padding);
+        text-transform: var(--rz-scheduler-header-text-transform);
+        color: var(--rz-scheduler-header-color);
+      }
+    }
+
+    &:nth-child(2) {
+      border-inline-start: none;
+    }
+  }
+}
+
+// Day View
+
+.rz-day-view{
+  .rz-slot:nth-of-type(2) {
+    border-block-start: none;
+  }
+
+  .rz-view-header {
+    overflow-y: scroll;
+    scrollbar-width: auto;
+  }
+}
+
+// Week View
+
+.rz-week-view-content {
+  flex: 1;
+  display: flex;
+
+  &:focus {
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-scheduler-focus-outline);
+    outline-offset: var(--rz-scheduler-focus-outline-offset);
+
+    .rz-slots {
+      &.rz-state-focused {
+      outline: var(--rz-scheduler-focus-outline);
+      outline-offset: var(--rz-scheduler-focus-outline-offset);
+      }
+    }
+
+    .rz-event {
+      &.rz-state-focused {
+        .rz-event-content {
+          outline: var(--rz-scheduler-focus-outline);
+          outline-offset: var(--rz-outline-offset);
+        }
+      }
+    }
+  }
+}
+
+.rz-week-view {
+  .rz-slot:nth-of-type(2) {
+    border-block-start: none;
+  }
+
+  .rz-view-header {
+    overflow-y: scroll;
+    scrollbar-width: auto;
+  }
+  
+}
+
+// Month View
+
+.rz-month-view {
+  .rz-view-content {
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .rz-slot {
+    flex: 1;
+    height: 100%;
+    cursor: pointer;
+    align-items: flex-start;
+
+    &:first-child {
+      border-inline-start: none;
+    }
+  }
+
+  .rz-slot-title {
+    display: flex;
+    align-items: baseline;
+    flex: 1;
+  }
+}
+
+// Planner View
+
+.rz-planner-view {
+  overflow: auto;
+
+  .rz-view-header {
+    position: sticky;
+    inset-block-start: 0px;
+    min-height: 2.25rem;
+    z-index: 2;
+  }
+
+  &:focus-visible {
+    outline: var(--rz-scheduler-focus-outline);
+    outline-offset: var(--rz-scheduler-focus-outline-offset);
+
+    .rz-slot {
+      &.rz-state-focused {
+        outline: var(--rz-scheduler-focus-outline);
+        outline-offset: var(--rz-scheduler-focus-outline-offset);
+      }
+    }
+    
+    .rz-event {
+      &.rz-state-focused {
+        .rz-event-content {
+          outline: var(--rz-scheduler-focus-outline);
+          outline-offset: var(--rz-outline-offset);
+        }
+      }
+    }
+  }
+
+  .rz-month {
+    .rz-slot {
+      &:first-child {
+        .rz-slot-header {
+          writing-mode: vertical-lr;
+          transform: rotate(-180deg);
+        }
+      }
+
+      &:last-child {
+        justify-content: center;
+        align-items: center;
+        background-color: var(--rz-scheduler-header-background-color);
+  
+        .rz-slot-header {
+          writing-mode: vertical-rl;
+          text-align: center;
+          font-size: var(--rz-scheduler-header-font-size);
+          padding: var(--rz-scheduler-header-padding);
+          text-transform: var(--rz-scheduler-header-text-transform);
+          color: var(--rz-scheduler-header-color);
+        }
+      }
+
+      &.rz-other-month {
+        background-color: var(--rz-scheduler-other-month-background-color);
+      }
+
+      &.rz-weekend {
+        color: var(--rz-scheduler-weekend-color);
+        background-color: var(--rz-scheduler-weekend-background-color);
+      }
+    }
+  }
+
+  .rz-slot-title {
+    display: flex;
+    align-items: baseline;
+    flex: 1;
+  }
+
+}
+
+// Timeline View
+
+.rz-timeline-view {
+  flex: auto;
+  overflow: auto;
+  flex-wrap: wrap;
+  flex-direction: unset;
+
+  .rz-view-header {
+    position: sticky;
+    inset-block-start: 0px;
+    min-height: 36px;
+    z-index: 2;
+
+    .rz-slot-header {
+      min-width: var(--rz-scheduler-timeline-slot-width);
+      flex: 0 0 auto;
+    }
+  }
+
+  &:focus-visible {
+    outline: var(--rz-scheduler-focus-outline);
+    outline-offset: var(--rz-scheduler-focus-outline-offset);
+
+    .rz-slot {
+      &.rz-state-focused {
+        outline: var(--rz-scheduler-focus-outline);
+        outline-offset: var(--rz-scheduler-focus-outline-offset);
+      }
+    }
+    
+    .rz-event {
+      &.rz-state-focused {
+        .rz-event-content {
+          outline: var(--rz-scheduler-focus-outline);
+          outline-offset: var(--rz-outline-offset);
+        }
+      }
+    }
+  }
+
+  .rz-month {
+    flex: 0 0 auto;
+  
+    .rz-slots {
+      flex: 0 0 auto;
+    }
+  
+    .rz-slot {
+      width: var(--rz-scheduler-timeline-slot-width);
+      height: var(--rz-scheduler-timeline-slot-height);
+
+      &.rz-other-month {
+        background-color: var(--rz-scheduler-other-month-background-color);
+      }
+
+      &.rz-weekend {
+        color: var(--rz-scheduler-weekend-color);
+        background-color: var(--rz-scheduler-weekend-background-color);
+      }
+    }
+  }
+
+  .rz-slot-title {
+    display: flex;
+    align-items: baseline;
+    flex: 1;
+  }
+
+}
+
+// Year View
+
+.rz-year-view {
+  overflow: auto;
+  padding: var(--rz-scheduler-year-padding);
+  --rz-gap: var(--rz-scheduler-year-padding);
+
+  .rz-flex-column,
+  .rz-week {
+    min-width: fit-content;
+  }
+
+  .rz-slot {
+    flex: 1;
+    border-block-start: none;
+    justify-content: center;
+    height: initial;
+    padding: var(--rz-scheduler-year-slot-padding);
+    cursor: pointer;
+
+    .rz-slot-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      text-align: center;
+      width: var(--rz-scheduler-year-slot-title-width);
+      min-width: 2rem;
+      min-height: 2rem;
+      border-radius: var(--rz-scheduler-year-slot-title-border-radius);
+      transition: var(--rz-datepicker-calendar-transition);
+
+      &.rz-other-month {
+        opacity: 0.5;
+      }
+
+      &.rz-has-appointments {
+        color: var(--rz-scheduler-event-color);
+        background-color: var(--rz-scheduler-event-background-color)
+      }
+
+      &.rz-state-focused {
+        color: var(--rz-datepicker-calendar-hover-color);
+        background: var(--rz-datepicker-calendar-hover-background-color);
+      }
+    }
+
+    &:hover {
+      .rz-slot-title:not(.rz-has-appointments) {
+        color: var(--rz-datepicker-calendar-hover-color);
+        background: var(--rz-datepicker-calendar-hover-background-color);
+      }
+    }
+  }
+}
+
+.rz-year-month {
+  &:focus {
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-scheduler-focus-outline);
+    outline-offset: var(--rz-outline-offset);
+    border-radius: var(--rz-border-radius);
+  }
+}
+
+// Responsive Styles
+
+@container scheduler (width < 640px) {
   .rz-scheduler-nav {
     .rz-scheduler-nav-prev-next {
       justify-content: space-between;
-      margin-bottom: 0.5rem;
-      margin-right: 0.5rem;
+      margin-block-end: 0.5rem;
+      margin-inline-end: 0.5rem;
       order: 1;
     }
 
@@ -320,26 +712,118 @@ $scheduler-border-radius: $border-radius !default;
     }
 
     .rz-scheduler-nav-views {
-      margin-bottom: 0.5rem;
+      margin-block-end: 0.5rem;
       justify-content: center;
       flex-grow: 1;
       order: 2;
 
       .rz-button {
         flex-grow: 1;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
+        padding-inline-start: 0.5rem;
+        padding-inline-end: 0.5rem;
 
-        span {
+        .rz-button-text {
           display: none;
         }
       }
     }
   }
 
-  .rz-slot-hours {
-    .rz-slot-header {
-      width: auto;
+  .rz-slot-hours,
+  .rz-view-header .rz-slot-hour-header {
+    flex: 0 0 3rem;
+  }
+}
+
+@container scheduler (width < 1400px) {
+  .rz-planner-view {
+    flex-wrap: wrap;
+    flex-direction: unset;
+
+    .rz-view-header {
+      .rz-slot-header {
+        flex: 0 0 auto;
+        width: var(--rz-scheduler-planner-slot-width);
+      }
+    }
+
+    .rz-month {
+      flex: 0 0 auto;
+
+      .rz-slots {
+        flex: 0 0 auto;
+      }
+
+      .rz-slot {
+        width: var(--rz-scheduler-planner-slot-width);
+        height: var(--rz-scheduler-planner-slot-height);
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .rz-scheduler-nav {
+    .rz-scheduler-nav-prev-next {
+      justify-content: space-between;
+      margin-block-end: 0.5rem;
+      margin-inline-end: 0.5rem;
+      order: 1;
+    }
+
+    .rz-scheduler-nav-title {
+      justify-content: center;
+      width: 100%;
+      order: 3;
+    }
+
+    .rz-scheduler-nav-views {
+      margin-block-end: 0.5rem;
+      justify-content: center;
+      flex-grow: 1;
+      order: 2;
+
+      .rz-button {
+        flex-grow: 1;
+        padding-inline-start: 0.5rem;
+        padding-inline-end: 0.5rem;
+
+        .rz-button-text {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .rz-slot-hours,
+  .rz-view-header .rz-slot-hour-header {
+    flex: 0 0 3rem;
+  }
+}
+
+@media (max-width: 1399px) {
+  .rz-planner-view {
+    flex-wrap: wrap;
+    flex-direction: unset;
+
+    .rz-view-header {
+      .rz-slot-header {
+        flex: 0 0 auto;
+        width: var(--rz-scheduler-planner-slot-width);
+      }
+    }
+
+    .rz-month {
+      flex: 0 0 auto;
+
+      .rz-slots {
+        flex: 0 0 auto;
+      }
+
+      .rz-slot {
+        width: var(--rz-scheduler-planner-slot-width);
+        height: var(--rz-scheduler-planner-slot-height);
+      }
     }
   }
 }

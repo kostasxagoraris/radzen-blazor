@@ -12,13 +12,12 @@ namespace Radzen.Blazor
         /// The <see cref="RadzenLayout" /> this component is nested in.
         /// </summary>
         [CascadingParameter]
-        public RadzenLayout Layout { get; set; }
+        public RadzenLayout? Layout { get; set; }
 
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return ClassList.Create("footer")
-                            .Add("rz-footer")
+            return ClassList.Create("rz-footer")
                             .Add("fixed", Layout == null)
                             .ToString();
         }

@@ -1,64 +1,97 @@
-# Radzen Blazor Components
+![Radzen Blazor Components](https://raw.githubusercontent.com/radzenhq/radzen-blazor/master/RadzenBlazorDemos/wwwroot/images/radzen-blazor-components.png)
 
-The home of the [Radzen Blazor components](https://blazor.radzen.com)
+Radzen Blazor Components
+========================
 
-## Commercial support
+The most sophisticated free UI component library for Blazor, featuring **100+ native components**. MIT licensed, used by thousands of developers at companies like Microsoft, NASA, Porsche, Dell, Siemens, and DHL.
 
-Paid support for the Radzen Blazor Components is available as part of the [Radzen Professional subscription](https://www.radzen.com/pricing/). 
+Supports .NET 10, Blazor Server, Blazor WebAssembly, and .NET MAUI Blazor Hybrid.
 
-Our flagship product Radzen provides tons of productivity features for Blazor developers:
-- The first in the industry WYSIWYG Blazor design time canvas
-- Scaffolding a complete CRUD applications from a database
-- Built-in security - authentication and authorization
-- Visual Studio Code and Professional support
-- Deployment to IIS and Azure
-- Dedicated support with 24 hour guaranteed response time
-- Active community forum
+[Online Demos](https://blazor.radzen.com) · [Documentation](https://blazor.radzen.com/docs) · [Get Started](https://blazor.radzen.com/get-started)
 
-## Get started with the Radzen Blazor Components
+ [![License - MIT](https://img.shields.io/github/license/radzenhq/radzen-blazor?logo=github&style=for-the-badge)](https://github.com/radzenhq/radzen-blazor/blob/master/LICENSE)[![NuGet Downloads](https://img.shields.io/nuget/dt/Radzen.Blazor?color=%232694F9&label=nuget%20downloads&logo=nuget&style=for-the-badge) ](https://www.nuget.org/packages/Radzen.Blazor)![Last Commit](https://img.shields.io/github/last-commit/radzenhq/radzen-blazor?logo=github&style=for-the-badge) [![Github Contributors](https://img.shields.io/github/contributors/radzenhq/radzen-blazor?logo=github&style=for-the-badge) ](https://github.com/radzenhq/radzen-blazor/graphs/contributors)[![Radzen Blazor Components - Online Demos](https://img.shields.io/badge/demos-online-brightgreen?color=%232694F9&logo=blazor&style=for-the-badge) ](https://blazor.radzen.com)[![Radzen Blazor Components - Documentation](https://img.shields.io/badge/docs-online-brightgreen?color=%232694F9&logo=blazor&style=for-the-badge)](https://blazor.radzen.com/docs)
 
-### Install
+## Quick start
 
-Radzen Blazor Components are distributed as the Radzen.Blazor nuget package. You can add them to your project in one of the following ways
-- Install the package from command line by running dotnet add package Radzen.Blazor
-- Add the project from the Visual Nuget Package Manager 
-- Manually edit the .csproj file and add a project reference
+Install the NuGet package:
+```bash
+dotnet add package Radzen.Blazor
+```
 
-### Import the namespace
+Add to `_Imports.razor`:
+```razor
+@using Radzen
+@using Radzen.Blazor
+```
 
-Open the `_Imports.razor` file of your Blazor application and add this line `@using Radzen.Blazor`.
-
-### Include a theme
-
-Open the `_Host.cshtml` file (server-side Blazor) or `wwwroot/index.html` (client-side Blazor) and include a theme CSS file by adding this snippet `<link rel="stylesheet" href="_content/Radzen.Blazor/css/default.css">` or `<link rel="stylesheet" href="_content/Radzen.Blazor/css/default-base.css">` if you either include Bootstrap manually or don't use it at all.
-
-### Include Radzen.Blazor.js
-
-Open the `_Host.cshtml` file (server-side Blazor) or `wwwroot/index.html` (client-side Blazor) and include this snippet `<script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>`
-
-### Use a component
-Use any Radzen Blazor component by typing its tag name in a Blazor page e.g. 
+Add the theme and script to `App.razor`:
 ```html
-<RadzenButton Text="Hi"></RadzenButton>
+<!-- inside <head> -->
+<RadzenTheme Theme="material" />
+
+<!-- after the last <script> -->
+<script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
 ```
 
-#### Data-binding a property
+Register services in `Program.cs`:
+```csharp
+builder.Services.AddRadzenComponents();
+```
+
+Use a component:
 ```razor
-<RadzenButton Text=@text />
-<RadzenTextBox @bind-Value=@text />
-@code {
-  string text = "Hi";
-}
+<RadzenButton Text="Hello World" Click="@OnClick" />
 ```
 
-#### Handing events
+For the full setup guide including render modes and dialog/notification configuration, see the [getting started instructions](https://blazor.radzen.com/get-started).
 
-```razor
-<RadzenButton Click="@ButtonClicked" Text="Hi"></RadzenButton>
-@code {
-  void ButtonClicked()
-  {
+## Components
 
-  }
-}
-```
+**Data** — DataGrid, DataList, PivotDataGrid, Pager, Tree, Scheduler, Charts, GaugeCharts
+
+**Forms** — TextBox, TextArea, Password, Numeric, DatePicker, TimePicker, ColorPicker, Dropdown, AutoComplete, ListBox, CheckBox, RadioButtonList, Switch, Slider, Rating, FileInput, HtmlEditor
+
+**Layout** — Card, Panel, Tabs, Accordion, Splitter, Steps, Dialog, Fieldset
+
+**Navigation** — Menu, ContextMenu, PanelMenu, Breadcrumb, Link, TreeView
+
+**Feedback** — Notification, Alert, ProgressBar, Badge, Tooltip, Skeleton
+
+**Theming** — 10 built-in themes with light and dark variants. Free themes: Material, Standard, Default, Humanistic, Software. Premium themes (included with [Radzen Blazor Pro](https://www.radzen.com/pricing)): Material 3, Fluent. Full CSS variable customization and a built-in theme service for runtime switching.
+
+[Browse all components with live demos →](https://blazor.radzen.com)
+
+## Why choose Radzen Blazor Components?
+
+### :sparkles: Free and open source
+
+MIT licensed and free for commercial use. No per-developer fees, no runtime royalties. Install from [NuGet](https://www.nuget.org/packages/Radzen.Blazor) or build from source.
+
+### :computer: 100% native Blazor
+
+Written entirely in C#. No JavaScript framework dependencies, no wrappers. 
+
+### :seedling: Actively maintained
+
+Frequent releases with new components and features. Short development cycle — we ship as soon as new features are ready instead of batching into quarterly releases.
+
+### :office: Trusted in production
+
+Used by developers at Microsoft, NASA, Porsche, Dell, Siemens, Nokia, DHL, HSBC, Allianz, Accenture, Deloitte, and thousands of other organizations worldwide.
+
+## Support
+
+### :speech_balloon: Community Support
+Visit the [Radzen Community forum](https://forum.radzen.com/) — 400+ active weekly users with an average response time of 2 hours.
+
+### :dart: Radzen Blazor Pro
+
+For dedicated support and additional productivity tools, the [Radzen Blazor Pro subscription](https://www.radzen.com/pricing) includes:
+- **Radzen Blazor Studio** — standalone Blazor IDE that provides WYSIWYG design canvas, database scaffolding, CRUD wizards, app templates, and deployment to IIS/Azure
+- **Radzen Blazor for Visual Studio** — Blazor tooling integrated into Visual Studio 2026
+- **Premium themes** and theme customization tools
+- **Dedicated support** with guaranteed 24-hour response time and priority fixes
+
+## Run demos locally
+
+Use **Radzen.Server.sln** to open and run demos as Blazor server application or **Radzen.WebAssembly.sln** to open and run demos as Blazor WebAssembly application. The demos require the .NET 10 SDK and should preferably be opened in VS2026.

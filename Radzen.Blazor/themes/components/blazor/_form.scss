@@ -1,59 +1,44 @@
-$form-error-color: #f9777f !default;
+$form-error-color: var(--rz-danger) !default;
 $form-error-font-size: 0.75rem !default;
-$validator-background-color: $danger !default;
-$validator-color: $white !default;
-$validator-shadow: 0 6px 14px 0 rgba(0, 0, 0, 0.15) !default;
+$validator-background-color: var(--rz-danger) !default;
+$validator-color: var(--rz-on-danger) !default;
+$validator-shadow: 0 6px 14px 0 rgba($rz-danger, 0.3) !default;
 $validator-text-padding: 0 !default;
-$validator-padding: 4px 12px !default;
-$validator-pointer-size: 6px !default;
-$validator-transform: translateY(16px) !default;
+$validator-padding: 0.25rem 0.5rem !default;
+$validator-pointer-size: 0.375rem !default;
+$validator-transform: translateY(12px) !default;
 
 .rz-form {
-  .rz-textbox,
-  .rz-lookup,
-  .rz-dropdown,
-  .rz-multiselect,
-  .rz-calendar,
-  .rz-spinner,
-  .textarea {
-    width: 100%;
-  }
-  .rz-messages-error {
-    position: absolute;
-  }
+  box-sizing: border-box;
+}
+
+.rz-message {
+  box-sizing: border-box;
 }
 
 .rz-messages-error {
   display: inline-block;
-  color: $form-error-color;
-  font-size: $form-error-font-size;
-  padding: $validator-text-padding;
+  color: var(--rz-form-error-color);
+  font-size: var(--rz-form-error-font-size);
+  padding: var(--rz-validator-text-padding);
 }
 
 .rz-message-popup {
   position: absolute;
-  background-color: $validator-background-color;
-  transform: $validator-transform;
-  box-shadow: $validator-shadow;
-  padding: $validator-padding;
-  border-radius: $border-radius;
-  color: $validator-color;
+  background-color: var(--rz-validator-background-color);
+  transform: var(--rz-validator-transform);
+  box-shadow: var(--rz-validator-shadow);
+  padding: var(--rz-validator-padding);
+  border-radius: var(--rz-border-radius);
+  color: var(--rz-validator-color);
   pointer-events: none;
 
   &:before {
     content: '';
-    border: $validator-pointer-size solid transparent;
-    border-bottom-color: $validator-background-color;
-    border-left-color: $validator-background-color;
+    border: var(--rz-validator-pointer-size) solid transparent;
+    border-bottom-color: var(--rz-validator-background-color);
     position: absolute;
-    top: 0;
-    left: 0;
-    transform: translate($validator-pointer-size, -100%);
-  }
-}
-
-.rz-template-form {
-  .row {
-    margin: 0;
+    inset-block-start: calc(-2 * var(--rz-validator-pointer-size));
+    inset-inline-start: calc(var(--rz-border-radius) + (var(--rz-validator-pointer-size) / 2));
   }
 }

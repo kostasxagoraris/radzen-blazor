@@ -1,64 +1,179 @@
-﻿@using System.Timers
+@using System.Collections.Generic
+@using System.Timers
+@using System.Threading
+@implements IDisposable
 
 @if (Visible)
 {
     var classes = GetMessageCssClasses();
-
-    <div class="rz-notification-message rz-growl " style="width: 250px;z-index: 1002;position:static;@Style">
-        <div aria-live="polite" class="rz-growl-item-container rz-state-highlight   @classes.Item1">
-            <div class="rz-growl-item">
-                <div class="rz-growl-icon-close rzi rzi-times" @onclick="@Close" style="cursor:pointer"></div>
-                <span class="rz-growl-image rzi @classes.Item2"></span>
-                <div class="rz-growl-message">
-                    <span class="rz-growl-title">@Message.Summary</span>
-                    <p>@Message.Detail</p>
+    var clickable = Message?.Click != null || Message?.CloseOnClick == true;
+    var wrapperAttributes = clickable ? new Dictionary<string, object>
+    {
+        { "role", "button" },
+        { "tabindex", "0" }
+    } : null;
+    <div aria-live="polite" class="rz-notification-item-wrapper rz-open @classes.Item1" style="@(clickable ? "cursor: pointer;" : "") @Style"
+         @attributes="wrapperAttributes" @onclick="NotificationClicked" @onkeydown="OnKeyDown">
+        <div class="rz-notification-item">
+            <div class="rz-notification-message-wrapper">
+                <span class="notranslate rzi rz-notification-icon @classes.Item2"></span>
+                <div class="rz-notification-message">
+                    <div class="rz-notification-title">@if (Message?.SummaryContent != null && Service != null) { @Message.SummaryContent(Service) } else { @Message?.Summary }</div>
+                    <div class="rz-notification-content">@if (Message?.DetailContent != null && Service != null) { @Message.DetailContent(Service) } else { @Message?.Detail }</div>
                 </div>
-                <div style="clear: both;"></div>
             </div>
+            <button type="button" class="notranslate rzi rz-notification-close" aria-label="@(Message?.CloseAriaLabel ?? "Close")" @onclick="@Close" @onclick:stopPropagation="true"></button>
         </div>
+        <RadzenProgressBar ShowValue="false" Visible=@(Message?.Duration != null && Message.ShowProgress)
+        Value=@progress Max="@(Message?.Duration ?? 0)" ProgressBarStyle=@GetProgressBarStyle() />
     </div>
 }
 @code {
     Tuple<string, string> GetMessageCssClasses()
     {
-        if (Message.Severity == NotificationSeverity.Error)
+        if (Message?.Severity == NotificationSeverity.Error)
         {
-            return new Tuple<string, string>("rz-growl-message-error", "rzi-times");
+            return new Tuple<string, string>("rz-notification-error", "notranslate rzi-times");
         }
-        else if (Message.Severity == NotificationSeverity.Info)
+        else if (Message?.Severity == NotificationSeverity.Info)
         {
-            return new Tuple<string, string>("rz-growl-message-info", "rzi-info-circle");
+            return new Tuple<string, string>("rz-notification-info", "notranslate rzi-info-circle");
         }
-        else if (Message.Severity == NotificationSeverity.Success)
+        else if (Message?.Severity == NotificationSeverity.Success)
         {
-            return new Tuple<string, string>("rz-growl-message-success", "rzi-check");
+            return new Tuple<string, string>("rz-notification-success", "notranslate rzi-check");
         }
-        else if (Message.Severity == NotificationSeverity.Warning)
+        else if (Message?.Severity == NotificationSeverity.Warning)
         {
-            return new Tuple<string, string>("rz-growl-message-warn", "rzi-exclamation-triangle");
+            return new Tuple<string, string>("rz-notification-warn", "notranslate rzi-exclamation-triangle");
         }
 
         return new Tuple<string, string>("", "");
     }
 
-    [Inject] private NotificationService Service { get; set; }
+    ProgressBarStyle GetProgressBarStyle()
+    {
+        if (Message?.Severity == NotificationSeverity.Error)
+        {
+            return ProgressBarStyle.Danger;
+        }
+        else if (Message?.Severity == NotificationSeverity.Info)
+        {
+            return ProgressBarStyle.Info;
+        }
+        else if (Message?.Severity == NotificationSeverity.Success)
+        {
+            return ProgressBarStyle.Success;
+        }
+        else if (Message?.Severity == NotificationSeverity.Warning)
+        {
+            return ProgressBarStyle.Warning;
+        }
+
+        return ProgressBarStyle.Primary;
+    }
+
+    [Inject] private NotificationService? Service { get; set; }
 
     public bool Visible { get; set; } = true;
 
     [Parameter]
-    public NotificationMessage Message { get; set; }
+    public NotificationMessage? Message { get; set; }
 
     [Parameter]
-    public string Style { get; set; }
+    public string? Style { get; set; }
 
     public void Close()
     {
-        Service.Messages.Remove(Message);
-        System.Threading.Tasks.Task.Delay(0).ContinueWith(r => { Visible = false; });
+        if (Message != null && Service != null)
+        {
+            Service.Messages.Remove(Message);
+            Message?.Close?.Invoke(Message);
+        }
     }
+
+    double progress = 0;
+    System.Timers.Timer? timer;
+    ElapsedEventHandler? timerElapsedHandler;
+    CancellationTokenSource? closeCts;
 
     protected override void OnInitialized()
     {
-        System.Threading.Tasks.Task.Delay(Convert.ToInt32(Message.Duration ?? 3000)).ContinueWith(r => InvokeAsync(Close));
+        if (Message?.ShowProgress == true)
+        {
+            timer = new System.Timers.Timer() { Enabled = true };
+            timerElapsedHandler = OnTimerElapsed;
+            timer.Elapsed += timerElapsedHandler;
+        }
+
+        closeCts = new CancellationTokenSource();
+        _ = CloseAfterDelayAsync(Convert.ToInt32(Message?.Duration ?? 3000), closeCts.Token);
+    }
+
+    private void OnTimerElapsed(object? sender, ElapsedEventArgs args)
+    {
+        progress = progress + 100;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CloseAfterDelayAsync(int duration, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(duration, token);
+            if (!token.IsCancellationRequested)
+            {
+                await InvokeAsync(Close);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Ignore
+        }
+    }
+
+    private void NotificationClicked()
+    {
+      if (Message?.Click == null && Message?.CloseOnClick != true)
+         return;
+
+      if (Message?.CloseOnClick == true)
+         Close();
+
+      Message?.Click?.Invoke(Message);
+    }
+
+    private void OnKeyDown(KeyboardEventArgs args)
+    {
+        if (Message?.Click == null && Message?.CloseOnClick != true)
+        {
+            return;
+        }
+
+        var key = args.Code != null ? args.Code : args.Key;
+        if (key == "Enter" || key == "Space")
+        {
+            NotificationClicked();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (closeCts != null)
+        {
+            closeCts.Cancel();
+            closeCts.Dispose();
+            closeCts = null;
+        }
+
+        if (timer != null && timerElapsedHandler != null)
+        {
+            timer.Elapsed -= timerElapsedHandler;
+            timerElapsedHandler = null;
+        }
+
+        timer?.Stop();
+        timer?.Dispose();
+        timer = null;
     }
 }

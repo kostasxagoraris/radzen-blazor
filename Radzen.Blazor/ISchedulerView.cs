@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 
 namespace Radzen.Blazor
@@ -8,6 +9,10 @@ namespace Radzen.Blazor
     /// </summary>
     public interface ISchedulerView
     {
+        /// <summary>
+        /// Gets the icon of the view. It is displayed in the view switching UI.
+        /// </summary>
+        string Icon { get; }
         /// <summary>
         /// Gets the title of the view. It is displayed in the RadzenScheduler title area.
         /// </summary>
@@ -45,5 +50,11 @@ namespace Radzen.Blazor
         /// Gets the end date.
         /// </summary>
         DateTime EndDate { get; }
+        /// <summary>
+        /// Handles appointent move event.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        Task OnAppointmentMove(SchedulerAppointmentMoveEventArgs data);
     }
 }

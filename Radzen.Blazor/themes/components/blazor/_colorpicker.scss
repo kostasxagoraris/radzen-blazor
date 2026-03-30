@@ -1,27 +1,25 @@
-$colorpicker-panel-border: $dropdown-panel-border !default;
-$colorpicker-panel-background-color: $dropdown-open-background-color !default;
+$colorpicker-panel-border: var(--rz-border-normal) !default;
+$colorpicker-panel-background-color: var(--rz-base-background-color) !default;
 $colorpicker-panel-shadow: 0 6px 14px 0 rgba(0, 0, 0, 0.06) !default;
-$colorpicker-panel-padding: 0.625rem !default;
-$colorpicker-panel-max-width: 280px !default;
-$colorpicker-saturation-height: 150px !default;
-
-$colorpicker-value-border-radius: $input-border-radius !default;
-
-$colorpicker-item-size: 16px !default;
-$colorpicker-item-border-radius: $input-border-radius !default;
-$colorpicker-item-margin: 4px !default;
+$colorpicker-panel-padding: 0.5rem !default;
+$colorpicker-panel-max-width: 20rem !default;
+$colorpicker-saturation-height: 200px !default;
+$colorpicker-focus-outline: var(--rz-outline-focus) !default;
+$colorpicker-focus-outline-offset: var(--rz-outline-offset) !default;
+$colorpicker-value-border-radius: var(--rz-border-radius) !default;
+$colorpicker-items-gap: 0.5rem !default;
+$colorpicker-item-size: 1.25rem !default;
+$colorpicker-item-border-radius: var(--rz-border-radius) !default;
 $colorpicker-item-shadow: rgba(0, 0, 0, 0.15) 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.25) 0px 0px 4px inset !default;
-
+$colorpicker-item-selected-transform: scale(1.25) !default;
 $colorpicker-handle-size: 12px !default;
-$colorpicker-handle-border: 1px solid #fff !default;
-$colorpicker-handle-shadow: rgb(255, 255, 255) 0px 0px 0px 1px, rgba(0, 0, 0, 0.3) 0px 0px 1px 1px inset, rgba(0, 0, 0, 0.4) 0px 0px 1px 2px !default;
-
-$colorpicker-hex-input-padding: 0 3px !default;
-$colorpicker-hex-input-height: 30px !default;
-$colorpicker-rgba-input-padding: 1px 3px !default;
-$colorpicker-rgba-input-height: 30px !default;
-$colorpicker-input-labels-color: $input-disabled-color !default;
-
+$colorpicker-handle-border: 2px solid var(--rz-white) !default;
+$colorpicker-handle-shadow: var(--rz-white) 0px 0px 0px 1px, rgba(0, 0, 0, 0.3) 0px 0px 1px 1px inset, rgba(0, 0, 0, 0.4) 0px 0px 1px 2px !default;
+$colorpicker-hex-input-padding: 0.25rem 0.5rem !default;
+$colorpicker-hex-input-height: 2rem !default;
+$colorpicker-rgba-input-padding: 0.25rem 0.5rem !default;
+$colorpicker-rgba-input-height: 2rem !default;
+$colorpicker-input-labels-color: var(--rz-text-tertiary-color) !default;
 
 .rz-colorpicker {
   display: inline-flex;
@@ -30,8 +28,8 @@ $colorpicker-input-labels-color: $input-disabled-color !default;
 
   @extend %input;
 
-  &.rz-disabled {
-    color: $input-disabled-color;
+  &.rz-state-disabled {
+    @extend %input-disabled;
     cursor: default;
   }
 }
@@ -42,41 +40,57 @@ button.rz-colorpicker-trigger {
   padding: 0;
   display: inline-flex;
   align-items: center;
-  color: $editor-button-color;
+  color: var(--rz-text-color);
   background-color: inherit;
   outline: none;
 
   .rzi {
+    font-size: var(--rz-icon-size);
     &:before {
       content: 'arrow_drop_down';
     }
   }
+
+  .rz-state-disabled & {
+    color: var(--rz-input-disabled-color);
+  }
+
 }
 
 .rz-colorpicker-popup {
   display: none;
   position: absolute;
-  border: $colorpicker-panel-border;
-  background-color: $colorpicker-panel-background-color;
-  box-shadow: $colorpicker-panel-shadow;
+  border: var(--rz-colorpicker-panel-border);
+  background-color: var(--rz-colorpicker-panel-background-color);
+  box-shadow: var(--rz-colorpicker-panel-shadow);
   min-width: 200px;
-  max-width: $colorpicker-panel-max-width;
-  padding: $colorpicker-panel-padding;
-  border-radius: $border-radius;
+  max-width: var(--rz-colorpicker-panel-max-width);
+  padding: var(--rz-colorpicker-panel-padding);
+  border-radius: var(--rz-border-radius);
 }
 
 .rz-colorpicker-value {
   flex: 1;
-  border-radius: $colorpicker-value-border-radius;
-  border: $input-border;
+  border-radius: var(--rz-colorpicker-value-border-radius);
+  border: var(--rz-colorpicker-panel-border);
   min-width: 20px;
   min-height: 20px;
 }
+
 .rz-saturation-picker {
-  height: $colorpicker-saturation-height;
+  height: var(--rz-colorpicker-saturation-height);
   position: relative;
   touch-action: none;
-  border-radius: $input-border-radius;
+  border-radius: var(--rz-border-radius);
+
+  &:focus {
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-colorpicker-focus-outline);
+    outline-offset: var(--rz-colorpicker-focus-outline-offset);
+  }
 }
 
 .rz-saturation-white {
@@ -91,8 +105,8 @@ button.rz-colorpicker-trigger {
   left: 0;
   right: 0;
   bottom: 0;
-  border-radius: $input-border-radius;
-  border-top-left-radius: $input-border-radius - 1px;
+  border-radius: var(--rz-border-radius);
+  border-start-start-radius: calc(var(--rz-border-radius) - 1px);
 }
 
 .rz-saturation-black {
@@ -101,12 +115,12 @@ button.rz-colorpicker-trigger {
 
 .rz-saturation-handle {
   position: absolute;
-  width: $colorpicker-handle-size;
-  height: $colorpicker-handle-size;
-  border: $colorpicker-handle-border;
+  width: var(--rz-colorpicker-handle-size);
+  height: var(--rz-colorpicker-handle-size);
+  border: var(--rz-colorpicker-handle-border);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: $colorpicker-handle-shadow;
+  box-shadow: var(--rz-colorpicker-handle-shadow);
 }
 
 .rz-hue-picker {
@@ -123,17 +137,43 @@ button.rz-colorpicker-trigger {
     rgb(255, 0, 255) 83%,
     rgb(255, 0, 0) 100%
   );
-  border-radius: $input-border-radius;
-  height: $colorpicker-handle-size;
+  border-radius: var(--rz-border-radius);
+  height: var(--rz-colorpicker-handle-size);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+
+  &:active {
+    cursor: none;
+  }
+
+  &:focus {
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-colorpicker-focus-outline);
+    outline-offset: var(--rz-colorpicker-focus-outline-offset);
+  }
 }
 
 .rz-alpha-picker {
   touch-action: none;
   position: relative;
-  border-radius: $input-border-radius;
-  height: $colorpicker-handle-size;
+  border-radius: var(--rz-border-radius);
+  height: var(--rz-colorpicker-handle-size);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+
+  &:active {
+    cursor: none;
+  }
+
+  &:focus {
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-colorpicker-focus-outline);
+    outline-offset: var(--rz-colorpicker-focus-outline-offset);
+  }
 }
 
 .rz-hue-handle,
@@ -141,10 +181,10 @@ button.rz-colorpicker-trigger {
   position: absolute;
   height: 100%;
   width: 8px;
-  border: $colorpicker-handle-border;
-  border-radius: $input-border-radius/2;
+  border: var(--rz-colorpicker-handle-border);
+  border-radius: calc(var(--rz-border-radius) / 2);
   transform: translateX(-50%);
-  box-shadow: $colorpicker-handle-shadow;
+  box-shadow: var(--rz-colorpicker-handle-shadow);
 }
 
 .rz-colorpicker-preview-area {
@@ -153,7 +193,7 @@ button.rz-colorpicker-trigger {
 
 .rz-hue-and-alpha {
   flex: 1;
-  padding-right: 8px;
+  padding-inline-end: 8px;
 }
 
 .rz-alpha-picker,
@@ -166,11 +206,11 @@ button.rz-colorpicker-trigger {
     left: 0;
     bottom: 0;
     right: 0;
-    border-radius: $input-border-radius;
-    background-image: linear-gradient(45deg, #cccccc 25%, transparent 25%),
-      linear-gradient(-45deg, #cccccc 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #cccccc 75%),
-      linear-gradient(-45deg, transparent 75%, #cccccc 75%);
+    border-radius: var(--rz-border-radius);
+    background-image: linear-gradient(45deg, var(--rz-text-disabled-color) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--rz-text-disabled-color) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--rz-text-disabled-color) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--rz-text-disabled-color) 75%);
     background-size: 8px 8px;
     background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
   }
@@ -182,11 +222,12 @@ button.rz-colorpicker-trigger {
   height: 32px;
   box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 0px 1px inset,
     rgba(0, 0, 0, 0.25) 0px 0px 4px inset;
-  border-radius: $input-border-radius;
+  border-radius: var(--rz-border-radius);
 }
 
 .rz-colorpicker-rgba {
   display: flex;
+  gap: 4px;
 }
 
 .rz-color-box {
@@ -194,26 +235,22 @@ button.rz-colorpicker-trigger {
   flex-direction: column;
   align-items: center;
   flex: 1;
-  color: $colorpicker-input-labels-color;
+  color: var(--rz-colorpicker-input-labels-color);
   font-size: 0.75rem;
   text-transform: uppercase;
 
-  &:not(:last-child) {
-    margin-right: 4px;
-  }
-
   .rz-textbox {
     width: 80px;
-    margin-right: 4px;
-    padding: $colorpicker-hex-input-padding;
-    height: $colorpicker-hex-input-height;
+    margin-inline-end: 4px;
+    padding: var(--rz-colorpicker-hex-input-padding);
+    height: var(--rz-colorpicker-hex-input-height);
   }
 
-  .rz-spinner {
-    padding: $colorpicker-rgba-input-padding;
-    height: $colorpicker-rgba-input-height;
+  .rz-numeric {
+    padding: var(--rz-colorpicker-rgba-input-padding);
+    height: var(--rz-colorpicker-rgba-input-height);
 
-    .rz-spinner-input {
+    .rz-numeric-input {
       padding: 0;
       outline: none;
     }
@@ -241,15 +278,27 @@ button.rz-colorpicker-trigger {
 .rz-colorpicker-colors {
   display: flex;
   flex-wrap: wrap;
-  margin-left: -4px;
-  margin-right: -4px;
+  gap: var(--rz-colorpicker-items-gap);
 }
 
 .rz-colorpicker-item {
-  width: $colorpicker-item-size;
-  height: $colorpicker-item-size;
-  border-radius: $colorpicker-item-border-radius;
-  margin: $colorpicker-item-margin;
-  box-shadow: $colorpicker-item-shadow;
+  width: var(--rz-colorpicker-item-size);
+  height: var(--rz-colorpicker-item-size);
+  border-radius: var(--rz-colorpicker-item-border-radius);
+  box-shadow: var(--rz-colorpicker-item-shadow);
   cursor: pointer;
+  transition: transform var(--rz-transition);
+
+  &:focus {
+    outline: var(--rz-outline-normal);
+  }
+
+  &:focus-visible {
+    outline: var(--rz-colorpicker-focus-outline);
+    outline-offset: var(--rz-colorpicker-focus-outline-offset);
+  }
+
+  &.selected {
+    transform: var(--rz-colorpicker-item-selected-transform);
+  }
 }

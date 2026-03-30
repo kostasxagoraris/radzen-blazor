@@ -1,4 +1,5 @@
 using Bunit;
+using Microsoft.AspNetCore.Components;
 using Xunit;
 
 namespace Radzen.Blazor.Tests
@@ -44,7 +45,7 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.Icon, icon));
 
-            Assert.Contains(@$"<i class=""rz-button-icon-left rzi"">{icon}</i>", component.Markup);
+            Assert.Contains(@$"<i class=""notranslate rz-button-icon-left rzi"">{icon}</i>", component.Markup);
         }
 
         [Fact]
@@ -59,10 +60,10 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => {
                 parameters.Add(p => p.Text, text);
-                parameters.Add(p => p.Icon, icon); 
+                parameters.Add(p => p.Icon, icon);
             });
 
-            Assert.Contains(@$"<i class=""rz-button-icon-left rzi"">{icon}</i>", component.Markup);
+            Assert.Contains(@$"<i class=""notranslate rz-button-icon-left rzi"">{icon}</i>", component.Markup);
             Assert.Contains(@$"<span class=""rz-button-text"">{text}</span>", component.Markup);
         }
 
@@ -77,7 +78,7 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.Image, image));
 
-            Assert.Contains(@$"<img class=""rz-button-icon-left rzi"" src=""{image}"" />", component.Markup);
+            Assert.Contains(@$"<img class=""notranslate rz-button-icon-left rzi"" src=""{image}"" alt=""image"" />", component.Markup);
         }
 
         [Fact]
@@ -93,10 +94,27 @@ namespace Radzen.Blazor.Tests
             component.SetParametersAndRender(parameters => {
                 parameters.Add(p => p.Text, text);
                 parameters.Add(p => p.Image, image);
+                parameters.Add(p => p.ImageAlternateText, text);
             });
 
-            Assert.Contains(@$"<img class=""rz-button-icon-left rzi"" src=""{image}"" />", component.Markup);
+            Assert.Contains(@$"<img class=""notranslate rz-button-icon-left rzi"" src=""{image}"" alt=""{text}"" />", component.Markup);
             Assert.Contains(@$"<span class=""rz-button-text"">{text}</span>", component.Markup);
+        }
+
+        [Fact]
+        public void SplitButton_Renders_ButtonContent()
+        {
+            using var ctx = new TestContext();
+
+            RenderFragment buttonContent = (builder) => builder.AddMarkupContent(0, "<strong>Custom button content</strong>");
+
+            var text = "Test";
+            var component = ctx.RenderComponent<RadzenSplitButton>(parameters => parameters
+            .Add(p => p.ButtonContent, buttonContent)
+            .Add(p => p.Text, text));
+
+            Assert.Contains(@$"<strong>Custom button content</strong>", component.Markup);
+            Assert.DoesNotContain(@$"<span class=""rz-button-text"">{text}</span>", component.Markup);
         }
 
         [Fact]
@@ -127,6 +145,8 @@ namespace Radzen.Blazor.Tests
         public void SplitButton_Raises_ClickEvent()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
             var component = ctx.RenderComponent<RadzenSplitButton>();
 

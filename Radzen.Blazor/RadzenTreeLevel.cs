@@ -26,13 +26,19 @@ namespace Radzen.Blazor
         /// Specifies the name of the property which provides values for the <see cref="RadzenTreeItem.Text" /> property of the child items.
         /// </summary>
         [Parameter]
-        public string TextProperty { get; set; }
+        public string? TextProperty { get; set; }
+
+        /// <summary>
+        /// Specifies the name of the property which provides values for the <see cref="RadzenTreeItem.Checkable" /> property of the child items.
+        /// </summary>
+        [Parameter]
+        public string? CheckableProperty { get; set; }
 
         /// <summary>
         /// Specifies the name of the property which returns child data. The value returned by that property should be IEnumerable
         /// </summary>
         [Parameter]
-        public string ChildrenProperty { get; set; }
+        public string? ChildrenProperty { get; set; }
 
         /// <summary>
         /// Determines if a child item has children or not. Set to <c>value =&gt; true</c> by default.
@@ -43,7 +49,7 @@ namespace Radzen.Blazor
         /// </code>
         /// </example>
         [Parameter]
-        public Func<object, bool> HasChildren { get; set; } = value => true;
+        public Func<object, bool>? HasChildren { get; set; } = value => true;
 
         /// <summary>
         /// Determines if a child item is expanded or not. Set to <c>value =&gt; false</c> by default.
@@ -54,7 +60,7 @@ namespace Radzen.Blazor
         /// </code>
         /// </example>
         [Parameter]
-        public Func<object, bool> Expanded { get; set; } = value => false;
+        public Func<object, bool>? Expanded { get; set; } = value => false;
 
         /// <summary>
         /// Determines if a child item is selected or not. Set to <c>value =&gt; false</c> by default.
@@ -65,7 +71,7 @@ namespace Radzen.Blazor
         /// </code>
         /// </example>
         [Parameter]
-        public Func<object, bool> Selected { get; set; } = value => false;
+        public Func<object, bool>? Selected { get; set; } = value => false;
 
         /// <summary>
         /// Determines the text of a child item.
@@ -76,28 +82,39 @@ namespace Radzen.Blazor
         /// </code>
         /// </example>
         [Parameter]
-        public Func<object, string> Text { get; set; }
+        public Func<object, string>? Text { get; set; }
+
+        /// <summary>
+        /// Determines the if the checkbox of the child item can be checked.
+        /// </summary>
+        /// <example>
+        /// <code>
+        ///     &lt;RadzenTreeLevel Checkable=@(e =&gt; (e as Employee).LastName != null) /&gt;
+        /// </code>
+        /// </example>
+        [Parameter]
+        public Func<object, bool>? Checkable { get; set; }
 
         /// <summary>
         /// Gets or sets the template.
         /// </summary>
         [Parameter]
-        public RenderFragment<RadzenTreeItem> Template { get; set; }
+        public RenderFragment<RadzenTreeItem>? Template { get; set; }
+
+        private RadzenTree? _tree;
 
         /// <summary>
         /// The RadzenTree which this item is part of.
         /// </summary>
         [CascadingParameter]
-        public RadzenTree Tree
+        public RadzenTree? Tree
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
+            get => _tree;
             set
             {
-                value.AddLevel(this);
+                if (value != null)
+                    value.AddLevel(this);
+                _tree = value;
             }
         }
     }

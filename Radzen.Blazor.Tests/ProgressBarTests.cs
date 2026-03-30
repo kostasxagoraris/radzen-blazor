@@ -18,7 +18,9 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add<double>(p => p.Value, value));
 
-            Assert.Contains(@$"<div class=""rz-progressbar-label"">{value}", component.Markup);
+
+            Assert.Contains(@$"<div class=""rz-progressbar-label"">", component.Markup);
+            Assert.Contains(@$"{value}%", component.Markup);
             Assert.Contains(@$"aria-valuenow=""{value}""", component.Markup);
             Assert.Contains(@$"aria-valuemin=""0""", component.Markup);
         }
@@ -50,13 +52,13 @@ namespace Radzen.Blazor.Tests
 
             component.Render();
 
-            Assert.Contains(@$"%</div>", component.Markup);
+            Assert.Contains(@$"0%", component.Markup);
 
-            var value = "mm";
+            var unit = "mm";
 
-            component.SetParametersAndRender(parameters => parameters.Add(p => p.Unit, value));
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.Unit, unit));
 
-            Assert.Contains(@$"{value}</div>", component.Markup);
+            Assert.Contains(@$"0{unit}", component.Markup);
         }
 
         [Fact]
@@ -70,7 +72,7 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.Style, value));
 
-            Assert.Contains(@$"style=""{value}""", component.Markup);
+            Assert.Contains(@$"style=""--rz-progressbar-value: 0%;{value}""", component.Markup);
         }
 
         [Fact]
@@ -116,7 +118,69 @@ namespace Radzen.Blazor.Tests
                 parameters.Add<double>(p => p.Max, max);
             });
 
-            Assert.Contains(@$"style=""width: {Math.Min(value / max * 100, 100).ToInvariantString()}%;""", component.Markup);
+            Assert.Contains(@$"style=""--rz-progressbar-value: {Math.Min(value / max * 100, 100).ToInvariantString()}%;""", component.Markup);
+        }
+
+        [Fact]
+        public void ProgressBar_Renders_ProgressBarStyle()
+        {
+            using var ctx = new TestContext();
+
+            var component = ctx.RenderComponent<RadzenProgressBar>();
+
+            component.SetParametersAndRender(parameters=>parameters.Add(p=>p.ProgressBarStyle, ProgressBarStyle.Success));
+            Assert.Contains(@$"rz-progressbar-success", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.ProgressBarStyle, ProgressBarStyle.Info));
+            Assert.Contains(@$"rz-progressbar-info", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.ProgressBarStyle, ProgressBarStyle.Success));
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.Mode, ProgressBarMode.Indeterminate));
+            Assert.Contains(@$"rz-progressbar-success", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.ProgressBarStyle, ProgressBarStyle.Info));
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.Mode, ProgressBarMode.Indeterminate));
+            Assert.Contains(@$"rz-progressbar-info", component.Markup);
+        }
+
+        [Fact]
+        public void ProgressBar_Renders_ShowValue_True()
+        {
+            using var ctx = new TestContext();
+            var component = ctx.RenderComponent<RadzenProgressBar>(parameters =>
+            {
+                parameters.Add(p => p.ShowValue, true);
+                parameters.Add(p => p.Value, 50);
+            });
+
+            Assert.Contains("rz-progressbar-label", component.Markup);
+            Assert.Contains("50%", component.Markup);
+        }
+
+        [Fact]
+        public void ProgressBar_Renders_ShowValue_False()
+        {
+            using var ctx = new TestContext();
+            var component = ctx.RenderComponent<RadzenProgressBar>(parameters =>
+            {
+                parameters.Add(p => p.ShowValue, false);
+                parameters.Add(p => p.Value, 50);
+            });
+
+            Assert.DoesNotContain("rz-progressbar-label", component.Markup);
+        }
+
+        [Fact]
+        public void ProgressBar_Renders_Template()
+        {
+            using var ctx = new TestContext();
+            var component = ctx.RenderComponent<RadzenProgressBar>(parameters =>
+            {
+                parameters.Add(p => p.Value, 75);
+                parameters.Add(p => p.Template, builder => builder.AddContent(0, "Custom: 75%"));
+            });
+
+            Assert.Contains("Custom: 75%", component.Markup);
         }
     }
 }

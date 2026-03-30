@@ -18,16 +18,16 @@ namespace RadzenBlazorDemos
         private readonly HttpClient httpClient;
         private readonly Uri baseUri;
 
-        public NorthwindODataService()
+        public NorthwindODataService(string url = "https://services.radzen.com/odata/Northwind/")
         {
             this.httpClient = new HttpClient();
-            this.baseUri = new Uri("https://services.radzen.com/odata/Northwind/");
+            this.baseUri = new Uri(url);
         }
         partial void OnGetCategories(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Category>> GetCategories(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Category>> GetCategories(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
             var uri = new Uri(baseUri, $"Categories");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -91,10 +91,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<Category>();
         }
         partial void OnGetCustomerDemographics(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<CustomerDemographic>> GetCustomerDemographics(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<CustomerDemographic>> GetCustomerDemographics(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
             var uri = new Uri(baseUri, $"CustomerDemographics");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -158,10 +158,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<CustomerDemographic>();
         }
         partial void OnGetCustomers(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Customer>> GetCustomers(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Customer>> GetCustomers(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
             var uri = new Uri(baseUri, $"Customers");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -225,10 +225,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<Customer>();
         }
         partial void OnGetEmployees(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Employee>> GetEmployees(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Employee>> GetEmployees(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
             var uri = new Uri(baseUri, $"Employees");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -292,10 +292,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<Employee>();
         }
         partial void OnGetOrderDetails(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<OrderDetail>> GetOrderDetails(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<OrderDetail>> GetOrderDetails(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
-            var uri = new Uri(baseUri, $"Order_Details");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            var uri = new Uri(baseUri, $"NorthwindOrderDetails");
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -308,7 +308,7 @@ namespace RadzenBlazorDemos
         partial void OnCreateOrderDetail(HttpRequestMessage requestMessage);
         public async Task<OrderDetail> CreateOrderDetail(OrderDetail orderDetail)
         {
-            var uri = new Uri(baseUri, $"Order_Details");
+            var uri = new Uri(baseUri, $"NorthwindOrderDetails");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, uri);
 
@@ -323,7 +323,7 @@ namespace RadzenBlazorDemos
         partial void OnGetOrderDetailById(HttpRequestMessage requestMessage);
         public async Task<OrderDetail> GetOrderDetailById(int orderId, int productId)
         {
-            var uri = new Uri(baseUri, $"Order_Details(OrderID={orderId},ProductID={productId})");
+            var uri = new Uri(baseUri, $"NorthwindOrderDetails(OrderID={orderId},ProductID={productId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -336,7 +336,7 @@ namespace RadzenBlazorDemos
         partial void OnDeleteOrderDetail(HttpRequestMessage requestMessage);
         public async Task<HttpResponseMessage> DeleteOrderDetail(int orderId, int productId)
         {
-            var uri = new Uri(baseUri, $"Order_Details(OrderID={orderId},ProductID={productId})");
+            var uri = new Uri(baseUri, $"NorthwindOrderDetails(OrderID={orderId},ProductID={productId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Delete, uri);
 
@@ -346,7 +346,7 @@ namespace RadzenBlazorDemos
         partial void OnUpdateOrderDetail(HttpRequestMessage requestMessage);
         public async Task<OrderDetail> UpdateOrderDetail(int orderId, int productId, OrderDetail orderDetail)
         {
-            var uri = new Uri(baseUri, $"Order_Details(OrderID={orderId},ProductID={productId})");
+            var uri = new Uri(baseUri, $"NorthwindOrderDetails(OrderID={orderId},ProductID={productId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Patch, uri);
 
@@ -359,10 +359,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<OrderDetail>();
         }
         partial void OnGetOrders(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Order>> GetOrders(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Order>> GetOrders(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
-            var uri = new Uri(baseUri, $"Orders");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            var uri = new Uri(baseUri, $"NorthwindOrders");
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -375,7 +375,7 @@ namespace RadzenBlazorDemos
         partial void OnCreateOrder(HttpRequestMessage requestMessage);
         public async Task<Order> CreateOrder(Order order)
         {
-            var uri = new Uri(baseUri, $"Orders");
+            var uri = new Uri(baseUri, $"NorthwindOrders");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, uri);
 
@@ -390,7 +390,7 @@ namespace RadzenBlazorDemos
         partial void OnGetOrderById(HttpRequestMessage requestMessage);
         public async Task<Order> GetOrderById(int orderId)
         {
-            var uri = new Uri(baseUri, $"Orders({orderId})");
+            var uri = new Uri(baseUri, $"NorthwindOrders({orderId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -403,7 +403,7 @@ namespace RadzenBlazorDemos
         partial void OnDeleteOrder(HttpRequestMessage requestMessage);
         public async Task<HttpResponseMessage> DeleteOrder(int orderId)
         {
-            var uri = new Uri(baseUri, $"Orders({orderId})");
+            var uri = new Uri(baseUri, $"NorthwindOrders({orderId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Delete, uri);
 
@@ -413,7 +413,7 @@ namespace RadzenBlazorDemos
         partial void OnUpdateOrder(HttpRequestMessage requestMessage);
         public async Task<Order> UpdateOrder(int orderId, Order order)
         {
-            var uri = new Uri(baseUri, $"Orders({orderId})");
+            var uri = new Uri(baseUri, $"NorthwindOrders({orderId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Patch, uri);
 
@@ -426,10 +426,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<Order>();
         }
         partial void OnGetProducts(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Product>> GetProducts(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Product>> GetProducts(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
-            var uri = new Uri(baseUri, $"Products");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            var uri = new Uri(baseUri, $"NorthwindProducts");
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -442,7 +442,7 @@ namespace RadzenBlazorDemos
         partial void OnCreateProduct(HttpRequestMessage requestMessage);
         public async Task<Product> CreateProduct(Product product)
         {
-            var uri = new Uri(baseUri, $"Products");
+            var uri = new Uri(baseUri, $"NorthwindProducts");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, uri);
 
@@ -457,7 +457,7 @@ namespace RadzenBlazorDemos
         partial void OnGetProductById(HttpRequestMessage requestMessage);
         public async Task<Product> GetProductById(int productId)
         {
-            var uri = new Uri(baseUri, $"Products({productId})");
+            var uri = new Uri(baseUri, $"NorthwindProducts({productId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -470,7 +470,7 @@ namespace RadzenBlazorDemos
         partial void OnDeleteProduct(HttpRequestMessage requestMessage);
         public async Task<HttpResponseMessage> DeleteProduct(int productId)
         {
-            var uri = new Uri(baseUri, $"Products({productId})");
+            var uri = new Uri(baseUri, $"NorthwindProducts({productId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Delete, uri);
 
@@ -480,7 +480,7 @@ namespace RadzenBlazorDemos
         partial void OnUpdateProduct(HttpRequestMessage requestMessage);
         public async Task<Product> UpdateProduct(int productId, Product product)
         {
-            var uri = new Uri(baseUri, $"Products({productId})");
+            var uri = new Uri(baseUri, $"NorthwindProducts({productId})");
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Patch, uri);
 
@@ -493,10 +493,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<Product>();
         }
         partial void OnGetRegions(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Region>> GetRegions(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Region>> GetRegions(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
             var uri = new Uri(baseUri, $"Regions");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -560,10 +560,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<Region>();
         }
         partial void OnGetSuppliers(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Supplier>> GetSuppliers(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Supplier>> GetSuppliers(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
             var uri = new Uri(baseUri, $"Suppliers");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 
@@ -627,10 +627,10 @@ namespace RadzenBlazorDemos
             return await response.ReadAsync<Supplier>();
         }
         partial void OnGetTerritories(HttpRequestMessage requestMessage);
-        public async Task<ODataServiceResult<Territory>> GetTerritories(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), bool? count = default(bool?))
+        public async Task<ODataServiceResult<Territory>> GetTerritories(string filter = default(string), int? top = default(int?), int? skip = default(int?), string orderby = default(string), string expand = default(string), string select = default(string), string apply = default(string), bool? count = default(bool?))
         {
             var uri = new Uri(baseUri, $"Territories");
-            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, count:count);
+            uri = uri.GetODataUri(filter:filter, top:top, skip:skip, orderby:orderby, expand:expand, select:select, apply:apply, count:count);
 
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
 

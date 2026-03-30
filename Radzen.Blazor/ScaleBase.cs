@@ -1,4 +1,6 @@
 using System;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -60,7 +62,7 @@ namespace Radzen.Blazor
         /// Gets or sets the step.
         /// </summary>
         /// <value>The step.</value>
-        public object Step { get; set; }
+        public object? Step { get; set; }
 
         /// <summary>
         /// Resizes the scale to the specified values.
@@ -71,13 +73,13 @@ namespace Radzen.Blazor
         {
             if (min != null)
             {
-                Input.Start = Convert.ToDouble(min);
+                Input.Start = Convert.ToDouble(min, CultureInfo.InvariantCulture);
                 Round = false;
             }
 
             if (max != null)
             {
-                Input.End = Convert.ToDouble(max);
+                Input.End = Convert.ToDouble(max, CultureInfo.InvariantCulture);
                 Round = false;
             }
         }
@@ -89,6 +91,13 @@ namespace Radzen.Blazor
         /// <param name="round">Wether to round.</param>
         public double NiceNumber(double range, bool round)
         {
+            if (range == 0)
+            {
+                return 1;
+            }
+
+            var sign = Math.Sign(range);
+            range = Math.Abs(range);
             var exponent = Math.Floor(Math.Log10(range));
             var fraction = range / Math.Pow(10, exponent);
 
@@ -109,7 +118,7 @@ namespace Radzen.Blazor
                 else niceFraction = 10;
             }
 
-            return niceFraction * Math.Pow(10, exponent);
+            return sign * niceFraction * Math.Pow(10, exponent);
         }
 
         /// <summary>
@@ -159,6 +168,7 @@ namespace Radzen.Blazor
         /// <returns><c>true</c> if the scales are equal; otherwise, <c>false</c>.</returns>
         public bool IsEqualTo(ScaleBase scale)
         {
+            ArgumentNullException.ThrowIfNull(scale);
             if (GetType() != scale.GetType())
             {
                 return false;

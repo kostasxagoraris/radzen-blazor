@@ -1,4 +1,4 @@
-﻿@using Radzen.Blazor
+@using Radzen.Blazor
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
 
@@ -21,11 +21,23 @@
             var step = steps[i];
             @if (step.Visible)
             {
-                <li class='@($"rz-steps-item {(IsSelected(i, step) ? "rz-state-highlight rz-steps-current" : step.Disabled ? "rz-state-disabled" : "")}")' @attributes="step.Attributes" style="@step.Style">
-                    <a @onclick="@(async (args) => { if (!step.Disabled) { await SelectStep(step, true); } })" href="javascript:void(0)" class="rz-menuitem-link">
+                    <li class="@step.GetItemCssClass()" @attributes="step.Attributes" style="@step.Style">
+                    <button type="button" role="tab" id="@(GetId() + i.ToString() + "s")" title="@step.Title" aria-label="@step.AriaLabel"
+                       aria-selected="@(IsSelected(i, step) ? "true" : "false")"
+                       aria-controls="@($"{GetId()}-panel-{i}")"
+                       @onclick="@(async (args) => { if (!step.Disabled && AllowStepSelect) { await SelectStep(step, true); } })"
+                       @onkeypress="@(args => OnKeyPress(args, SelectStep(step, true)))" @onkeypress:preventDefault=preventKeyPress @onkeypress:stopPropagation="stopKeypressPropagation"
+                       disabled="@step.Disabled" aria-disabled="@step.Disabled" class="rz-menuitem-link">
                         <span class="rz-steps-number">@(steps.Where(s => s.Visible).ToList().IndexOf(step) + 1)</span>
-                        <span class="rz-steps-title">@step.Text</span>
-                    </a>
+                        @if (step.Template != null)
+                        {
+                            @step.Template(step)
+                        }
+                        else
+                        {
+                            <span class="rz-steps-title">@step.Text</span>
+                        }
+                    </button>
                 </li>
             }
         }
@@ -38,7 +50,7 @@
         {
             @if (IsSelected(i, step))
             {
-                <div class="rz-widget-content">
+                <div class="rz-widget-content" role="tabpanel" id="@($"{GetId()}-panel-{i}")" aria-labelledby="@(GetId() + i.ToString() + "s")">
                     @if (step.ChildContent != null)
                     {
                         @step.ChildContent
@@ -50,8 +62,16 @@
     @if(ShowStepsButtons)
     {
     <div class="rz-steps-buttons">
-        <a class='@($"rz-steps-prev {(IsFirstVisibleStep() ?  "rz-state-disabled" : "")}")' @onclick="@PrevStep" href="javascript:void(0)"><i class="rzi">navigate_before</i>@PreviousText</a>
-        <a class='@($"rz-steps-next {(IsLastVisibleStep() ?  "rz-state-disabled" : "")}")' @onclick="@NextStep" href="javascript:void(0)">@NextText<i class="rzi">navigate_next</i></a>
+        <button type="button" id="@(GetId() + "prev")" title="@PreviousTitle" aria-label="@PreviousAriaLabel"
+           class='@($"rz-steps-prev {(IsFirstVisibleStep() || IsPrevStepDisabled() ?  "rz-state-disabled" : "")}")'
+           disabled="@(IsFirstVisibleStep() || IsPrevStepDisabled())" aria-disabled="@(IsFirstVisibleStep() || IsPrevStepDisabled())"
+           @onkeypress="@(args => OnKeyPress(args, PrevStep()))" @onkeypress:preventDefault=preventKeyPress @onkeypress:stopPropagation="stopKeypressPropagation"
+           @onclick="@PrevStep"><span class="notranslate rzi"></span>@PreviousText</button>
+        <button type="button" id="@(GetId() + "next")" title="@NextTitle" aria-label="@NextAriaLabel"
+           class='@($"rz-steps-next {(IsLastVisibleStep() || IsNextStepDisabled() ?  "rz-state-disabled" : "")}")'
+           disabled="@(IsLastVisibleStep() || IsNextStepDisabled())" aria-disabled="@(IsLastVisibleStep() || IsNextStepDisabled())"
+           @onkeypress="@(args => OnKeyPress(args, NextStep()))" @onkeypress:preventDefault=preventKeyPress @onkeypress:stopPropagation="stopKeypressPropagation"
+           @onclick="@NextStep">@NextText<span class="notranslate rzi"></span></button>
     </div>
     }
 </div>

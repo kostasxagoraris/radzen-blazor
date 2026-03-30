@@ -2,39 +2,41 @@
 
 @if (Visible)
 {
-    <button @ref="@Element" style="@Style" disabled="@IsDisabled"
-            type="@Enum.GetName(typeof(ButtonType), ButtonType).ToLower()"
+    <button @ref="@Element" style="@Style" disabled="@IsDisabled" tabindex="@(Disabled ? -1 : TabIndex)"
+            type="@(Enum.GetName(typeof(ButtonType), ButtonType)?.ToLowerInvariant() ?? "button")"
             @attributes="Attributes" class="@GetCssClass()" id="@GetId()"
             @onclick="@OnClick">
-        @if (ChildContent != null)
-        {
-            @ChildContent
-        }
-        else
-        {
-            @if (IsBusy)
+        <span class="rz-button-box">
+            @if (ChildContent != null)
             {
-                <RadzenIcon Icon="refresh" Style="animation: rotation 700ms linear infinite" />
-                @if (!string.IsNullOrEmpty(BusyText))
-                {
-                    <span class="rz-button-text">@BusyText</span>
-                }
+                @ChildContent
             }
             else
             {
-                @if (!string.IsNullOrEmpty(@Icon))
+                @if (IsBusy)
                 {
-                    <i class="rz-button-icon-left rzi">@((MarkupString)Icon)</i>
+                    <RadzenIcon Icon="refresh" Style="animation: rotation 700ms linear infinite" />
+                    @if (!string.IsNullOrEmpty(BusyText))
+                    {
+                        <span class="rz-button-text">@BusyText</span>
+                    }
                 }
-                @if (!string.IsNullOrEmpty(Image))
+                else
                 {
-                    <img class="rz-button-icon-left rzi" src="@Image" />
-                }
-                @if (!string.IsNullOrEmpty(Text))
-                {
-                    <span class="rz-button-text">@Text</span>
+                    @if (!string.IsNullOrEmpty(@Icon))
+                    {
+                        <i class="notranslate rz-button-icon-left rzi" style="@(!string.IsNullOrEmpty(IconColor) ? $"color:{IconColor}" : null)">@Icon</i>
+                    }
+                    @if (!string.IsNullOrEmpty(Image))
+                    {
+                        <img class="notranslate rz-button-icon-left rzi" src="@Image" alt="@ImageAlternateText" />
+                    }
+                    @if (!string.IsNullOrEmpty(Text))
+                    {
+                        <span class="rz-button-text">@Text</span>
+                    }
                 }
             }
-        }
+        </span>
     </button>
 }

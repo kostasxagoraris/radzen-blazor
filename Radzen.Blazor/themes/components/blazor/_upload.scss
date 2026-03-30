@@ -1,31 +1,30 @@
-$upload-button-bar-background-color: rgba(#e6ecef, 0.5) !default;
-$upload-button-bar-padding: 0.75rem !default;
-
-$upload-files-background-color: $white !default;
-$upload-files-padding: 1rem 0 !default;
-$upload-files-remove-background-color: #dadfe2 !default;
-$upload-files-remove-color: $white !default;
-
-$upload-files-margin: 0 0.75rem !default;
-
-$upload-choose-background-color: $secondary !default;
-$upload-choose-color: $white !default;
-$upload-cancel-background-color: #dadfe2 !default;
-$upload-cancel-color: $charcoal-grey !default;
-$upload-button-background-color: $primary !default;
+$upload-button-bar-background-color: var(--rz-base-200) !default;
+$upload-button-bar-padding: 0.5rem !default;
+$upload-button-bar-border-radius: var(--rz-border-radius) !default;
+$upload-files-background-color: var(--rz-base-background-color) !default;
+$upload-files-padding: 0.5rem 0 !default;
+$upload-files-remove-background-color: var(--rz-base-300) !default;
+$upload-files-remove-color: var(--rz-text-color) !default;
+$upload-files-margin: 0 0.5rem !default;
+$upload-choose-background-color: var(--rz-secondary) !default;
+$upload-choose-color: var(--rz-on-secondary) !default;
+$upload-choose-hover-background-color: var(--rz-secondary) !default;
+$upload-choose-hover-color: var(--rz-on-secondary) !default;
+$upload-choose-active-background-color: var(--rz-secondary-dark) !default;
+$upload-choose-active-color: var(--rz-on-secondary-dark) !default;
+$upload-cancel-background-color: var(--rz-base-200) !default;
+$upload-cancel-color: var(--rz-text-color) !default;
+$upload-button-background-color: var(--rz-primary) !default;
 
 .rz-fileupload {
+  box-sizing: border-box;
   display: inline-block;
+  border-radius: var(--rz-upload-button-bar-border-radius);
 
   .rz-button {
-    @extend .rz-button-sm;
+    @extend %button-sm;
     vertical-align: middle;
-
     -webkit-appearance: none !important;
-
-    &[disabled] {
-      opacity: 0.5;
-    }
   }
 }
 
@@ -33,10 +32,8 @@ $upload-button-background-color: $primary !default;
   position: relative;
   display: inline-block;
   overflow: hidden;
-  vertical-align: middle;
-  @extend .rz-button-md;
-  background-color: $upload-choose-background-color;
-  color: $upload-choose-color;
+  background-color: var(--rz-upload-choose-background-color);
+  color: var(--rz-upload-choose-color);
 
   input[type='file'] {
     position: absolute;
@@ -47,6 +44,32 @@ $upload-button-background-color: $primary !default;
     min-height: 100%;
     cursor: pointer;
   }
+
+  &.rz-state-disabled {
+    input[type='file'] {
+      cursor: default;
+    }
+  }
+
+  &:not(.rz-state-disabled) {
+    background-color: var(--rz-upload-choose-background-color);
+    color: var(--rz-upload-choose-color);
+
+    &:hover {
+      background-color: var(--rz-upload-choose-hover-background-color);
+      color: var(--rz-upload-choose-hover-color);
+
+      &:not(:active) {
+        background-color: var(--rz-upload-choose-hover-background-color);
+        color: var(--rz-upload-choose-hover-color);
+      }
+    }
+
+    &:active {
+      background-color: var(--rz-upload-choose-active-background-color);
+      color: var(--rz-upload-choose-active-color);
+    }
+  }
 }
 
 .rz-fileupload-row {
@@ -55,7 +78,7 @@ $upload-button-background-color: $primary !default;
   justify-content: space-between;
 
   > div {
-    margin: $upload-files-margin;
+    margin: var(--rz-upload-files-margin);
   }
 
   .rz-button-text {
@@ -63,11 +86,13 @@ $upload-button-background-color: $primary !default;
   }
 
   .rz-button {
-
+    background-color: var(--rz-upload-files-remove-background-color);
+    color: var(--rz-upload-files-remove-color);
+    
     .rzi-close,
     .rzi-times,
     .rz-icon-trash {
-      @extend .rzi;
+      @extend %rzi;
       display: block;
 
       &:before {
@@ -79,21 +104,36 @@ $upload-button-background-color: $primary !default;
 
 .rz-fileupload-buttonbar {
   position: relative;
-  background-color: $upload-button-bar-background-color;
-  padding: $upload-button-bar-padding;
-  border-radius: $input-border-radius;
+  background-color: var(--rz-upload-button-bar-background-color);
+  padding: var(--rz-upload-button-bar-padding);
+  border-radius: var(--rz-upload-button-bar-border-radius);
 
   .rz-button {
     &:nth-child(3) {
       float: right;
 
-      background-color: $upload-cancel-background-color;
-      color: $upload-cancel-color;
+      background-color: var(--rz-upload-cancel-background-color);
+      color: var(--rz-upload-cancel-color);
     }
+  }
+
+  // Upload in a FormField
+  .rz-form-field & {
+    background-color: inherit;
+  }
+
+  .rz-form-field.rz-variant-flat &,
+  .rz-form-field.rz-variant-filled & {
+    --rz-upload-button-bar-padding: calc(var(--rz-form-field-label-floating-top) + 1.5rem) calc(var(--rz-form-field-label-inset-inline-start) + 0.25rem) calc(var(--rz-form-field-label-inset-inline-start) + 0.25rem);
   }
 }
 
 .rz-fileupload-files {
-  background-color: $upload-files-background-color;
-  padding: $upload-files-padding;
+  background-color: var(--rz-upload-files-background-color);
+  padding: var(--rz-upload-files-padding);
+
+  // Files in a FormField
+  .rz-form-field & {
+    background-color: inherit;
+  }
 }

@@ -1,21 +1,54 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Radzen.Blazor.Rendering;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.JSInterop;
 
 namespace Radzen.Blazor
 {
     /// <summary>
-    /// RadzenColorPicker component.
+    /// A color picker component that allows users to select colors through various input methods including color palette, RGB sliders, hex input, and predefined swatches.
+    /// RadzenColorPicker provides a comprehensive color selection interface with alpha channel support.
+    /// Displays a button showing the current color. Clicking opens a popup with multiple color selection methods including visual picker (click on hue/saturation gradient to select colors visually),
+    /// hue/alpha sliders to fine-tune hue and transparency, RGB input to enter specific Red/Green/Blue values (0-255), hex input to enter hex color codes (#RRGGBB or #RRGGBBAA),
+    /// and predefined swatches for quick selection.
+    /// The Value is a hex color string (e.g., "#FF0000" for red, "#FF0000AA" for semi-transparent red). Supports alpha channel (transparency) in RGBA format.
+    /// Use for applications requiring color customization like themes, charts, or design tools.
     /// </summary>
     /// <example>
+    /// Basic color picker:
     /// <code>
-    /// &lt;RadzenColorPicker @bind-Value=@color Change=@(args => Console.WriteLine($"Selected color: {args}")) /&gt;
+    /// &lt;RadzenColorPicker @bind-Value=@backgroundColor /&gt;
+    /// @code {
+    ///     string backgroundColor = "#FF5733";
+    /// }
+    /// </code>
+    /// Color picker with predefined swatches:
+    /// <code>
+    /// &lt;RadzenColorPicker @bind-Value=@color Change=@OnColorChange&gt;
+    ///     &lt;RadzenColorPickerItem Value="#FF0000" /&gt;
+    ///     &lt;RadzenColorPickerItem Value="#00FF00" /&gt;
+    ///     &lt;RadzenColorPickerItem Value="#0000FF" /&gt;
+    /// &lt;/RadzenColorPicker&gt;
     /// </code>
     /// </example>
     public partial class RadzenColorPicker : FormComponent<string>
     {
+        /// <summary>
+        /// Gets or sets the toggle popup aria label text.
+        /// </summary>
+        /// <value>The toggle popup aria label text.</value>
+        [Parameter]
+        public string ToggleAriaLabel { get; set; } = "Toggle";
+
+        /// <summary>
+        /// Gets or sets the popup aria label text.
+        /// </summary>
+        /// <value>The popup aria label text.</value>
+        [Parameter]
+        public string PopupAriaLabel { get; set; } = "Color picker";
+
         /// <summary>
         /// Gets or sets the open callback.
         /// </summary>
@@ -35,7 +68,14 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The icon.</value>
         [Parameter]
-        public string Icon { get; set; }
+        public string? Icon { get; set; }
+
+        /// <summary>
+        /// Gets or sets the icon color.
+        /// </summary>
+        /// <value>The icon color.</value>
+        [Parameter]
+        public string? IconColor { get; set; }
 
         /// <summary>
         /// Gets or sets the hexadecimal color label text.
@@ -79,15 +119,18 @@ namespace Radzen.Blazor
         [Parameter]
         public string ButtonText { get; set; } = "OK";
 
-        Popup Popup { get; set; }
+        Popup Popup { get; set; } = default!;
+        bool isPopupOpen;
+
+        internal event EventHandler<string>? SelectedColorChanged;
 
         string AlphaGradientStart
         {
             get
             {
                 var rgb = RGB.Parse(Color);
-                rgb.Alpha = 0;
-                return rgb.ToCSS();
+                rgb?.Alpha = 0;
+                return rgb?.ToCSS() ?? string.Empty;
             }
         }
 
@@ -96,8 +139,8 @@ namespace Radzen.Blazor
             get
             {
                 var rgb = RGB.Parse(Color);
-                rgb.Alpha = 1;
-                return rgb.ToCSS();
+                rgb?.Alpha = 1;
+                return rgb?.ToCSS() ?? string.Empty;
             }
         }
 
@@ -121,7 +164,7 @@ namespace Radzen.Blazor
             get
             {
                 var rgb = RGB.Parse(Color);
-                return rgb.Red;
+                return rgb?.Red ?? default;
             }
         }
 
@@ -138,7 +181,7 @@ namespace Radzen.Blazor
             get
             {
                 var rgb = RGB.Parse(Color);
-                return rgb.Green;
+                return rgb?.Green ?? default;
             }
         }
 
@@ -147,52 +190,93 @@ namespace Radzen.Blazor
             get
             {
                 var rgb = RGB.Parse(Color);
-                return rgb.Blue;
+                return rgb?.Blue ?? default;
             }
         }
 
-        void OnSaturationMove(DraggableEventArgs args)
+        async Task UpdateColorUsingHsvHandles()
         {
-            SaturationHandleLeft = Math.Clamp((args.ClientX - args.Rect.Left) / args.Rect.Width, 0, 1);
-            SaturationHandleTop = Math.Clamp((args.ClientY - args.Rect.Top) / args.Rect.Height, 0, 1);
-
-            var hsv = new HSV { Hue = HSV.Hue, Saturation = SaturationHandleLeft, Value = 1 - SaturationHandleTop, Alpha = AlphaHandleLeft };
+            var hsv = new HSV {
+                Hue = HueHandleLeft,
+                Saturation = SaturationHandleLeft,
+                Value = 1 - SaturationHandleTop,
+                Alpha = AlphaHandleLeft
+            };
 
             Color = hsv.ToRGB().ToCSS();
 
-            TriggerChange();
+            await TriggerChange();
         }
 
-        void TriggerChange()
+        Rect? lastHslRect;
+
+        async Task OnSaturationMove(DraggableEventArgs args)
         {
+            lastHslRect = args.Rect; ;
+
+            if (args.Rect != null)
+            {
+                SaturationHandleLeft = Math.Clamp((args.ClientX - args.Rect.Left) / args.Rect.Width, 0, 1);
+                SaturationHandleTop = Math.Clamp((args.ClientY - args.Rect.Top) / args.Rect.Height, 0, 1);
+            }
+
+            await UpdateColorUsingHsvHandles();
+        }
+
+        async Task TriggerChange()
+        {
+            if (SelectedColorChanged != null)
+            {
+                SelectedColorChanged.Invoke(this, Color);
+            }
+
             if (!ShowButton)
             {
-                ValueChanged.InvokeAsync(Color);
-                Change.InvokeAsync(Color);
+                await OnChanged();
             }
 
             StateHasChanged();
         }
 
-        void ChangeRGB(object value)
+        async Task OnChanged()
         {
-            SetValue(value as string);
+            await ValueChanged.InvokeAsync(Color);
+
+            if (FieldIdentifier.FieldName != null)
+            {
+                EditContext?.NotifyFieldChanged(FieldIdentifier);
+            }
+
+            await Change.InvokeAsync(Color);
         }
 
-        void SetValue(string value)
+        async Task ChangeRGB(object value)
         {
-            var rgb = RGB.Parse(value);
-
-            if (rgb != null)
+            var colorString = value as string;
+            if (string.IsNullOrEmpty(colorString))
             {
-                Color = rgb.ToCSS();
-                UpdateColor(rgb);
+                return;
             }
+
+            var rgb = RGB.Parse(colorString);
+            if (rgb == null)
+            {
+                return;
+            }
+
+            rgb.Alpha = AlphaHandleLeft;
+            await UpdateColor(rgb);
         }
 
         internal async Task SelectColor(string value)
         {
-            SetValue(value);
+            var rgb = RGB.Parse(value);
+            if (rgb == null)
+            {
+                return;
+            }
+
+            await UpdateColor(rgb);
 
             if (!ShowButton)
             {
@@ -200,90 +284,124 @@ namespace Radzen.Blazor
             }
         }
 
-        void UpdateColor(RGB rgb)
+        async Task UpdateColor(RGB? rgb)
         {
+            if (rgb == null)
+            {
+                return;
+            }
+
             Color = rgb.ToCSS();
 
-            HSV = rgb.ToHSV();
+            var hsv = rgb.ToHSV();
 
-            SaturationHandleLeft = HSV.Saturation;
-            SaturationHandleTop = 1 - HSV.Value;
-            HueHandleLeft = HSV.Hue;
+            SaturationHandleLeft = hsv.Saturation;
+            SaturationHandleTop = 1 - hsv.Value;
+            HueHandleLeft = hsv.Hue;
+            AlphaHandleLeft = hsv.Alpha;
 
-            TriggerChange();
+            await TriggerChange();
         }
 
-        void ChangeAlpha(double value)
+        async Task ChangeAlpha(double value)
         {
             if (value >= 0 && value <= 100)
             {
                 var rgb = RGB.Parse(Color);
+                if (rgb == null)
+                {
+                    return;
+                }
                 AlphaHandleLeft = rgb.Alpha = Math.Round(value / 100, 2);
 
                 Color = rgb.ToCSS();
 
-                TriggerChange();
+                await TriggerChange();
             }
         }
 
-        void ChangeAlpha(object alpha)
+        async Task ChangeAlpha(object alpha)
         {
-            if (Double.TryParse((string)alpha, out var value))
+            var alphaString = alpha as string;
+            if (alphaString != null && Double.TryParse(alphaString, out var value))
             {
-                ChangeAlpha(value);
+                await ChangeAlpha(value);
             }
         }
 
-        void ChangeColor(double value, Action<RGB, double> update)
+        async Task ChangeColor(double value, Action<RGB, double> update)
         {
             if (value >= 0 && value <= 255)
             {
                 var rgb = RGB.Parse(Color);
+                if (rgb == null)
+                {
+                    return;
+                }
 
                 update(rgb, value);
 
-                UpdateColor(rgb);
+                await UpdateColor(rgb);
             }
         }
 
-        void ChangeColor(object color, Action<RGB, double> update)
+        async Task ChangeColor(object color, Action<RGB, double> update)
         {
-            if (Double.TryParse((string)color, out var value))
+            var colorString = color as string;
+            if (colorString != null && Double.TryParse(colorString, out var value))
             {
-                ChangeColor(value, update);
+                await ChangeColor(value, update);
             }
         }
 
-        void OnAlphaMove(DraggableEventArgs args)
+        Rect? lastAlphaRect;
+
+        async Task OnAlphaMove(DraggableEventArgs args)
         {
-            AlphaHandleLeft = Math.Round(Math.Clamp((args.ClientX - args.Rect.Left) / args.Rect.Width, 0, 1), 2);
+            lastAlphaRect = args.Rect;
 
-            HSV.Alpha = AlphaHandleLeft;
+            if (args.Rect != null)
+            {
+                AlphaHandleLeft = Math.Round(Math.Clamp((args.ClientX - args.Rect.Left) / args.Rect.Width, 0, 1), 2);
+            }
 
-            var hsv = new HSV { Hue = HSV.Hue, Saturation = SaturationHandleLeft, Value = 1 - SaturationHandleTop, Alpha = AlphaHandleLeft };
-
-            Color = hsv.ToRGB().ToCSS();
-
-            TriggerChange();
+            await UpdateColorUsingHsvHandles();
         }
 
-        void OnHueMove(DraggableEventArgs args)
+        Rect? lastHueRect;
+        async Task OnHueMove(DraggableEventArgs args)
         {
-            HueHandleLeft = Math.Clamp((args.ClientX - args.Rect.Left) / args.Rect.Width, 0, 1);
+            lastHueRect = args.Rect;
 
-            HSV.Hue = HueHandleLeft;
-            var hsv = new HSV { Hue = HSV.Hue, Saturation = SaturationHandleLeft, Value = 1 - SaturationHandleTop, Alpha = AlphaHandleLeft };
+            if (args.Rect != null)
+            {
+                HueHandleLeft = Math.Clamp((args.ClientX - args.Rect.Left) / args.Rect.Width, 0, 1);
+            }
 
-            Color = hsv.ToRGB().ToCSS();
-
-            TriggerChange();
+            await UpdateColorUsingHsvHandles();
         }
 
         async Task OnClick()
         {
-            await ValueChanged.InvokeAsync(Color);
-            await Change.InvokeAsync(Color);
+            await OnChanged();
             await Popup.CloseAsync();
+        }
+
+        async Task OnClosePopup()
+        {
+            isPopupOpen = false;
+            if (ShowButton)
+            {
+                SetInitialValue();
+            }
+
+            await Close.InvokeAsync(null);
+        }
+
+        async Task OnPopupOpen()
+        {
+            isPopupOpen = true;
+            await Open.InvokeAsync(null);
         }
 
         /// <summary>
@@ -319,13 +437,19 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The child content.</value>
         [Parameter]
-        public RenderFragment ChildContent { get; set; }
+        public RenderFragment? ChildContent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the render mode.
+        /// </summary>
+        /// <value>The render mode.</value>
+        [Parameter]
+        public PopupRenderMode PopupRenderMode { get; set; } = PopupRenderMode.Initial;
 
         double SaturationHandleLeft { get; set; }
+        double SaturationHandleTop { get; set; }
         double HueHandleLeft { get; set; }
         double AlphaHandleLeft { get; set; } = 1;
-        double SaturationHandleTop { get; set; }
-        HSV HSV { get; set; } = new HSV { Hue = 0, Saturation = 1, Value = 1 };
         string Color { get; set; } = "rgb(255, 255, 255)";
 
         async Task Toggle()
@@ -338,46 +462,39 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            var classList = new List<string>() { "rz-colorpicker" };
-
-            if (Disabled)
-            {
-                classList.Add("rz-disabled");
-            }
-
-            return string.Join(" ", classList);
+            return GetClassList("rz-colorpicker").ToString();
         }
 
         /// <inheritdoc />
         protected override void OnInitialized()
         {
-            Init();
+            SetInitialValue();
 
             base.OnInitialized();
         }
 
-        void Init()
+        void SetInitialValue()
         {
             var value = Value;
-            if (String.IsNullOrEmpty(Value))
+
+            if (String.IsNullOrEmpty(Value) || RGB.Parse(Value) == null)
             {
                 value = "rgb(255, 255, 255)";
             }
 
             if (value != Color)
             {
-                Color = value;
+                Color = value ?? string.Empty;
+                SelectedColorChanged?.Invoke(this, Color);
 
-                HSV = RGB.Parse(Color).ToHSV();
-                SaturationHandleLeft = HSV.Saturation;
-                SaturationHandleTop = 1 - HSV.Value;
-                HSV.Saturation = 1;
-                HSV.Value = 1;
-                HueHandleLeft = HSV.Hue;
-
-                if (value.StartsWith("rgba"))
+                var hsvSource = RGB.Parse(Color);
+                if (hsvSource != null)
                 {
-                    AlphaHandleLeft = HSV.Alpha;
+                    var hsv = hsvSource.ToHSV();
+                    SaturationHandleLeft = hsv.Saturation;
+                    SaturationHandleTop = 1 - hsv.Value;
+                    HueHandleLeft = hsv.Hue;
+                    AlphaHandleLeft = hsv.Alpha;
                 }
             }
         }
@@ -391,7 +508,130 @@ namespace Radzen.Blazor
 
             if (valueChanged)
             {
-                Init();
+                SetInitialValue();
+            }
+        }
+
+        async Task OnHueKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "ArrowLeft" || key == "ArrowRight")
+            {
+                preventKeyPress = true;
+
+                if (lastHueRect == null && JSRuntime != null)
+                {
+                    lastHueRect = await JSRuntime.InvokeAsync<Rect>("Radzen.clientRect", (GetId() + "hue"));
+                }
+
+                if (lastHueRect != null)
+                {
+                    await OnHueMove(new DraggableEventArgs() { Rect = lastHueRect, ClientX = lastHueRect.Left + lastHueRect.Width * HueHandleLeft + (key == "ArrowLeft" ? -1 : 1) });
+                }
+            }
+            else if (key == "Escape")
+            {
+                await ClosePopup();
+            }
+            else
+            {
+                preventKeyPress = false;
+            }
+        }
+
+        async Task OnAlphaKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "ArrowLeft" || key == "ArrowRight")
+            {
+                preventKeyPress = true;
+
+                if (lastAlphaRect == null && JSRuntime != null)
+                {
+                    lastAlphaRect = await JSRuntime.InvokeAsync<Rect>("Radzen.clientRect", (GetId() + "alpha"));
+                }
+
+                if (lastAlphaRect != null)
+                {
+                    await OnAlphaMove(new DraggableEventArgs() { Rect = lastAlphaRect, ClientX = lastAlphaRect.Left + lastAlphaRect.Width * AlphaHandleLeft + (key == "ArrowLeft" ? -3 : 3) });
+                }
+            }
+            else if (key == "Escape")
+            {
+                await ClosePopup();
+            }
+            else
+            {
+                preventKeyPress = false;
+            }
+        }
+
+        async Task OnHslKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (lastHslRect == null && JSRuntime != null)
+            {
+                lastHslRect = await JSRuntime.InvokeAsync<Rect>("Radzen.clientRect", (GetId() + "hsl"));
+            }
+
+            if (key == "ArrowLeft" || key == "ArrowRight" || key == "ArrowUp" || key == "ArrowDown")
+            {
+                preventKeyPress = true;
+
+                if (lastHslRect != null)
+                {
+                    await OnSaturationMove(new DraggableEventArgs()
+                    {
+                        Rect = lastHslRect,
+                        ClientX = lastHslRect.Left + lastHslRect.Width * SaturationHandleLeft + (key == "ArrowLeft" ? -1 : key == "ArrowRight" ? 1 : 0),
+                        ClientY = lastHslRect.Top + lastHslRect.Height * SaturationHandleTop + (key == "ArrowUp" ? -1 : key == "ArrowDown" ? 1 : 0)
+                    });
+                }
+            }
+            else if (key == "Escape")
+            {
+                await ClosePopup();
+            }
+            else
+            {
+                preventKeyPress = false;
+            }
+        }
+
+        bool preventKeyPress;
+        bool stopKeypressPropagation;
+        async Task OnKeyPress(KeyboardEventArgs args, Task task)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "Space" || key == "Enter")
+            {
+                preventKeyPress = true;
+                stopKeypressPropagation = true;
+
+                await task;
+            }
+            else if (key == "Escape")
+            {
+                stopKeypressPropagation = true;
+                await ClosePopup();
+            }
+            else
+            {
+                preventKeyPress = false;
+                stopKeypressPropagation = false;
+            }
+        }
+
+        internal async Task ClosePopup()
+        {
+            await Popup.CloseAsync();
+            if (JSRuntime != null)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.focusElement", GetId());
             }
         }
     }

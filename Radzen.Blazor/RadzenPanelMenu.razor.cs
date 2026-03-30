@@ -1,7 +1,12 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using System;
+using System.Linq;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
+using Radzen.Blazor.Rendering;
 
 namespace Radzen.Blazor
 {
@@ -21,6 +26,13 @@ namespace Radzen.Blazor
     public partial class RadzenPanelMenu : RadzenComponentWithChildren
     {
         /// <summary>
+        /// Gets or sets a value indicating whether multiple items can be expanded.
+        /// </summary>
+        /// <value><c>true</c> if multiple items can be expanded; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool Multiple { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the click callback.
         /// </summary>
         /// <value>The click callback.</value>
@@ -28,12 +40,31 @@ namespace Radzen.Blazor
         public EventCallback<MenuItemEventArgs> Click { get; set; }
 
         /// <summary>
+        /// Gets or sets the menu aria label text.
+        /// </summary>
+        /// <value>The menu aria label text.</value>
+        [Parameter]
+        public string AriaLabel { get; set; } = "Menu";
+
+        /// <summary>
         /// Gets or sets a value representing the URL matching behavior.
         /// </summary>
         [Parameter]
         public NavLinkMatch Match { get; set; }
 
-        List<RadzenPanelMenuItem> items = new List<RadzenPanelMenuItem>();
+        /// <summary>
+        /// Gets or sets the display style.
+        /// </summary>
+        [Parameter]
+        public MenuItemDisplayStyle DisplayStyle { get; set; } = MenuItemDisplayStyle.IconAndText;
+
+        /// <summary>
+        /// Gets or sets the show arrow.
+        /// </summary>
+        [Parameter]
+        public bool ShowArrow { get; set; } = true;
+
+        internal List<RadzenPanelMenuItem> items = new List<RadzenPanelMenuItem>();
 
         /// <summary>
         /// Adds the item.
@@ -41,116 +72,175 @@ namespace Radzen.Blazor
         /// <param name="item">The item.</param>
         public void AddItem(RadzenPanelMenuItem item)
         {
-            if (items.IndexOf(item) == -1)
+            if (!items.Contains(item))
             {
                 items.Add(item);
-                SelectItem(item);
-                StateHasChanged();
             }
+        }
+
+        internal async Task CollapseAllAsync(IEnumerable<RadzenPanelMenuItem> itemsToSkip)
+        {
+            var itemsToCollapse = items.Concat(items.SelectManyRecursive(i => i.items)).Except(itemsToSkip);
+
+            foreach (var item in itemsToCollapse)
+            {
+                await item.CollapseAsync();
+            }
+
+            StateHasChanged();
         }
 
         /// <inheritdoc />
-        protected override void OnInitialized()
+        public override async Task SetParametersAsync(ParameterView parameters)
         {
-            UriHelper.LocationChanged += UriHelper_OnLocationChanged;
-        }
-
-        private void UriHelper_OnLocationChanged(object sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-        {
-            foreach (var item in items)
+            if (parameters.DidParameterChange(nameof(Multiple), Multiple))
             {
-                SelectItem(item);
-            }
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            base.Dispose();
-            UriHelper.LocationChanged -= UriHelper_OnLocationChanged;
-        }
-
-        bool ShouldMatch(string url)
-        {
-            if (string.IsNullOrEmpty(url))
-            {
-                return false;
+                await CollapseAllAsync([]);
             }
 
-            var currentAbsoluteUrl = UriHelper.ToAbsoluteUri(UriHelper.Uri).AbsoluteUri;
-            var absoluteUrl = UriHelper.ToAbsoluteUri(url).AbsoluteUri;
-
-            if (EqualsHrefExactlyOrIfTrailingSlashAdded(absoluteUrl, currentAbsoluteUrl))
-            {
-                return true;
-            }
-
-            if (url == "/")
-            {
-                return false;
-            }
-
-            if (Match == NavLinkMatch.Prefix
-                && IsStrictlyPrefixWithSeparator(currentAbsoluteUrl, absoluteUrl))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool EqualsHrefExactlyOrIfTrailingSlashAdded(string absoluteUrl, string currentAbsoluteUrl)
-        {
-            if (string.Equals(currentAbsoluteUrl, absoluteUrl, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (currentAbsoluteUrl.Length == absoluteUrl.Length - 1)
-            {
-                if (absoluteUrl[absoluteUrl.Length - 1] == '/'
-                    && absoluteUrl.StartsWith(currentAbsoluteUrl, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsSeparator(char c)
-        {
-            return c == '?' || c == '/';
-        }
-
-        private static bool IsStrictlyPrefixWithSeparator(string value, string prefix)
-        {
-            var prefixLength = prefix.Length;
-            if (value.Length > prefixLength)
-            {
-                return value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                    && (
-                        prefixLength == 0
-                        || IsSeparator(prefix[prefixLength - 1])
-                        || IsSeparator(value[prefixLength])
-                    );
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        void SelectItem(RadzenPanelMenuItem item)
-        {
-            var selected = ShouldMatch(item.Path);
-            item.Select(selected);
+            await base.SetParametersAsync(parameters);
         }
 
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return "rz-panel-menu";
+            return ClassList.Create("rz-panel-menu")
+                .Add("rz-panel-menu-stacked", DisplayStyle == MenuItemDisplayStyle.IconAndTextStacked)
+                .ToString();
+        }
+
+        [Inject]
+        NavigationManager? NavigationManager { get; set; }
+
+        internal int focusedIndex = -1;
+        List<RadzenPanelMenuItem>? currentItems;
+
+        bool preventKeyPress;
+        bool stopKeydownPropagation;
+
+        async Task OnKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code ?? args.Key;
+
+            currentItems ??= [.. items.Where(i => i.Visible)];
+
+            if (key == "ArrowUp" || key == "ArrowDown")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                if (key == "ArrowUp" && focusedIndex == 0 && currentItems.Exists(i => i.ParentItem != null))
+                {
+                    var firstItem = currentItems.FirstOrDefault();
+                    var parentItem = firstItem?.ParentItem;
+                    if (parentItem != null)
+                    {
+                        currentItems = (parentItem.ParentItem != null ? parentItem.ParentItem.items : parentItem.Parent?.items ?? new List<RadzenPanelMenuItem>()).ToList();
+                        focusedIndex = currentItems.IndexOf(parentItem);
+                    }
+                }
+                else if (key == "ArrowDown" && currentItems.ElementAtOrDefault(focusedIndex) != null &&
+                    currentItems.ElementAtOrDefault(focusedIndex)!.IsExpanded && currentItems.ElementAtOrDefault(focusedIndex)!.items.Count > 0)
+                {
+                    currentItems = currentItems.ElementAtOrDefault(focusedIndex)!.items.Where(i => i.Visible).ToList();
+                    focusedIndex = 0;
+                }
+                else if (key == "ArrowDown" && focusedIndex == currentItems.Count - 1)
+                {
+                    var firstItem = currentItems.FirstOrDefault();
+                    var parentItem = firstItem?.ParentItem;
+                    var targetItems = parentItem?.ParentItem != null ? parentItem.ParentItem.items :
+                        parentItem != null ? parentItem.Parent?.items : items;
+                    currentItems = (targetItems ?? Enumerable.Empty<RadzenPanelMenuItem>()).Where(i => i.Visible).ToList();
+                    focusedIndex = parentItem != null ? currentItems.IndexOf(parentItem) + 1 : focusedIndex;
+                }
+                else if (key == "ArrowUp" && currentItems.ElementAtOrDefault(focusedIndex - 1) != null &&
+                    currentItems.ElementAtOrDefault(focusedIndex - 1)!.IsExpanded && currentItems.ElementAtOrDefault(focusedIndex - 1)!.items.Count > 0)
+                {
+                    currentItems = currentItems.ElementAtOrDefault(focusedIndex - 1)!.items.Where(i => i.Visible).ToList();
+                    focusedIndex = currentItems.Count - 1;
+                }
+                else
+                {
+                    focusedIndex = Math.Clamp(focusedIndex + (key == "ArrowUp" ? -1 : 1), 0, currentItems.Count - 1);
+                }
+
+                if (JSRuntime == null) return;
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.scrollIntoViewIfNeeded", currentItems[focusedIndex].Element);
+                }
+                catch
+                { }
+            }
+            else if (key == "Space" || key == "Enter")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                if (focusedIndex >= 0 && focusedIndex < currentItems.Count)
+                {
+                    var item = currentItems[focusedIndex];
+
+                    if (item.items.Count > 0)
+                    {
+                        await item.Toggle();
+
+                    var targetItems = item.IsExpanded ? item.items :
+                        item.ParentItem != null ? item.ParentItem.items : item.Parent?.items;
+
+                    currentItems = (targetItems ?? Enumerable.Empty<RadzenPanelMenuItem>()).Where(i => i.Visible).ToList();
+
+                        focusedIndex = item.IsExpanded ? 0 : currentItems.IndexOf(item);
+                    }
+                    else
+                    {
+                        if (item.Path != null)
+                        {
+                            NavigationManager?.NavigateTo(item.Path);
+                        }
+                        else
+                        {
+                            await item.OnClick(new MouseEventArgs());
+                        }
+                    }
+                }
+            }
+            else
+            {
+                preventKeyPress = false;
+                stopKeydownPropagation = false;
+            }
+
+            if (preventKeyPress)
+            {
+                StateHasChanged();
+            }
+        }
+
+        internal bool IsFocused(RadzenPanelMenuItem item)
+        {
+            return currentItems?.IndexOf(item) == focusedIndex && focusedIndex != -1;
+        }
+
+        internal void RemoveItem(RadzenPanelMenuItem item)
+        {
+            items.Remove(item);
+
+            focusedIndex = -1;
+            currentItems = null;
+        }
+
+        void OnFocus()
+        {
+            currentItems ??= [.. items.Where(i => i.Visible)];
+
+            if (focusedIndex == -1)
+            {
+                focusedIndex = 0;
+
+                StateHasChanged();
+            }
         }
     }
 }

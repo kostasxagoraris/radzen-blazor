@@ -1,120 +1,99 @@
-﻿@page "/tabs"
+@page "/tabs"
 
-@using RadzenBlazorDemos.Data
-@using RadzenBlazorDemos.Models.Northwind
-@using Microsoft.EntityFrameworkCore
+<RadzenText TextStyle="TextStyle.H2" TagName="TagName.H1" class="rz-pt-8">
+    Blazor Tabs
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
+    Position options, dynamic items, and server/client render modes.
+</RadzenText>
 
-@inject NorthwindContext dbContext
-
-<RadzenExample Name="Tabs">
-    <RadzenCard Class="w-75 mb-5 mx-auto" Style="display: flex; align-items: center;" >
-        <div style="white-space:nowrap; margin-right: 16px">Tabs Position:</div>
-        <RadzenDropDown @bind-Value="@tabPosition" TextProperty="Text" ValueProperty="Value" 
-            Data="@(Enum.GetValues(typeof(TabPosition)).Cast<TabPosition>().Select(t => new { Text = $"{t}", Value = t }))" />
-    </RadzenCard>
-    <RadzenTabs Change=@OnChange TabPosition="@tabPosition" style="height: 504px; width: 700px; margin: 20px auto;" RenderMode="TabRenderMode.Client" >
-        <Tabs>
-            <RadzenTabsItem Text="Orders">
-                <RadzenDataList PageSize="4" WrapItems="true" AllowPaging="true" Data="@orders" TItem="Order">
-                    <Template Context="order">
-                        <RadzenCard Style="width: 250px;">
-                            <div class="row">
-                                <div class="col-md-8 text-truncate">
-                                    <RadzenBadge BadgeStyle="BadgeStyle.Light" Text=@($"{order.OrderID}") Class="mr-1" />
-                                    <b>@(order.ShipName)</b>
-                                </div>
-                                <div class="col-md-4 text-right">
-                                    <RadzenBadge BadgeStyle="BadgeStyle.Secondary" Text=@($"{String.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", order.Freight)}") />
-                                </div>
-                            </div>
-                            <hr style="border: none; background-color: rgba(0,0,0,.08); height: 1px; margin: 1rem 0;" />
-                            <div class="d-flex flex-row align-items-center">
-                                <RadzenImage Path="@order.Employee?.Photo" Class="rounded-circle float-left mr-3" Style="width: 80px; height: 80px;" />
-                                <div>
-                                    <h4 class="mb-0">@(order.Employee?.FirstName + " " + order.Employee?.LastName)</h4>
-                                    <div>@order.ShipAddress</div>
-                                    <div style="font-size: .8em">@(order.ShipCity), @(order.ShipCountry)</div>
-                                </div>
-                            </div>
-                        </RadzenCard>
-                    </Template>
-                </RadzenDataList>
-            </RadzenTabsItem>
-            <RadzenTabsItem Text="Employee">
-                <RadzenDataGrid ColumnWidth="150px" AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" Data="@employees" TItem="Employee">
-                    <Columns>
-                        <RadzenDataGridColumn TItem="Employee" Property="Photo" Title="Photo" Sortable="false" Filterable="false" Width="60px">
-                            <Template Context="data">
-                                <RadzenImage Path="@data?.Photo" Style="width: 40px; height: 40px; border-radius: 8px;" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="Employee" Property="LastName" Title="Last Name" />
-                        <RadzenDataGridColumn TItem="Employee" Property="FirstName" Title="First Name" />
-                        <RadzenDataGridColumn TItem="Employee" Property="EmployeeID" Title="Employee ID" />
-                        <RadzenDataGridColumn TItem="Employee" Property="Title" Title="Title" />
-                        <RadzenDataGridColumn TItem="Employee" Property="BirthDate" Title="Birth Date">
-                            <Template Context="data">
-                                @String.Format("{0:d}", data.BirthDate)
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="Employee" Property="HireDate" Title="Hire Date">
-                            <Template Context="data">
-                                @String.Format("{0:d}", data.HireDate)
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="Employee" Property="Address" Title="Address" />
-                        <RadzenDataGridColumn TItem="Employee" Property="City" Title="City" />
-                        <RadzenDataGridColumn TItem="Employee" Property="Region" Title="Region" />
-                        <RadzenDataGridColumn TItem="Employee" Property="PostalCode" Title="Postal Code" />
-                        <RadzenDataGridColumn TItem="Employee" Property="Country" Title="Country" />
-                        <RadzenDataGridColumn TItem="Employee" Property="HomePhone" Title="Home Phone" />
-                        <RadzenDataGridColumn TItem="Employee" Property="Extension" Title="Extension" />
-                        <RadzenDataGridColumn TItem="Employee" Property="Notes" Title="Notes" />
-                    </Columns>
-                </RadzenDataGrid>
-            </RadzenTabsItem>
-            <RadzenTabsItem Text="Customers">
-                <RadzenDataGrid ColumnWidth="150px" AllowFiltering="true" AllowPaging="true" PageSize="8" AllowSorting="true" Data="@customers" TItem="Customer">
-                    <Columns>
-                        <RadzenDataGridColumn TItem="Customer" Property="CustomerID" Title="Customer ID" />
-                        <RadzenDataGridColumn TItem="Customer" Property="CompanyName" Title="Company Name" />
-                        <RadzenDataGridColumn TItem="Customer" Property="ContactName" Title="Contact Name" />
-                        <RadzenDataGridColumn TItem="Customer" Property="ContactTitle" Title="Contact Title" />
-                        <RadzenDataGridColumn TItem="Customer" Property="Address" Title="Address" />
-                        <RadzenDataGridColumn TItem="Customer" Property="City" Title="City" />
-                        <RadzenDataGridColumn TItem="Customer" Property="Region" Title="Region" />
-                        <RadzenDataGridColumn TItem="Customer" Property="PostalCode" Title="Postal Code" />
-                        <RadzenDataGridColumn TItem="Customer" Property="Country" Title="Country" />
-                        <RadzenDataGridColumn TItem="Customer" Property="Phone" Title="Phone" />
-                        <RadzenDataGridColumn TItem="Customer" Property="Fax" Title="Fax" />
-                    </Columns>
-                </RadzenDataGrid>
-            </RadzenTabsItem>
-        </Tabs>
-    </RadzenTabs>
+<RadzenText Anchor="tabs#tabs-position" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    Tabs position
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>TabPosition</code> property to position tabs at the top, bottom, left, or right of the content area.
+</RadzenText>
+<RadzenExample ComponentName="Tabs" Example="TabsPosition">
+    <TabsPosition />
 </RadzenExample>
 
-<EventConsole @ref=@console Class="mt-4" />
+<RadzenText Anchor="tabs#server-render-mode" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Server render mode
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Only selected tab content will be rendered.
+</RadzenText>
+<RadzenExample ComponentName="Tabs" Example="TabsServer">
+    <TabsServer />
+</RadzenExample>
+
+<RadzenText Anchor="tabs#client-render-mode" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Client render mode
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    All tabs will be rendered initially and tab change will be performed completely using JavaScript
+</RadzenText>
+<RadzenExample ComponentName="Tabs" Example="TabsClient">
+    <TabsClient />
+</RadzenExample>
+
+
+<RadzenText Anchor="tabs#tabs-modify" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    TabItems modify
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Demonstrating modifications to the TabItem collection
+</RadzenText>
+<RadzenExample ComponentName="Tabs" Example="TabsModify">
+    <TabsModify />
+</RadzenExample>
+
+<RadzenText Anchor="tabs#tabs-wrap" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Tab items wrap
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Demonstrating wrap of the Tab items
+</RadzenText>
+<RadzenExample ComponentName="Tabs" Example="TabsWrap">
+    <TabsWrap />
+</RadzenExample>
+
+<RadzenText Anchor="tabs#prevent-tab-change" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Prevent Tab change
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Demonstrating how to prevent Tab change
+</RadzenText>
+<RadzenExample ComponentName="Tabs" Example="TabsChange">
+    <TabsChange />
+</RadzenExample>
+
+
+<RadzenText Anchor="tabs#reorder" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Reorder tabs
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Set <code>AllowReorder</code> to <code>true</code> to enable drag and drop reordering of tabs.
+</RadzenText>
+<RadzenExample ComponentName="Tabs" Example="TabsReorder">
+    <TabsReorder />
+</RadzenExample>
+
+<RadzenText Anchor="tabs#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor Tabs component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@shortcuts" />
 
 @code {
-    EventConsole console;
-    IEnumerable<Order> orders;
-    IEnumerable<Employee> employees;
-    IEnumerable<Customer> customers;
-
-    TabPosition tabPosition = TabPosition.Top;
-
-    protected override void OnInitialized()
+    public List<KeyboardShortcut> shortcuts = new()
     {
-        employees = dbContext.Employees.ToList();
-
-        customers = dbContext.Customers.ToList();
-
-        orders = dbContext.Orders.Include("Customer").Include("Employee").ToList();
-    }
-
-    void OnChange(int index)
-    {
-        console.Log($"Tab with index {index} was selected.");
-    }
+        new KeyboardShortcut { Key = "Tab", Action = "Navigate to a Tabs component." },
+        new KeyboardShortcut { Key = "RightArrow", Action = "Focus next Tab." },
+        new KeyboardShortcut { Key = "LeftArrow", Action = "Focus previous Tab." },
+        new KeyboardShortcut { Key = "Space or Enter on a focused Tab", Action = "Select the Tab." }
+    };
 }

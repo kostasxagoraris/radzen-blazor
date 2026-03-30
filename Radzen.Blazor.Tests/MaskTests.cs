@@ -119,13 +119,54 @@ namespace Radzen.Blazor.Tests
 
             var component = ctx.RenderComponent<RadzenMask>();
 
-            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, false));
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", false));
+
+            Assert.Contains(@$"autocomplete=""off""", component.Markup);
+            Assert.Contains(@$"aria-autocomplete=""none""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
+
+            Assert.Contains(@$"autocomplete=""on""", component.Markup);
+            Assert.DoesNotContain(@$"aria-autocomplete", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("autocomplete", "custom"));
+
+            Assert.Contains(@$"autocomplete=""custom""", component.Markup);
+            Assert.DoesNotContain(@$"aria-autocomplete", component.Markup);
+
+            component.Instance.DefaultAutoCompleteAttribute = "autocomplete-custom";
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", false));
+
+            Assert.Contains(@$"autocomplete=""autocomplete-custom""", component.Markup);
+            Assert.Contains(@$"aria-autocomplete=""none""", component.Markup);
+        }
+
+        [Fact]
+        public void Mask_Renders_TypedAutoCompleteParameter()
+        {
+            using var ctx = new TestContext();
+
+            var component = ctx.RenderComponent<RadzenMask>();
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", false));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.On));
 
             Assert.Contains(@$"autocomplete=""off""", component.Markup);
 
-            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, true));
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.Off));
 
-            Assert.Contains(@$"autocomplete=""on""", component.Markup);
+            Assert.Contains(@$"autocomplete=""off""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.AdditionalName));
+
+            Assert.Contains(@$"autocomplete=""{AutoCompleteType.AdditionalName.GetAutoCompleteValue()}""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.AddUnmatched("AutoComplete", true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.Email));
+
+            Assert.Contains(@$"autocomplete=""{AutoCompleteType.Email.GetAutoCompleteValue()}""", component.Markup);
         }
 
         [Fact]

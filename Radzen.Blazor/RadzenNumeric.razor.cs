@@ -1,23 +1,57 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Primitives;
 using Microsoft.JSInterop;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace Radzen.Blazor
 {
     /// <summary>
-    /// RadzenNumeric component.
+    /// A numeric input component that allows users to enter numbers with optional increment/decrement buttons and value constraints.
+    /// RadzenNumeric supports various numeric types, formatting, min/max validation, step increments, and culture-specific number display.
+    /// Provides up/down arrow buttons for incrementing/decrementing the value by a specified step amount.
+    /// Supports min/max constraints that are enforced during input and stepping, formatted value display using standard .NET format strings,
+    /// and can be configured with or without the up/down buttons. Handles overflow protection and respects the numeric type's natural limits.
     /// </summary>
-    /// <typeparam name="TValue">The type of the t value.</typeparam>
+    /// <typeparam name="TValue">The numeric type of the value. Supports int, long, short, byte, float, double, decimal and their nullable variants.</typeparam>
     /// <example>
+    /// Basic integer numeric input with constraints:
     /// <code>
-    /// &lt;RadzenNumeric TValue="int" Min="1" Max="10" Change=@(args => Console.WriteLine($"Value: {args}")) /&gt;
+    /// &lt;RadzenNumeric @bind-Value=@quantity TValue="int" Min="1" Max="100" Step="1" /&gt;
+    /// </code>
+    /// Decimal input with custom formatting:
+    /// <code>
+    /// &lt;RadzenNumeric @bind-Value=@price TValue="decimal" Min="0" Format="c" Placeholder="Enter price" /&gt;
+    /// </code>
+    /// Nullable numeric without increment buttons:
+    /// <code>
+    /// &lt;RadzenNumeric @bind-Value=@optionalValue TValue="int?" ShowUpDown="false" Placeholder="Optional" /&gt;
     /// </code>
     /// </example>
-    public partial class RadzenNumeric<TValue> : FormComponent<TValue>
+    public partial class RadzenNumeric<TValue> : FormComponentWithAutoComplete<TValue>
     {
+        /// <summary>
+        /// Gets or sets whether the component should update the bound value immediately as the user types (oninput event),
+        /// rather than waiting for the input to lose focus (onchange event).
+        /// This enables real-time value updates but may trigger more frequent change events.
+        /// </summary>
+        /// <value><c>true</c> for immediate updates; <c>false</c> for deferred updates. Default is <c>false</c>.</value>
+        [Parameter]
+        public bool Immediate { get; set; }
+
+        /// <summary>
+        /// Gets or sets additional HTML attributes to be applied to the underlying input element.
+        /// This allows passing custom attributes like data-* attributes, aria-* attributes, or other HTML attributes directly to the input.
+        /// </summary>
+        /// <value>A dictionary of custom HTML attributes.</value>
+        [Parameter]
+        public IReadOnlyDictionary<string, object>? InputAttributes { get; set; }
+
         /// <summary>
         /// Gets input reference.
         /// </summary>
@@ -26,7 +60,118 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("rz-spinner").ToString();
+            return GetClassList("rz-numeric").ToString();
+        }
+
+        string GetInputCssClass()
+        {
+            var textAlignName = Enum.GetName<TextAlign>(TextAlign)?.ToLowerInvariant() ?? "left";
+            return GetClassList("rz-numeric-input")
+                        .Add("rz-inputtext")
+                        .Add($"rz-text-align-{textAlignName}")
+                        .ToString();
+        }
+
+        private string GetOnInput()
+        {
+            var minArg = Min.HasValue ? Min.Value.ToString(CultureInfo.InvariantCulture) : "null";
+            var maxArg = Max.HasValue ? Max.Value.ToString(CultureInfo.InvariantCulture) : "null";
+            string isNull = IsNullable.ToString().ToLowerInvariant();
+            return (Min != null || Max != null) ? $@"Radzen.numericOnInput(event, {minArg}, {maxArg}, {isNull})" : "";
+        }
+
+        private string GetOnPaste()
+        {
+            var minArg = Min.HasValue ? Min.Value.ToString(CultureInfo.InvariantCulture) : "null";
+            var maxArg = Max.HasValue ? Max.Value.ToString(CultureInfo.InvariantCulture) : "null";
+
+            return (Min != null || Max != null) ? $@"Radzen.numericOnPaste(event, {minArg}, {maxArg})" : "";
+        }
+
+        bool? isNullable;
+        bool IsNullable
+        {
+            get
+            {
+                if (isNullable == null)
+                {
+                    isNullable = typeof(TValue).IsGenericType && typeof(TValue).GetGenericTypeDefinition() == typeof(Nullable<>);
+                }
+
+                return isNullable.Value;
+            }
+        }
+
+        private bool IsNumericType(object? value) => value switch
+        {
+            sbyte => true,
+            byte => true,
+            short => true,
+            ushort => true,
+            int => true,
+            uint => true,
+            long => true,
+            ulong => true,
+            float => true,
+            double => true,
+            decimal => true,
+            _ => false
+        };
+
+        private TNum SumFloating<TNum>(TNum value1, TNum value2)
+        {
+            ArgumentNullException.ThrowIfNull(value1);
+            ArgumentNullException.ThrowIfNull(value2);
+            
+            var decimalValue1 = (decimal)Convert.ChangeType(value1, TypeCode.Decimal, Culture);
+            var decimalValue2 = (decimal)Convert.ChangeType(value2, TypeCode.Decimal, Culture);
+
+            return (TNum)Convert.ChangeType(decimalValue1 + decimalValue2, typeof(TNum), Culture);
+        }
+
+        /// <summary>
+        /// Use native numeric type to process the step up/down while checking for possible overflow errors
+        /// and clamping to Min/Max values
+        /// </summary>
+        /// <typeparam name="TNum"></typeparam>
+        /// <param name="valueToUpdate"></param>
+        /// <param name="stepUp"></param>
+        /// <param name="decimalStep"></param>
+        /// <returns></returns>
+        private TNum UpdateValueWithStepNumeric<TNum>(TNum valueToUpdate, bool stepUp, decimal decimalStep) 
+            where TNum : struct, System.Numerics.INumber<TNum>, System.Numerics.IMinMaxValue<TNum>
+        {
+            var step = TNum.CreateSaturating(decimalStep);
+
+            if (stepUp && (TNum.MaxValue - step) < valueToUpdate)
+            {
+                return valueToUpdate;
+            }
+            if (!stepUp && (TNum.MinValue + step) > valueToUpdate)
+            {
+                return valueToUpdate;
+            }
+
+            TNum newValue = default(TNum);
+
+            if (typeof(TNum) == typeof(double) || typeof(TNum) == typeof(double?) ||
+                typeof(TNum) == typeof(float) || typeof(TNum) == typeof(float?))
+            {
+                newValue = SumFloating(valueToUpdate, (stepUp ? step : -step));
+            }
+            else 
+            {
+                newValue = valueToUpdate + (stepUp ? step : -step);
+            }
+
+            if (Max.HasValue && newValue > TNum.CreateSaturating(Max.Value) 
+                || Min.HasValue && newValue < TNum.CreateSaturating(Min.Value) 
+                || object.Equals(Value, newValue))
+            {
+                return valueToUpdate;
+            }
+
+            return newValue;
         }
 
         async System.Threading.Tasks.Task UpdateValueWithStep(bool stepUp)
@@ -36,18 +181,40 @@ namespace Radzen.Blazor
                 return;
             }
 
-            var step = string.IsNullOrEmpty(Step) || Step == "any" ? 1 : double.Parse(Step.Replace(",", "."), System.Globalization.CultureInfo.InvariantCulture);
+            var step = string.IsNullOrEmpty(Step) || Step == "any" ? 1 : decimal.Parse(Step.Replace(",", ".", StringComparison.Ordinal), System.Globalization.CultureInfo.InvariantCulture);
+            TValue? newValue;
 
-            var valueToUpdate = Value != null ? Convert.ChangeType(Value, typeof(decimal)) : (decimal)Convert.ChangeType(default(decimal), typeof(decimal));
-
-            var newValue = ((decimal)Convert.ChangeType(valueToUpdate, typeof(decimal))) + (decimal)Convert.ChangeType(stepUp ? step : -step, typeof(decimal));
-
-            if (Max.HasValue && newValue > Max.Value || Min.HasValue && newValue < Min.Value || object.Equals(Value, newValue))
+            if (IsNumericType(Value))
             {
-                return;
+                // cannot call UpdateValueWithStepNumeric directly because TValue is not value type constrained
+                Func<dynamic?, bool, decimal, dynamic> dynamicWrapper = (dynamic? value, bool stepUp, decimal step) 
+                    => UpdateValueWithStepNumeric(value, stepUp, step);
+
+                newValue = dynamicWrapper(Value, stepUp, step);
+            }
+            else
+            {
+                var valueToUpdate = ConvertToDecimal(Value);
+
+                var newValueToUpdate = valueToUpdate + (stepUp ? step : -step);
+
+                if (Max.HasValue && newValueToUpdate > Max.Value || Min.HasValue && newValueToUpdate < Min.Value || object.Equals(Value, newValueToUpdate))
+                {
+                    return;
+                }
+
+                if ((typeof(TValue) == typeof(byte) || typeof(TValue) == typeof(byte?)) && (newValueToUpdate < 0 || newValueToUpdate > 255))
+                {
+                    return;
+                }
+
+                newValue = ConvertFromDecimal(newValueToUpdate);
             }
 
-            Value = (TValue)ConvertType.ChangeType(newValue, typeof(TValue));
+            if(object.Equals(newValue, Value))
+                return;
+
+            Value = newValue!;
 
             await ValueChanged.InvokeAsync(Value);
             if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }
@@ -61,7 +228,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The value.</value>
         [Parameter]
-        public override TValue Value
+        public override TValue? Value
         {
             get
             {
@@ -73,6 +240,8 @@ namespace Radzen.Blazor
                 {
                     _value = value;
                 }
+
+                stringValue = $"{value}";
             }
         }
 
@@ -80,22 +249,26 @@ namespace Radzen.Blazor
         /// Gets or sets the formatted value.
         /// </summary>
         /// <value>The formatted value.</value>
-        protected string FormattedValue
+        protected string? FormattedValue
         {
             get
             {
-                if (Value != null)
+                if (_value != null)
                 {
                     if (Format != null)
                     {
-                        decimal decimalValue = (decimal)Convert.ChangeType(Value, typeof(decimal));
-                        return decimalValue.ToString(Format,Culture);
+                        if (_value is IFormattable formattable)
+                        {
+                            return formattable.ToString(Format, Culture);
+                        }
+                        decimal decimalValue = ConvertToDecimal(_value);
+                        return decimalValue.ToString(Format, Culture);
                     }
-                    return Value.ToString();
+                    return _value.ToString();
                 }
                 else
                 {
-                    return "";
+                    return stringValue;
                 }
             }
             set
@@ -121,14 +294,14 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The format.</value>
         [Parameter]
-        public string Format { get; set; }
+        public string? Format { get; set; }
 
         /// <summary>
         /// Gets or sets the step.
         /// </summary>
         /// <value>The step.</value>
         [Parameter]
-        public string Step { get; set; }
+        public string? Step { get; set; }
 
         private bool IsInteger()
         {
@@ -158,11 +331,11 @@ namespace Radzen.Blazor
         public bool ReadOnly { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether input automatic complete is enabled.
+        /// Gets or sets the maximum allowed text length.
         /// </summary>
-        /// <value><c>true</c> if input automatic complete is enabled; otherwise, <c>false</c>.</value>
+        /// <value>The maximum length.</value>
         [Parameter]
-        public bool AutoComplete { get; set; } = true;
+        public long? MaxLength { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether up down buttons are shown.
@@ -172,63 +345,203 @@ namespace Radzen.Blazor
         public bool ShowUpDown { get; set; } = true;
 
         /// <summary>
-        /// Handles the <see cref="E:Change" /> event.
+        /// Gets or sets the text align.
+        /// </summary>
+        /// <value>The text align.</value>
+        [Parameter]
+        public TextAlign TextAlign { get; set; } = TextAlign.Left;
+
+        /// <summary>
+        /// Handles the change event.
         /// </summary>
         /// <param name="args">The <see cref="ChangeEventArgs"/> instance containing the event data.</param>
         protected async System.Threading.Tasks.Task OnChange(ChangeEventArgs args)
         {
+            ArgumentNullException.ThrowIfNull(args);
+            stringValue = $"{args.Value}";
             await InternalValueChanged(args.Value);
+        }
+
+        string? stringValue;
+        async Task SetValue(string? value)
+        {
+            stringValue = value;
+            await InternalValueChanged(value);
         }
 
         private string RemoveNonNumericCharacters(object value)
         {
-            string valueStr = value as string;
-            if (valueStr == null)
+            string valueStr = value as string ?? $"{value}";
+
+            valueStr = NormalizeDigits(valueStr);
+
+            if (!string.IsNullOrEmpty(Format))
             {
-                valueStr = value.ToString();
+                valueStr = valueStr.Replace(Culture.NumberFormat.CurrencySymbol, "", StringComparison.Ordinal);
+                valueStr = valueStr.Replace(Culture.NumberFormat.NumberGroupSeparator, "", StringComparison.Ordinal);
+
+                if (Culture.NumberFormat.CurrencyGroupSeparator != Culture.NumberFormat.NumberGroupSeparator)
+                {
+                    valueStr = valueStr.Replace(Culture.NumberFormat.CurrencyGroupSeparator, "", StringComparison.Ordinal);
+                }
             }
-            return new string(valueStr.Where(c => char.IsDigit(c) || char.IsPunctuation(c)).ToArray());
+
+            return new string(valueStr.Where(c => char.IsDigit(c) || char.IsPunctuation(c)).ToArray()).Replace("%", "", StringComparison.Ordinal);
         }
 
-        private async System.Threading.Tasks.Task InternalValueChanged(object value)
+        private static string NormalizeDigits(string input)
         {
-            TValue newValue;
+            if (string.IsNullOrEmpty(input)) return input;
+
+            var sb = new System.Text.StringBuilder(input.Length);
+            foreach (var ch in input)
+            {
+                if (char.GetUnicodeCategory(ch) == System.Globalization.UnicodeCategory.DecimalDigitNumber)
+                {
+                    var numeric = (int)char.GetNumericValue(ch); // 0..9
+                    if (numeric >= 0 && numeric <= 9)
+                    {
+                        sb.Append((char)('0' + numeric));
+                        continue;
+                    }
+                }
+                sb.Append(ch);
+            }
+            return sb.ToString();
+        }
+
+
+        /// <summary>
+        /// Gets or sets the function which returns TValue from string.
+        /// </summary>
+        [Parameter]
+        public Func<string, TValue>? ConvertValue { get; set; }
+
+        private async Task InternalValueChanged(object? value)
+        {
+            TValue? newValue = default(TValue);
             try
             {
-                BindConverter.TryConvertTo<TValue>(RemoveNonNumericCharacters(value), Culture, out newValue);
+                if (value is TValue typedValue)
+                {
+                    newValue = typedValue;
+                }
+                else if (ConvertValue != null)
+                {
+                    newValue = ConvertValue($"{value}");
+                }
+                else if (value != null)
+                {
+                    BindConverter.TryConvertTo<TValue>(RemoveNonNumericCharacters(value), Culture, out TValue? convertedValue);
+                    newValue = convertedValue;
+                }
             }
             catch
             {
-                newValue = default(TValue);
+                newValue = default(TValue)!;
             }
 
-            decimal? newValueAsDecimal = newValue == null ? default(decimal?) : (decimal)ConvertType.ChangeType(newValue, typeof(decimal));
-
-            if (object.Equals(Value, newValue) && !ValueChanged.HasDelegate)
+            if (newValue != null)
             {
-                await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", input, Value);
+                newValue = ApplyMinMax(newValue);
+            }
+
+            stringValue = $"{newValue}";
+
+            if (EqualityComparer<TValue>.Default.Equals(Value, newValue))
+            {
+                if (JSRuntime != null)
+                {
+                    await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", input, FormattedValue);
+                }
                 return;
             }
 
-            if (Max.HasValue && newValueAsDecimal > Max.Value)
+            Value = newValue;
+            if (!ValueChanged.HasDelegate && JSRuntime != null)
             {
-                newValueAsDecimal = Max.Value;
-            }
-
-            if (Min.HasValue && newValueAsDecimal < Min.Value)
-            {
-                newValueAsDecimal = Min.Value;
-            }
-
-            Value = (TValue)ConvertType.ChangeType(newValueAsDecimal, typeof(TValue));
-            if (!ValueChanged.HasDelegate)
-            {
-                await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", input, Value);
+                await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", input, FormattedValue);
             }
 
             await ValueChanged.InvokeAsync(Value);
             if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }
             await Change.InvokeAsync(Value);
+        }
+        
+        private TValue? ApplyMinMax(TValue? newValue)
+        {
+            if (Max == null && Min == null || newValue == null)
+            {
+                return newValue;
+            }
+
+            if (newValue is IComparable<decimal> c)
+            {
+                if (Max != null && c.CompareTo(Max.Value) > 0)
+                    return ConvertFromDecimal(Max.Value);
+                if (Min != null && c.CompareTo(Min.Value) < 0)
+                    return ConvertFromDecimal(Min.Value);
+                return newValue;
+            }
+
+            decimal? newValueAsDecimal;
+            try
+            {
+                newValueAsDecimal = ConvertToDecimal(newValue);
+            }
+            catch
+            {
+                newValueAsDecimal = default;
+            }
+
+            if (newValueAsDecimal > Max)
+            {
+                newValueAsDecimal = Max.Value;
+            }
+
+            if (newValueAsDecimal < Min)
+            {
+                newValueAsDecimal = Min.Value;
+            }
+            return ConvertFromDecimal(newValueAsDecimal);
+        }
+
+        private decimal ConvertToDecimal(TValue? input)
+        {
+            if (input == null)
+                return default;
+
+            var converter = TypeDescriptor.GetConverter(typeof(TValue));
+            if (converter.CanConvertTo(typeof(decimal)))
+            {
+                var converted = converter.ConvertTo(null, Culture, input, typeof(decimal));
+                return converted != null ? (decimal)converted : decimal.Zero;
+            }
+            try
+            {
+                var changed = ConvertType.ChangeType(input, typeof(decimal), Culture);
+                return changed != null ? (decimal)changed : decimal.Zero;
+            }
+            catch
+            {
+                return decimal.Zero;
+            }
+        }
+
+        private TValue? ConvertFromDecimal(decimal? input)
+        {
+            if (input == null)
+                return default(TValue?);
+
+            var converter = TypeDescriptor.GetConverter(typeof(TValue));
+            if (converter.CanConvertFrom(typeof(decimal)))
+            {
+                var result = converter.ConvertFrom(null, Culture, input);
+                return result != null ? (TValue)result : default(TValue)!;
+            }
+            
+            var changeTypeResult = ConvertType.ChangeType(input, typeof(TValue), Culture);
+            return changeTypeResult != null ? (TValue)changeTypeResult : default(TValue)!;
         }
 
         /// <summary>
@@ -253,34 +566,77 @@ namespace Radzen.Blazor
 
             await base.SetParametersAsync(parameters);
 
-            if (minChanged && Min.HasValue && Value != null && IsJSRuntimeAvailable)
+            if (minChanged && IsJSRuntimeAvailable)
             {
-                decimal decimalValue = (decimal)Convert.ChangeType(Value, typeof(decimal));
-                if (decimalValue < Min.Value)
-                {
-                    await InternalValueChanged(Min.Value);
-                }
+                await InternalValueChanged(Value);
             }
 
-            if (maxChanged && Max.HasValue && Value != null && IsJSRuntimeAvailable)
+            if (maxChanged && IsJSRuntimeAvailable)
             {
-                decimal decimalValue = (decimal)Convert.ChangeType(Value, typeof(decimal));
-                if (decimalValue > Max.Value)
-                {
-                    await InternalValueChanged(Max.Value);
-                }
+                await InternalValueChanged(Value);
             }
         }
 
+        bool preventKeyPress;
+        bool stopKeydownPropagation;
+        async Task OnKeyPress(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
 
-#if NET5
+            if (key == "ArrowUp" || key == "ArrowDown")
+            {
+                stopKeydownPropagation = true;
+                preventKeyPress = true;
+
+                if (key == "ArrowUp")
+                {
+                    await UpdateValueWithStep(true);
+                }
+                else
+                {
+                    await UpdateValueWithStep(false);
+                }
+
+                preventKeyPress = false;
+            }
+            else if (Immediate && (key == "Backspace" || key == "Delete" || (args.Key.Length == 1 && char.IsDigit(args.Key[0]) && !args.CtrlKey && !args.AltKey && !args.ShiftKey)))
+            {
+                stopKeydownPropagation = true;
+                preventKeyPress = true;
+
+                if (JSRuntime != null)
+                {
+                    var value = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", input);
+                    await SetValue(value);
+                }
+
+                preventKeyPress = false;
+            }
+            else
+            {
+                stopKeydownPropagation = false;
+                preventKeyPress = false;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the up button aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string UpAriaLabel { get; set; } = "Up";
+
+        /// <summary>
+        /// Gets or sets the down button aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string DownAriaLabel { get; set; } = "Down";
+
         /// <summary>
         /// Sets the focus on the input element.
         /// </summary>
-        public async Task FocusAsync()
+        public override async ValueTask FocusAsync()
         {
             await input.FocusAsync();
         }
-#endif
     }
 }

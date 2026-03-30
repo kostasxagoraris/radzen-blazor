@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Radzen.Blazor.Rendering
@@ -18,24 +19,36 @@ namespace Radzen.Blazor.Rendering
         /// <returns>System.String.</returns>
         public string Path(IEnumerable<Point> data)
         {
+            ArgumentNullException.ThrowIfNull(data);
+
             var path = new StringBuilder();
-            var start = true;
+            var needsMoveTo = true;
 
             foreach (var item in data)
             {
                 var x = item.X;
                 var y = item.Y;
 
-                if (start)
+                if (double.IsNaN(x) || double.IsNaN(y))
                 {
-                    start = false;
+                    needsMoveTo = true;
+                    continue;
+                }
+
+                if (needsMoveTo)
+                {
+                    if (path.Length > 0)
+                    {
+                        path.Append("M ");
+                    }
+                    needsMoveTo = false;
                 }
                 else
                 {
                     path.Append("L ");
                 }
 
-                path.Append($"{x.ToInvariantString()} {y.ToInvariantString()} ");
+                path.Append(CultureInfo.InvariantCulture, $"{x.ToInvariantString()} {y.ToInvariantString()} ");
             }
 
             return path.ToString();

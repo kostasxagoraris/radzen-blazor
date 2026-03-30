@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Radzen.Blazor.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,59 +7,104 @@ using System.Linq;
 namespace Radzen.Blazor
 {
     /// <summary>
-    /// Renders column series in <see cref="RadzenChart" />
+    /// A chart series that displays data as vertical columns (bars) in a RadzenChart.
+    /// RadzenColumnSeries is ideal for comparing values across categories or showing trends over time with discrete data points.
+    /// Renders vertical rectangles where the height represents the data value. Multiple column series in the same chart are displayed side-by-side for each category.
+    /// Supports fill color/stroke color/width customization with individual column colors via Fills/Strokes, dynamic coloring based on value ranges using FillRange and StrokeRange,
+    /// optional value labels on top of columns, interactive tooltips showing category/value/series name, and click event handling for drill-down scenarios.
+    /// Use CategoryProperty to specify the X-axis field and ValueProperty for the column height (Y-axis value).
     /// </summary>
-    /// <typeparam name="TItem">The type of the series data item.</typeparam>
+    /// <typeparam name="TItem">The type of data items in the series. Each item represents one column in the chart.</typeparam>
+    /// <example>
+    /// Basic column series:
+    /// <code>
+    /// &lt;RadzenChart&gt;
+    ///     &lt;RadzenColumnSeries Data=@revenue CategoryProperty="Quarter" ValueProperty="Amount" Title="Revenue" /&gt;
+    /// &lt;/RadzenChart&gt;
+    /// </code>
+    /// Multiple column series with custom colors:
+    /// <code>
+    /// &lt;RadzenChart&gt;
+    ///     &lt;RadzenColumnSeries Data=@sales2023 CategoryProperty="Month" ValueProperty="Total" Title="2023" Fill="#4169E1" /&gt;
+    ///     &lt;RadzenColumnSeries Data=@sales2024 CategoryProperty="Month" ValueProperty="Total" Title="2024" Fill="#32CD32" /&gt;
+    /// &lt;/RadzenChart&gt;
+    /// </code>
+    /// </example>
     public partial class RadzenColumnSeries<TItem> : CartesianSeries<TItem>, IChartColumnSeries
     {
         /// <summary>
-        /// Specifies the fill (background color) of the column series.
+        /// Gets or sets the fill (background) color applied to all columns in the series.
+        /// Supports any valid CSS color value. If not set, uses the color scheme's default color.
         /// </summary>
-        /// <value>The fill.</value>
+        /// <value>The fill color as a CSS color value.</value>
         [Parameter]
-        public string Fill { get; set; }
+        public string? Fill { get; set; }
 
         /// <summary>
-        /// Specifies a list of colors that will be used to set the individual column backgrounds.
+        /// Gets or sets a collection of fill colors to apply to individual columns in sequence.
+        /// Each column gets the color at its index position, allowing rainbow or gradient-like effects.
+        /// Takes precedence over the <see cref="Fill"/> property.
         /// </summary>
-        /// <value>The fills.</value>
+        /// <value>An enumerable collection of CSS color values.</value>
         [Parameter]
-        public IEnumerable<string> Fills { get; set; }
+        public IEnumerable<string>? Fills { get; set; }
 
         /// <summary>
-        /// Specifies the stroke (border color) of the column series.
+        /// Gets or sets the stroke (border) color applied to all columns in the series.
+        /// If not set, columns render without borders.
         /// </summary>
-        /// <value>The stroke.</value>
+        /// <value>The stroke color as a CSS color value.</value>
         [Parameter]
-        public string Stroke { get; set; }
+        public string? Stroke { get; set; }
 
         /// <summary>
-        /// Specifies a list of colors that will be used to set the individual column borders.
+        /// Gets or sets a collection of stroke colors to apply to individual column borders in sequence.
+        /// Each column border gets the color at its index position.
+        /// Takes precedence over the <see cref="Stroke"/> property.
         /// </summary>
-        /// <value>The strokes.</value>
+        /// <value>An enumerable collection of CSS color values for borders.</value>
         [Parameter]
-        public IEnumerable<string> Strokes { get; set; }
+        public IEnumerable<string>? Strokes { get; set; }
 
         /// <summary>
-        /// Gets or sets the width of the stroke (border).
+        /// Gets or sets the width of the column border in pixels.
+        /// Only visible if <see cref="Stroke"/> or <see cref="Strokes"/> is specified.
         /// </summary>
-        /// <value>The width of the stroke.</value>
+        /// <value>The stroke width in pixels. Default is 0 (no border).</value>
         [Parameter]
         public double StrokeWidth { get; set; }
 
         /// <summary>
-        /// Gets or sets the type of the line used to render the column border.
+        /// Gets or sets the line style for column borders (solid, dashed, dotted).
+        /// Only applicable if stroke is enabled.
         /// </summary>
-        /// <value>The type of the line.</value>
+        /// <value>The line type. Default is solid.</value>
         [Parameter]
         public LineType LineType { get; set; }
+
+        /// <summary>
+        /// Gets or sets value-based color ranges that dynamically color columns based on their values.
+        /// Allows conditional coloring (e.g., red for negative values, green for positive).
+        /// Each range specifies a min/max value and a color to apply to columns within that range.
+        /// </summary>
+        /// <value>A collection of value ranges and their associated fill colors.</value>
+        [Parameter]
+        public IList<SeriesColorRange>? FillRange { get; set; }
+
+        /// <summary>
+        /// Gets or sets value-based color ranges that dynamically color column borders based on their values.
+        /// Works similarly to <see cref="FillRange"/> but affects the stroke color instead of fill.
+        /// </summary>
+        /// <value>A collection of value ranges and their associated stroke colors.</value>
+        [Parameter]
+        public IList<SeriesColorRange>? StrokeRange { get; set; }
 
         /// <inheritdoc />
         public override string Color
         {
             get
             {
-                return Fill;
+                return Fill ?? string.Empty;
             }
         }
 
@@ -71,7 +117,7 @@ namespace Radzen.Blazor
                     return 0;
                 }
 
-                return Items.Count();
+                return Items.Count;
             }
         }
 
@@ -79,7 +125,8 @@ namespace Radzen.Blazor
         {
             get
             {
-                return Chart.Series.Where(series => series is IChartColumnSeries).Cast<IChartSeries>().ToList();
+                var chart = RequireChart();
+                return chart.Series.Where(series => series is IChartColumnSeries).Cast<IChartSeries>().ToList();
             }
         }
 
@@ -91,59 +138,87 @@ namespace Radzen.Blazor
             }
         }
 
+        /// <inheritdoc />
+        protected override string TooltipStyle(TItem item)
+        {
+            var style = base.TooltipStyle(item);
+
+            var index = Items.IndexOf(item);
+
+            if (index >= 0)
+            {
+                var color = PickColor(index, Fills, Fill, FillRange, Value(item));
+
+                if (color != null)
+                {
+                    style = $"{style}; border-color: {color};";
+                }
+            }
+
+            return style;
+        }
+
         private double BandWidth
         {
             get
             {
-                var availableWidth = Chart.CategoryScale.OutputSize - (Chart.CategoryAxis.Padding * 2);
-                var bands = VisibleColumnSeries.Cast<IChartColumnSeries>().Max(series => series.Count) + 2;
-                return availableWidth / bands;
+                var columnSeries = VisibleColumnSeries;
+
+                var chart = RequireChart();
+                if (chart.ColumnOptions.Width.HasValue)
+                {
+                    return chart.ColumnOptions.Width.Value * columnSeries.Count + chart.ColumnOptions.Margin * (columnSeries.Count - 1);
+                }
+                else
+                {
+                    var availableWidth = chart.CategoryScale.OutputSize - (chart.CategoryAxis.Padding * 2);
+                    var bands = columnSeries.Cast<IChartColumnSeries>().Max(series => series.Count) + 2;
+                    return availableWidth / bands;
+                }
             }
         }
 
         /// <inheritdoc />
         public override bool Contains(double x, double y, double tolerance)
         {
-            return DataAt(x, y) != null;
+            return DataAt(x, y).Item1 != null;
         }
 
         /// <inheritdoc />
-        protected override double TooltipX(TItem item)
+        internal override double TooltipX(TItem item)
         {
+            var chart = RequireChart();
             var columnSeries = VisibleColumnSeries;
             var index = columnSeries.IndexOf(this);
-            var padding = Chart.ColumnOptions.Margin;
+            var padding = chart.ColumnOptions.Margin;
             var bandWidth = BandWidth;
-            var width = bandWidth / columnSeries.Count() - padding + padding / columnSeries.Count();
-            var category = ComposeCategory(Chart.CategoryScale);
+            var width = bandWidth / columnSeries.Count - padding + padding / columnSeries.Count;
+            var category = ComposeCategory(chart.CategoryScale);
             var x = category(item) - bandWidth / 2 + index * width + index * padding;
 
             return x + width / 2;
         }
 
         /// <inheritdoc />
-        protected override double TooltipY(TItem item)
+        internal override double TooltipY(TItem item)
         {
-            var y = base.TooltipY(item);
-            var ticks = Chart.ValueScale.Ticks(Chart.ValueAxis.TickDistance);
-            var y0 = Chart.ValueScale.Scale(Math.Max(0, ticks.Start));
-
-            return Math.Min(y, y0);
+            return base.TooltipY(item);
         }
 
         /// <inheritdoc />
-        public override object DataAt(double x, double y)
+        public override (object, Point) DataAt(double x, double y)
         {
-            var category = ComposeCategory(Chart.CategoryScale);
-            var value = ComposeValue(Chart.ValueScale);
-            var ticks = Chart.ValueScale.Ticks(Chart.ValueAxis.TickDistance);
-            var y0 = Chart.ValueScale.Scale(Math.Max(0, ticks.Start));
+            var chart = RequireChart();
+            var category = ComposeCategory(chart.CategoryScale);
+            var value = ComposeValue(chart.ValueScale);
+            var ticks = chart.ValueScale.Ticks(chart.ValueAxis.TickDistance);
+            var y0 = chart.ValueScale.Scale(Math.Max(0, ticks.Start));
 
             var columnSeries = VisibleColumnSeries;
             var index = columnSeries.IndexOf(this);
-            var padding = Chart.ColumnOptions.Margin;
+            var padding = chart.ColumnOptions.Margin;
             var bandWidth = BandWidth;
-            var width = bandWidth / columnSeries.Count() - padding + padding / columnSeries.Count();
+            var width = chart.ColumnOptions.Width ?? bandWidth / columnSeries.Count - padding + padding / columnSeries.Count;
 
             foreach (var data in Items)
             {
@@ -155,11 +230,37 @@ namespace Radzen.Blazor
 
                 if (startX <= x && x <= endX && startY <= y && y <= endY)
                 {
-                    return data;
+                    return (data!, new Point() { X = x, Y = y });
                 }
             }
 
-            return null;
+            return (default!, new Point());
+        }
+
+        /// <inheritdoc />
+        public override IEnumerable<ChartDataLabel> GetDataLabels(double offsetX, double offsetY)
+        {
+            var list = new List<ChartDataLabel>();
+
+            int sign;
+
+            var chart = RequireChart();
+            if (Data != null)
+            {
+                foreach (var d in Data)
+                {
+                    sign = Value(d) < 0 ? -1 : Value(d) == 0 ? 0 : 1;
+
+                    list.Add(new ChartDataLabel
+                    {
+                        Position = new Point() { X = TooltipX(d) + offsetX, Y = TooltipY(d) - offsetY - (16 * sign) },
+                        TextAnchor = "middle",
+                        Text = chart.ValueAxis.Format(chart.ValueScale, Value(d))
+                    });
+                }
+            }
+
+            return list;
         }
     }
 }

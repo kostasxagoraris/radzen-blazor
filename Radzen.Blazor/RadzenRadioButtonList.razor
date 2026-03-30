@@ -1,4 +1,4 @@
-﻿@using Radzen.Blazor.Rendering
+@using Radzen.Blazor.Rendering
 @using System.Linq
 @using System.Collections
 @using Radzen
@@ -14,20 +14,37 @@
 }
 @if (Visible)
 {
-    <div @ref="@Element" style="@Style" @attributes="Attributes" class="@GetCssClass()" id="@GetId()">
+    <div @ref="@Element" style="@Style" @attributes="Attributes" class="@GetCssClass()" id="@GetId()"
+         role="radiogroup" aria-disabled="@(Disabled ? "true" : "false")" @onfocus=@OnFocus @onblur=@OnBlur
+        tabindex="@(Disabled ? "-1" : $"{TabIndex}")" @onkeydown="@(args => OnKeyPress(args))" @onkeydown:preventDefault=preventKeyPress @onkeydown:stopPropagation="stopKeydownPropagation">
+        <RadzenStack Orientation="@Orientation" JustifyContent="@JustifyContent" AlignItems="@AlignItems" Gap="@Gap" Wrap="@Wrap">
         @foreach (var item in allItems.Where(i => i.Visible))
         {
-            <div class="rz-radio-btn" @onclick="@(args => SelectItem(item))" @attributes="item.Attributes" style="@item.Style">
-                <div class="rz-radiobutton" @onkeypress="@(async args => { if (args.Code == "Space") { await SelectItem(item); } })" tabindex="@TabIndex">
+            <div @ref="@item.Element" id="@item.GetItemId()" @onclick="@(args => SelectItem(item))" @onkeydown="@(args => OnItemKeyDown(args, item))"
+                 @attributes="item.Attributes" class="@item.GetItemCssClass()" style="@item.Style"
+                 role="radio" tabindex="@(Disabled || item.Disabled ? "-1" : "0")"
+                 aria-checked=@(IsSelected(item)? "true" : "false") aria-label="@item.Text"
+                 aria-disabled="@(Disabled || item.Disabled ? "true" : "false")">
+                <div class="rz-radiobutton">
                     <div class="rz-helper-hidden-accessible">
-                        <input type="radio" disabled="@Disabled" name="@Name" value="@item.Value" tabindex="-1">
+                        <input type="radio" disabled="@(Disabled || item.Disabled)" name="@Name" value="@item.Value" tabindex="-1" aria-label="@(item.Text + " " + item.Value)" @attributes="item.InputAttributes">
                     </div>
-                    <div class=@ItemClassList(item)>
-                        <span class=@IconClassList(item)></span>
+                    <div class=@ItemClass(item)>
+                        <span class=@IconClass(item)></span>
                     </div>
                 </div>
-                <label class="rz-radiobutton-label">@item.Text</label>
+                @if (item.Template != null)
+                {
+                    <div class="rz-radiobutton-template" @onkeydown:stopPropagation="stopGuardKeydownPropagation" @onkeydown="OnGuardKeyDown">
+                        @item.Template(item)
+                    </div>
+                } 
+                else 
+                {
+                    <span class=@LabelClass(item)>@item.Text</span>
+                }
             </div>
         }
+        </RadzenStack>
     </div>
 }

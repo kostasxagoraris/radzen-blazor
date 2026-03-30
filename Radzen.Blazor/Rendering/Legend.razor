@@ -1,32 +1,26 @@
 @using Radzen.Blazor
-@if (Chart.Legend.Visible)
+@if (Chart?.Legend?.Visible == true)
 {
     <div class="@Class">
-        <ul class="rz-legend-items">
-        @foreach (var series in Chart.Series)
+        <div class="rz-legend-items">
+        @if (Chart?.Series != null)
         {
-            @if (series.ShowInLegend)
+            @foreach (var series in Chart.Series)
             {
-                @series.RenderLegendItem()
+                @if (series.ShowInLegend)
+                {
+                    @series.RenderLegendItem()
+                }
             }
         }
-        </ul>
+        </div>
     </div>
 }
 @code {
     [CascadingParameter]
-    public RadzenChart Chart { get; set; }
+    public RadzenChart? Chart { get; set; }
 
-    string Class
-    {
-        get
-        {
-            var classList = new List<string>();
-
-            classList.Add("rz-legend");
-            classList.Add($"rz-legend-{Chart.Legend.Position}".ToLower());
-
-            return String.Join(" ", classList);
-        }
-    }
+    string Class => ClassList.Create("rz-legend")
+        .Add($"rz-legend-{Chart?.Legend?.Position}".ToLowerInvariant())
+        .ToString();
 }
