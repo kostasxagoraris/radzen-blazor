@@ -203,7 +203,7 @@ namespace Radzen
         /// <value>The pages  dropdown visibility.</value>
         [Parameter]
         public bool ShowPagesDropDown { get; set; }
-
+        /// <summary>
         /// Gets or sets the pager summary format. <see cref="PagingSummaryTemplate" /> has preference over this property.
         /// </summary>
         /// <value>The pager summary format.</value>

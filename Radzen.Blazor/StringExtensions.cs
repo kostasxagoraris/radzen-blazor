@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq.Dynamic.Core.CustomTypeProviders;
 using System.Text;
 
 namespace Radzen.Blazor
@@ -9,8 +8,7 @@ namespace Radzen.Blazor
     /// <summary>
     /// Class containing various string extension methods
     /// </summary>
-     [DynamicLinqType]
-
+   
     public static class StringExtensions
     {
         /// <summary>
@@ -65,12 +63,16 @@ namespace Radzen.Blazor
         {
             StringBuilder sb = new StringBuilder();
             bool foundNonSymbol = false;
-            foreach (char c in str)
+            if (!string.IsNullOrWhiteSpace(str))
+
             {
-                if (!(char.IsSymbol(c)|| char.IsWhiteSpace(c)) || foundNonSymbol)
+                foreach (char c in str)
                 {
-                    foundNonSymbol = true;
-                    sb.Append(c);
+                    if (!(char.IsSymbol(c) || char.IsWhiteSpace(c)) || foundNonSymbol)
+                    {
+                        foundNonSymbol = true;
+                        sb.Append(c);
+                    }
                 }
             }
             return sb.ToString();
@@ -84,13 +86,19 @@ namespace Radzen.Blazor
         {
             StringBuilder sb = new StringBuilder();
             bool foundNonSymbol = false;
-            for (int i = str.Length - 1;i >= 0; i-- )
+            if (!string.IsNullOrWhiteSpace(str))
+
             {
-                char c  = str[i];
-                if (!(char.IsSymbol(c) || char.IsWhiteSpace(c)) || foundNonSymbol)
+
+
+                for (int i = str.Length - 1; i >= 0; i--)
                 {
-                    foundNonSymbol = true;
-                    sb.Append(c);
+                    char c = str[i];
+                    if (!(char.IsSymbol(c) || char.IsWhiteSpace(c)) || foundNonSymbol)
+                    {
+                        foundNonSymbol = true;
+                        sb.Append(c);
+                    }
                 }
             }
             return sb.ToString();

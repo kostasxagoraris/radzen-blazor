@@ -766,9 +766,11 @@ namespace Radzen.Blazor
         {
             return JSRuntime;
         }
-
-        private List<RadzenDataGridColumn<TItem>> columns = new List<RadzenDataGridColumn<TItem>>();
-        public Dictionary<string, string> GetColumnWidths()
+        /// <summary>
+        /// GEts the width of the columns
+        /// </summary>
+        /// <returns></returns>
+         public Dictionary<string, string> GetColumnWidths()
         {
             Dictionary<string, string> dic = new Dictionary<string, string>();
             foreach (RadzenDataGridColumn<TItem> column in columns)
@@ -778,12 +780,16 @@ namespace Radzen.Blazor
             }
             return dic;
         }
+        /// <summary>
+        /// sets the width of he columnds
+        /// </summary>
+        /// <param name="columnWidths"></param>
         public void SetColumnWidths(Dictionary<string, string> columnWidths)
         {
             foreach (RadzenDataGridColumn<TItem> column in columns)
             {
                 if (!string.IsNullOrWhiteSpace(column.Property)) {
-                    if (columnWidths.ContainsKey(column.Property))
+                    if (columnWidths?.ContainsKey(column.Property)??false)
 
                     {
                         column.SetWidth(columnWidths[column.Property]);
@@ -795,7 +801,7 @@ namespace Radzen.Blazor
             
             
         }
-        private readonly List<RadzenDataGridColumn<TItem>> columns = new List<RadzenDataGridColumn<TItem>>();
+        private List<RadzenDataGridColumn<TItem>> columns = new List<RadzenDataGridColumn<TItem>>();
         internal readonly List<RadzenDataGridColumn<TItem>> childColumns = new List<RadzenDataGridColumn<TItem>>();
         internal List<RadzenDataGridColumn<TItem>> allColumns = new List<RadzenDataGridColumn<TItem>>();
         private List<RadzenDataGridColumn<TItem>> allPickableColumns = new List<RadzenDataGridColumn<TItem>>();

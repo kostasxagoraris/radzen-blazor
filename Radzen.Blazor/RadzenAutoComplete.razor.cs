@@ -258,8 +258,8 @@ namespace Radzen.Blazor
             {
                 if (Query != null)
                 {
-                   
-                    return Query.Where($"{GetFilterExpression(TextProperty)}", searchText, CompareOptions);
+
+                    return Query.Where(TextProperty ?? string.Empty, searchText ?? string.Empty, FilterOperator, FilterCaseSensitivity);
                 }
 
                 return null;

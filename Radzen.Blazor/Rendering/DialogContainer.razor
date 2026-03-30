@@ -191,7 +191,7 @@
         {
             disp.Dispose();
         }
-        Service.Close(Id);
+        Service?.Close(Id);
     }
     public void OnDialogSaved((Object sender,Guid Id) args)
     {

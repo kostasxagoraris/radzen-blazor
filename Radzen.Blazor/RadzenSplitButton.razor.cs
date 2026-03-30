@@ -225,7 +225,7 @@ namespace Radzen.Blazor
             {
                 return ;
             }
-            JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID);
+            JSRuntime!.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID);
         }
         /// <summary>
         /// Gets the popup identifier.

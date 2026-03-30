@@ -24,8 +24,13 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The 3 digits ISO currency symbol.</value>
         [Parameter]
-        public string ISOCurrencySymbol { get; set; }
+        public string ISOCurrencySymbol { get; set; } = "EUR";
+        
+        /// <summary>
+        /// The number of allowed decimal
+        /// </summary>
         [Parameter]
+        
         public int Decimals { get; set; } = 2;
 
 
@@ -42,7 +47,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The step.</value>
         [Parameter]
-        public string Step { get; set; }
+        public string Step { get; set; } = "1";
 
        
         /// <summary>
@@ -90,7 +95,7 @@ namespace Radzen.Blazor
         {
             get { 
                 
-                       string symbol = GetCurrencySymbol(ISOCurrencySymbol);
+                       string? symbol = GetCurrencySymbol(ISOCurrencySymbol);
 
                 if (!string.IsNullOrWhiteSpace(symbol))
                 {
@@ -103,7 +108,7 @@ namespace Radzen.Blazor
 
         }
 
-        private static string GetCurrencySymbol(string ISOCurrencySymbol)
+        private static string? GetCurrencySymbol(string ISOCurrencySymbol)
         {
             if (string.IsNullOrWhiteSpace(ISOCurrencySymbol))
             {
@@ -124,7 +129,7 @@ namespace Radzen.Blazor
                     }
                 })
                 .Where(ri => ri != null && ri.ISOCurrencySymbol == ISOCurrencySymbol)
-                .Select(ri => ri.CurrencySymbol)
+                .Select(ri => ri?.CurrencySymbol)
                 .FirstOrDefault();
         }
 

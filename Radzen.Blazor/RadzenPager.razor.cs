@@ -216,6 +216,10 @@ namespace Radzen.Blazor
                 return GetPage();
             }
         }
+        /// <summary>
+        /// Gets the number of availlable pages
+        /// </summary>
+        /// <returns></returns>
         protected IEnumerable<int> GetAvailablePages()
         {
             return Enumerable.Range(1, numberOfPages);

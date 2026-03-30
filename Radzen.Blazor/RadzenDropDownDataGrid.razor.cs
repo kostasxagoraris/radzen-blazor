@@ -580,15 +580,15 @@ namespace Radzen.Blazor
             await OnLoadData(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize, OrderBy = "" });
         }
 
-        private string GetPropertyFilterExpression(string property )
-        {
-            if (property == null)
-            {
-                property = "it";
-            }
-            var p = $@"({property} == null ? """" : {property})";
-            return GetFilterExpression(p);
-        }
+        //private string GetPropertyFilterExpression(string property )
+        //{
+        //    if (property == null)
+        //    {
+        //        property = "it";
+        //    }
+        //    var p = $@"({property} == null ? """" : {property})";
+        //    return GetFilterExpression(p);
+        //}
 
         private bool IsColumnFilterPropertyTypeString(RadzenDataGridColumn<object> column)
         {
@@ -668,7 +668,7 @@ namespace Radzen.Blazor
                         }
                         else
                         {
-                            query = query.Where(GetPropertyFilterExpression(TextProperty!, searchText, FilterOperator, FilterCaseSensitivity);
+                            query = query.Where(TextProperty!, searchText, FilterOperator, FilterCaseSensitivity);
                         }
                     }
                 }

@@ -73,10 +73,16 @@ namespace Radzen
                 return options;
             }
         }
-        protected string GetFilterExpression(string property)
-        {
-            return $"StringExtensions.{Enum.GetName(typeof(StringFilterOperator), FilterOperator)}({property},@0,@1)";
-        }
+
+        /*///<summary>
+        /// Gets the filtered exception
+        /// </summary>
+        ///<param name = "property" ></param >
+        /// <returns ></returns >*/
+        //protected string GetFilterExpression(string property)
+        //{
+        //    return $"StringExtensions.{Enum.GetName(typeof(StringFilterOperator), FilterOperator)}({property},@0,@1)";
+        //}
         /// <summary>
         /// Gets or sets the filter operator.
         /// </summary>
