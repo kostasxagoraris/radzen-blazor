@@ -19,6 +19,9 @@
     <Title>Radzen Components for Blazor</Title>
     <RepositoryUrl>https://github.com/radzenhq/radzen-blazor</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>NU1903</NoWarn>
+    <NoWarn>NU1904</NoWarn>
+
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
     <DefineConstants>NET5</DefineConstants>
