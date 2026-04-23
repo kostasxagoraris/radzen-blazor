@@ -794,16 +794,36 @@ namespace Radzen.Blazor
                         var valueList = values.Cast<object>().ToList();
                         if (!string.IsNullOrEmpty(ValueProperty))
                         {
-                            foreach (object v in valueList)
+                            if (valueList.Count == 0)
                             {
-                                var item = Query.Where(new FilterDescriptor[]
-                                    {
-                                        new FilterDescriptor() { Property = ValueProperty, FilterValue = v }
-                                    }, LogicalFilterOperator.And, FilterCaseSensitivity.Default).FirstOrDefault();
+                                selectedItems.Clear();
+                                 
+                            }
+                            else
+                            {
+                                var selectedValues = new HashSet<object?>(selectedItems.Select(i => GetItemOrValueFromProperty(i, ValueProperty)));
+                                var filters = new List<FilterDescriptor>();
 
-                                if (item != null && !selectedItems.AsQueryable().Where(i => object.Equals(GetItemOrValueFromProperty(i, ValueProperty), v)).Any())
+                                foreach (object v in valueList)
                                 {
-                                    selectedItems.Add(item);
+                                    if (!selectedValues.Add(v))
+                                    {
+                                        continue;
+                                    }
+
+                                    filters.Add(new FilterDescriptor() { Property = ValueProperty, FilterValue = v });
+                                }
+
+                                if (filters.Count > 0)
+                                {
+                                    var q = Query.Where(filters, LogicalFilterOperator.Or, FilterCaseSensitivity.Default);
+
+                                    foreach (var item in q)
+                                    {
+                                         
+                                            selectedItems.Add(item);
+                                         
+                                    }
                                 }
                             }
                         }
@@ -886,7 +906,7 @@ namespace Radzen.Blazor
                     if (shouldChange && JSRuntime != null)
                     {
                         selectedIndex = newSelectedIndex;
-                        await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", gridInstance.GridId(), key, selectedIndex + (key == "ArrowUp" ? 1 : -1), null);
+                        await JSRuntime.InvokeAsync<int>("Radzen.focusTableRow", gridInstance.GridId(), key, selectedIndex + (key == "ArrowUp" ? 1 : -1), null);
                         await gridInstance.OnRowSelect(items[selectedIndex], false);
                     }
 
