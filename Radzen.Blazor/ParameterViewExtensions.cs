@@ -54,9 +54,13 @@ public static class ParameterViewExtensions
         var listOne = en1!.Cast<object>().ToList();
         var listTwo = en2!.Cast<object>().ToList();
         if (listOne.Count > listTwo.Count)
+        {
             return listOne.Except(listTwo).Any();
+        }
         else
+        {
             return listTwo.Except(listOne).Any();
+        }
     }
 }
 

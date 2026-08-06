@@ -821,7 +821,9 @@ namespace Radzen.Blazor
             foreach (RadzenDataGridColumn<TItem> column in columns)
             {
                 if (!string.IsNullOrWhiteSpace(column.Property))
-                dic.Add(column.Property,column.Width);
+                {
+                    dic.Add(column.Property,column.Width);
+                }
             }
             return dic;
         }
