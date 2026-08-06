@@ -110,6 +110,46 @@ namespace Radzen.Blazor.Tests
         }
 
         [Fact]
+        public void DropDownDataGrid_SearchInput_HasComboboxAriaAttributes()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<string> { "Item1", "Item2" };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<string>>(parameters =>
+            {
+                parameters.Add(p => p.AllowFiltering, true);
+                parameters.Add(p => p.Data, data);
+            });
+
+            var searchInput = component.Find("input.rz-lookup-search-input");
+            var grid = component.Find("div[role='grid']");
+
+            Assert.Equal("combobox", searchInput.GetAttribute("role"));
+            Assert.Equal(grid.Id, searchInput.GetAttribute("aria-controls"));
+            Assert.Equal("grid", searchInput.GetAttribute("aria-haspopup"));
+            Assert.Equal("list", searchInput.GetAttribute("aria-autocomplete"));
+            Assert.NotNull(searchInput.GetAttribute("aria-expanded"));
+        }
+
+        [Fact]
+        public void DropDownDataGrid_EmbeddedGrid_IsNotTabbable()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<string> { "Item1", "Item2" };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<string>>(parameters =>
+            {
+                parameters.Add(p => p.Data, data);
+            });
+
+            var grid = component.Find("div[role='grid']");
+
+            Assert.Equal("-1", grid.GetAttribute("tabindex"));
+        }
+
+        [Fact]
         public void DropDownDataGrid_Renders_Placeholder()
         {
             using var ctx = new TestContext();
@@ -205,6 +245,109 @@ namespace Radzen.Blazor.Tests
         }
 
         [Fact]
+        public void DropDownDataGrid_Renders_Multiple_WithChips_SelectedItemsTitle()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<Customer>
+            {
+                new Customer { Id = 1, CompanyName = "Company1" },
+                new Customer { Id = 2, CompanyName = "Company2" },
+                new Customer { Id = 3, CompanyName = "Company3" }
+            };
+            var selectedItems = new List<int> { 1, 2 };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<IEnumerable<int>>>(parameters =>
+            {
+                parameters.Add(p => p.Multiple, true);
+                parameters.Add(p => p.Chips, true);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.Value, selectedItems);
+            });
+
+            var wrapper = component.Find(".rz-dropdown-chips-wrapper");
+            Assert.Equal("Company1,Company2", wrapper.GetAttribute("title"));
+        }
+
+        [Fact]
+        public void DropDownDataGrid_Renders_Multiple_WithLabel_SelectedItemsTitle()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<Customer>
+            {
+                new Customer { Id = 1, CompanyName = "Company1" },
+                new Customer { Id = 2, CompanyName = "Company2" },
+                new Customer { Id = 3, CompanyName = "Company3" }
+            };
+            var selectedItems = new List<int> { 1, 2 };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<IEnumerable<int>>>(parameters =>
+            {
+                parameters.Add(p => p.Multiple, true);
+                parameters.Add(p => p.Chips, false);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.Value, selectedItems);
+            });
+
+            var label = component.Find("label.rz-dropdown-label");
+            Assert.Equal("Company1,Company2", label.GetAttribute("title"));
+        }
+
+        [Fact]
+        public void DropDownDataGrid_DoesNotRender_Multiple_SelectedItemsTitle_WithoutTextProperty()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<string> { "Item1", "Item2", "Item3" };
+            var selectedItems = new List<string> { "Item1", "Item3" };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<IEnumerable<string>>>(parameters =>
+            {
+                parameters.Add(p => p.Multiple, true);
+                parameters.Add(p => p.Chips, true);
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.Value, selectedItems);
+            });
+
+            var wrapper = component.Find(".rz-dropdown-chips-wrapper");
+            Assert.False(wrapper.HasAttribute("title"));
+        }
+
+        [Fact]
+        public void DropDownDataGrid_Renders_Multiple_SelectedItemsTitle_CustomSeparator()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<Customer>
+            {
+                new Customer { Id = 1, CompanyName = "Company1" },
+                new Customer { Id = 2, CompanyName = "Company2" },
+                new Customer { Id = 3, CompanyName = "Company3" }
+            };
+            var selectedItems = new List<int> { 1, 2, 3 };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<IEnumerable<int>>>(parameters =>
+            {
+                parameters.Add(p => p.Multiple, true);
+                parameters.Add(p => p.Chips, false);
+                parameters.Add(p => p.Separator, "; ");
+                parameters.Add(p => p.MaxSelectedLabels, 1);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.Value, selectedItems);
+            });
+
+            var label = component.Find("label.rz-dropdown-label");
+            Assert.Equal("Company1; Company2; Company3", label.GetAttribute("title"));
+        }
+
+        [Fact]
         public void DropDownDataGrid_Renders_AllowSorting()
         {
             using var ctx = new TestContext();
@@ -289,139 +432,212 @@ namespace Radzen.Blazor.Tests
             Assert.Contains("rz-data-grid", component.Markup);
         }
 
-        class TestModel
-        {
-            public Guid Id { get; set; }
-            public string Name { get; set; }
-            public string LastName { get; set; }
-            public int Age { get; set; }
-        }
+        // Regression test for https://github.com/radzenhq/radzen-blazor/issues/2546
         [Fact]
-        public void RadzenDataGrid_Search_CaseInsensitive_DiacriticsInsensitive()
+        public void DropDownDataGrid_LoadData_ReceivesSorts_OnColumnHeaderClick()
         {
             using var ctx = new TestContext();
-            IRenderedComponent<RadzenDropDownDataGrid<TestModel>> component = _initiateComponent(ctx);
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
-            component.SetParametersAndRender(parameters =>
+            var data = new List<Customer>
             {
-                parameters.Add(p => p.FilterCaseSensitivity, FilterCaseSensitivity.CaseInsensitive);
-                parameters.Add(p => p.FilterDiacriticsSensitivity, FilterDiacriticsSensitivity.DiacriticsInsensitive);
+                new Customer { Id = 1, CompanyName = "Acme Corp", ContactName = "John Doe" }
+            };
+
+            LoadDataArgs capturedArgs = null;
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<int>>(parameters =>
+            {
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.Count, 1);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.AllowSorting, true);
+                parameters.Add(p => p.LoadData, args => { capturedArgs = args; });
             });
-            _invokeSearch(ctx, component, "οραρ");
 
-            Assert.Equal(2, component.Instance.View.Cast<TestModel>().ToList().Count());
-        }
+            component.Find(".rz-sortable-column").FirstElementChild.Click();
 
-        private static void _invokeSearch(TestContext ctx, IRenderedComponent<RadzenDropDownDataGrid<TestModel>> component, string searchText)
-        {
-            var comp = component.Find(".rz-lookup-search input");
-            ctx.JSInterop.Setup<String>("Radzen.getInputValue", _ => true).SetResult(searchText);
-            comp.Change(searchText);
+            Assert.NotNull(capturedArgs);
+            Assert.NotNull(capturedArgs.Sorts);
+            Assert.Single(capturedArgs.Sorts);
+            Assert.Equal("CompanyName", capturedArgs.Sorts.First().Property);
+            Assert.Equal(SortOrder.Ascending, capturedArgs.Sorts.First().SortOrder);
+            Assert.Equal("CompanyName asc", capturedArgs.OrderBy);
         }
 
         [Fact]
-        public void RadzenDataGrid_Search_CaseInsensitive_SymbolsInsensitive_DiacriticsInsensitive()
+        public void DropDownDataGrid_LoadData_ReceivesFilter_OnSearchInputChange()
         {
             using var ctx = new TestContext();
-            IRenderedComponent<RadzenDropDownDataGrid<TestModel>> component = _initiateComponent(ctx);
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+            ctx.JSInterop.Setup<string>("Radzen.getInputValue", _ => true).SetResult("foo");
 
-            component.SetParametersAndRender(parameters =>
+            var data = new List<Customer>
             {
-                parameters.Add(p => p.FilterCaseSensitivity, FilterCaseSensitivity.CaseInsensitive);
-                parameters.Add(p => p.FilterDiacriticsSensitivity, FilterDiacriticsSensitivity.DiacriticsInsensitive);
-                parameters.Add(p => p.FilterSymbolsSensitivity, FilterSymbolsSensitivity.SymbolInsensitive);
+                new Customer { Id = 1, CompanyName = "Acme Corp", ContactName = "John Doe" }
+            };
+
+            var loadDataCalls = new List<LoadDataArgs>();
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<int>>(parameters =>
+            {
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.Count, 1);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.AllowFiltering, true);
+                parameters.Add(p => p.LoadData, args => loadDataCalls.Add(args));
             });
 
-            _invokeSearch(ctx, component, "οραρ");
+            component.Find(".rz-lookup-search-input").Change("foo");
 
-
-            Assert.Equal(3, component.Instance.View.Cast<TestModel>().ToList().Count());
+            Assert.Contains(loadDataCalls, c => c.Filter == "foo");
         }
+
         [Fact]
-        public void RadzenDataGrid_Search_Sensitive()
+        public void DropDownDataGrid_Forwards_IsLoading_ToInnerDataGrid()
         {
             using var ctx = new TestContext();
-            IRenderedComponent<RadzenDropDownDataGrid<TestModel>> component = _initiateComponent(ctx);
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<string> { "Item1", "Item2" };
 
-            component.SetParametersAndRender(parameters =>
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<string>>(parameters =>
             {
-                parameters.Add(p => p.FilterCaseSensitivity, FilterCaseSensitivity.Default);
-                parameters.Add(p => p.FilterDiacriticsSensitivity, FilterDiacriticsSensitivity.Default);
-                parameters.Add(p => p.FilterSymbolsSensitivity, FilterSymbolsSensitivity.Default);
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.IsLoading, true);
             });
 
-            _invokeSearch(ctx, component, "οραρ");
-
-
-            Assert.Single(component.Instance.View.Cast<TestModel>().ToList());
+            Assert.Contains("rz-datatable-loading", component.Markup);
         }
+
         [Fact]
-        public void RadzenDataGrid_Search_DiacriticsInSensitive_EndsWith()
+        public void DropDownDataGrid_Forwards_LoadingTemplate_ToInnerDataGrid()
         {
             using var ctx = new TestContext();
-            IRenderedComponent<RadzenDropDownDataGrid<TestModel>> component = _initiateComponent(ctx);
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<string> { "Item1", "Item2" };
 
-            component.SetParametersAndRender(parameters =>
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<string>>(parameters =>
             {
-                parameters.Add(p => p.FilterOperator, StringFilterOperator.EndsWith);
-                parameters.Add(p => p.FilterDiacriticsSensitivity, FilterDiacriticsSensitivity.Default);
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.IsLoading, true);
+                parameters.Add(p => p.LoadingTemplate, b => b.AddMarkupContent(0, "<span class=\"loading-marker\">Loading...</span>"));
             });
 
-            _invokeSearch(ctx, component, "άρη");
-
-
-            Assert.Single(component.Instance.View.Cast<TestModel>().ToList());
+            Assert.Contains("loading-marker", component.Markup);
         }
+
         [Fact]
-        public void RadzenDataGrid_Search_SymbolInSensitive_StartsWith_AllStringProperties()
+        public void DropDownDataGrid_OpenOnFocus_FocusThenClick_OpensPopupOnce()
         {
             using var ctx = new TestContext();
-            IRenderedComponent<RadzenDropDownDataGrid<TestModel>> component = _initiateComponent(ctx);
-
-            component.SetParametersAndRender(parameters =>
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<Customer>
             {
-                parameters.Add(p => p.FilterOperator, StringFilterOperator.StartsWith);
-                parameters.Add(p => p.FilterSymbolsSensitivity, FilterSymbolsSensitivity.SymbolInsensitive);
-                parameters.Add(p => p.AllowFilteringByAllStringColumns, true);
+                new Customer { Id = 1, CompanyName = "Acme Corp" }
+            };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<int>>(parameters =>
+            {
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.OpenOnFocus, true);
             });
 
-            _invokeSearch(ctx, component, "Λητ");
+            var root = component.Find("div.rz-dropdown");
+            root.Focus(new Microsoft.AspNetCore.Components.Web.FocusEventArgs());
+            root.Click();
 
-
-            Assert.Single(component.Instance.View.Cast<TestModel>().ToList());
+            Assert.Equal(1, ctx.JSInterop.Invocations.Count(i => i.Identifier == "Radzen.openPopup"));
+            Assert.Equal(0, ctx.JSInterop.Invocations.Count(i => i.Identifier == "Radzen.closePopup"));
         }
+
         [Fact]
-        public void RadzenDataGrid_Search_SymbolInSensitive_EndsWith_AllStringProperties()
+        public void DropDownDataGrid_OpenOnFocus_ClickWhileOpen_ClosesPopup()
         {
             using var ctx = new TestContext();
-            IRenderedComponent<RadzenDropDownDataGrid<TestModel>> component = _initiateComponent(ctx);
-
-            component.SetParametersAndRender(parameters =>
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<Customer>
             {
-                parameters.Add(p => p.FilterOperator, StringFilterOperator.EndsWith);
-                parameters.Add(p => p.FilterSymbolsSensitivity, FilterSymbolsSensitivity.SymbolInsensitive);
-                parameters.Add(p => p.AllowFilteringByAllStringColumns, true);
+                new Customer { Id = 1, CompanyName = "Acme Corp" }
+            };
+
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<int>>(parameters =>
+            {
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.OpenOnFocus, true);
             });
 
-            _invokeSearch(ctx, component, "ητώ");
+            var root = component.Find("div.rz-dropdown");
+            root.Focus(new Microsoft.AspNetCore.Components.Web.FocusEventArgs());
+            root.Click();
+            root.Click();
 
-
-            Assert.Single(component.Instance.View.Cast<TestModel>().ToList());
+            Assert.Equal(1, ctx.JSInterop.Invocations.Count(i => i.Identifier == "Radzen.openPopup"));
+            Assert.Equal(1, ctx.JSInterop.Invocations.Count(i => i.Identifier == "Radzen.closePopup"));
         }
-        private static IRenderedComponent<RadzenDropDownDataGrid<TestModel>> _initiateComponent(TestContext ctx)
+
+        [Fact]
+        public void DropDownDataGrid_Multiple_CtrlA_SelectsAllItems()
         {
-            List<TestModel> testModels = new List<TestModel>();
-            testModels.Add(new TestModel { Id = Guid.NewGuid(), Age = 7, LastName = "Ξαγοράρη", Name = " Άρτεμις" });
-            testModels.Add(new TestModel { Id = Guid.NewGuid(), Age = 4, LastName = "Ξαγορ%άρης", Name = "Φοίβος" });
-            testModels.Add(new TestModel { Id = Guid.NewGuid(), Age = 44, LastName = "Ξαγοραρης", Name = "Κών/νος" });
-            testModels.Add(new TestModel { Id = Guid.NewGuid(), Age = 44, LastName = "Δούμουρα", Name = " Λητώ)" });
-            var component = ctx.RenderComponent<RadzenDropDownDataGrid<TestModel>>(parameterBuilder => parameterBuilder.Add(p => p.Data, testModels)
-            .Add(p => p.AllowFiltering, true).Add(p => p.TextProperty, "LastName")
-            .Add<RadzenDataGridColumn<dynamic>>(p => p.Columns, c => c.Add(y => y.Property, "LastName").Add(y => y.Filterable, true))
-            .Add<RadzenDataGridColumn<dynamic>>(p => p.Columns, c => c.Add(y => y.Property, "Name").Add(y => y.Filterable, true)));
-            ctx.JSInterop.Setup<String>("Radzen.repositionPopup", _ => true);
-            return component;
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<Customer>
+            {
+                new Customer { Id = 1, CompanyName = "Acme Corp" },
+                new Customer { Id = 2, CompanyName = "Tech Inc" }
+            };
+
+            IEnumerable<int> value = null;
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<IEnumerable<int>>>(parameters =>
+            {
+                parameters.Add(p => p.Multiple, true);
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.ValueChanged, v => value = v);
+            });
+
+            var root = component.Find("div.rz-dropdown");
+            root.KeyDown(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = "a", Code = "KeyA", CtrlKey = true });
+
+            Assert.Equal(new[] { 1, 2 }, value);
+        }
+
+        [Fact]
+        public void DropDownDataGrid_Multiple_CtrlA_DoesNothingWhenSelectAllNotAllowed()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            var data = new List<Customer>
+            {
+                new Customer { Id = 1, CompanyName = "Acme Corp" },
+                new Customer { Id = 2, CompanyName = "Tech Inc" }
+            };
+
+            IEnumerable<int> value = null;
+            var component = ctx.RenderComponent<RadzenDropDownDataGrid<IEnumerable<int>>>(parameters =>
+            {
+                parameters.Add(p => p.Multiple, true);
+                parameters.Add(p => p.AllowSelectAll, false);
+                parameters.Add(p => p.Data, data);
+                parameters.Add(p => p.TextProperty, "CompanyName");
+                parameters.Add(p => p.ValueProperty, "Id");
+                parameters.Add(p => p.ValueChanged, v => value = v);
+            });
+
+            var root = component.Find("div.rz-dropdown");
+            root.KeyDown(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = "a", Code = "KeyA", CtrlKey = true });
+
+            Assert.Null(value);
         }
     }
+}
 
 }

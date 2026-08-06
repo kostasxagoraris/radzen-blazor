@@ -54,29 +54,37 @@ namespace Radzen.Blazor
         [Parameter]
         public string? Title { get; set; }
 
+        private string? placeholder;
+
         /// <summary>
         /// Gets or sets the placeholder text for the input field.
         /// </summary>
         [Parameter]
-        public string Placeholder { get; set; } = "Type your message...";
+        public string Placeholder { get => placeholder ?? Localize(nameof(RadzenStrings.AIChat_Placeholder)); set => placeholder = value; }
+
+        private string? emptyMessage;
 
         /// <summary>
         /// Gets or sets the message displayed when there are no messages.
         /// </summary>
         [Parameter]
-        public string EmptyMessage { get; set; } = "No messages yet. Start a conversation!";
+        public string EmptyMessage { get => emptyMessage ?? Localize(nameof(RadzenStrings.AIChat_EmptyMessage)); set => emptyMessage = value; }
+
+        private string? userAvatarText;
 
         /// <summary>
         /// Gets or sets the text displayed in the user avatar.
         /// </summary>
         [Parameter]
-        public string UserAvatarText { get; set; } = "U";
+        public string UserAvatarText { get => userAvatarText ?? Localize(nameof(RadzenStrings.AIChat_UserAvatarText)); set => userAvatarText = value; }
+
+        private string? assistantAvatarText;
 
         /// <summary>
         /// Gets or sets the text displayed in the assistant avatar.
         /// </summary>
         [Parameter]
-        public string AssistantAvatarText { get; set; } = "AI";
+        public string AssistantAvatarText { get => assistantAvatarText ?? Localize(nameof(RadzenStrings.AIChat_AssistantAvatarText)); set => assistantAvatarText = value; }
 
         /// <summary>
         /// Gets or sets the model name.
@@ -165,6 +173,30 @@ namespace Radzen.Blazor
         public int MaxMessages { get; set; } = 100;
 
         /// <summary>
+        /// Gets or sets the format used to render the timestamp shown next to each message. Defaults to <c>"HH:mm"</c>.
+        /// </summary>
+        [Parameter]
+        public string TimestampFormat { get; set; } = "HH:mm";
+
+        /// <summary>
+        /// Gets or sets whether a date separator is rendered between messages when the day changes.
+        /// </summary>
+        [Parameter]
+        public bool ShowDateSeparator { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the format used to render the date separator. Defaults to <c>"D"</c> (long date pattern).
+        /// </summary>
+        [Parameter]
+        public string DateSeparatorFormat { get; set; } = "D";
+
+        /// <summary>
+        /// Optional template to render the date separator shown between messages when the day changes. Receives the <see cref="DateTime"/> of the following message.
+        /// </summary>
+        [Parameter]
+        public RenderFragment<DateTime>? DateSeparatorTemplate { get; set; }
+
+        /// <summary>
         /// Event callback that is invoked when a new message is added.
         /// </summary>
         [Parameter]
@@ -227,6 +259,27 @@ namespace Radzen.Blazor
         }
 
         /// <summary>
+        /// Loads messages into the chat, replacing any existing ones. Preserves the timestamp of each message — use this to restore conversation history.
+        /// </summary>
+        /// <param name="messages">The messages to load.</param>
+        public async Task LoadMessages(IEnumerable<ChatMessage> messages)
+        {
+            Messages.Clear();
+
+            if (messages != null)
+            {
+                Messages.AddRange(messages);
+
+                while (Messages.Count > MaxMessages)
+                {
+                    Messages.RemoveAt(0);
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+
+        /// <summary>
         /// Clears all messages from the chat.
         /// </summary>
         public async Task ClearChat()
@@ -250,7 +303,9 @@ namespace Radzen.Blazor
         public async Task SendMessage(string content)
         {
             if (string.IsNullOrWhiteSpace(content) || Disabled || IsLoading)
+            {
                 return;
+            }
 
             // Add user message
             var userMessage = AddMessage(content, true);
@@ -280,7 +335,9 @@ namespace Radzen.Blazor
         public async Task SendMessage(string content, string? model = null, string? systemPrompt = null, double? temperature = null, int? maxTokens = null, string? endpoint = null, string? proxy = null, string? apiKey = null, string? apiKeyHeader = null)
         {
             if (string.IsNullOrWhiteSpace(content) || Disabled || IsLoading)
+            {
                 return;
+            }
 
             // Add user message
             var userMessage = AddMessage(content, true);
@@ -301,7 +358,9 @@ namespace Radzen.Blazor
         public async Task LoadConversationHistory()
         {
             if (string.IsNullOrEmpty(currentSessionId))
+            {
                 return;
+            }
 
             var session = ChatService.GetOrCreateSession(currentSessionId);
             
@@ -320,7 +379,9 @@ namespace Radzen.Blazor
         private async Task GetAIResponse(string userInput, string? model = null, string? systemPrompt = null, double? temperature = null, int? maxTokens = null, string? endpoint = null, string? proxy = null, string? apiKey = null, string? apiKeyHeader = null)
         {
             if (string.IsNullOrWhiteSpace(userInput))
+            {
                 return;
+            }
 
             IsLoading = true;
             var previousCts = cts;
@@ -435,11 +496,7 @@ namespace Radzen.Blazor
             if (!firstRender && messagesContainer.Context != null && JSRuntime != null)
             {
                 // Scroll to bottom when new messages are added
-                await JSRuntime.InvokeVoidAsync("eval", 
-                    "setTimeout(() => { " +
-                    "const container = document.querySelector('.rz-chat-messages'); " +
-                    "if (container) container.scrollTop = container.scrollHeight; " +
-                    "}, 100);");
+                await JSRuntime.InvokeVoidAsync("Radzen.chatScrollAfterRender", ".rz-chat-messages", 100);
             }
         }
 

@@ -28,8 +28,8 @@ $menu-top-item-selected-color: var(--rz-secondary) !default;
 $menu-top-item-selected-background-color: transparent !default;
 $menu-top-item-icon-color: $menu-top-item-color !default;
 $menu-top-item-icon-hover-color: $menu-top-item-hover-color !default;
-$context-menu-padding-block: 0 !default;
-$context-menu-padding-inline: 0 !default;
+$context-menu-padding-block: 0rem !default;
+$context-menu-padding-inline: 0rem !default;
 $context-menu-box-shadow: $rz-shadow-3 !default;
 
 .rz-context-menu {
@@ -203,12 +203,11 @@ $context-menu-box-shadow: $rz-shadow-3 !default;
 
   .rz-navigation-menu {
     list-style: none;
-    overflow: hidden;
     position: absolute;
     padding-block: var(--rz-context-menu-padding-block);
     padding-inline: var(--rz-context-menu-padding-inline);
     margin: 0;
-    min-width: 100%;
+    min-width: max-content;
     box-shadow: var(--rz-context-menu-box-shadow);
     z-index: 3;
     border-radius: var(--rz-menu-border-radius);
@@ -288,7 +287,7 @@ $context-menu-box-shadow: $rz-shadow-3 !default;
     }
   }
 
-  .rzi:not(.rz-navigation-item-icon-children) {
+  .rz-navigation-item-link .rzi:not(.rz-navigation-item-icon-children) {
     margin-inline: var(--rz-menu-item-icon-margin-inline);
   }
 }

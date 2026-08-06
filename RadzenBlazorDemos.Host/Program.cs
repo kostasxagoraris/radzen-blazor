@@ -33,8 +33,14 @@ builder.Services.AddSingleton(sp =>
     // Get the address that the app is currently running at
     var server = sp.GetRequiredService<IServer>();
     var addressFeature = server.Features.Get<IServerAddressesFeature>();
-    string baseAddress = addressFeature.Addresses.First();
-    return new HttpClient { BaseAddress = new Uri(baseAddress) };
+    var baseAddress = new Uri(addressFeature.Addresses.First());
+    // Wildcard binds (0.0.0.0, ::, +) are valid listen addresses but cannot be used as
+    // connection targets, so substitute a loopback host for the HttpClient base address.
+    if (baseAddress.Host is "0.0.0.0" or "::" or "[::]" or "+" or "*")
+    {
+        baseAddress = new UriBuilder(baseAddress) { Host = "localhost" }.Uri;
+    }
+    return new HttpClient { BaseAddress = baseAddress };
 });
 builder.Services.AddDistributedMemoryCache();
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
@@ -92,6 +98,49 @@ forwardingOptions.KnownIPNetworks.Clear();
 forwardingOptions.KnownProxies.Clear();
 
 app.UseForwardedHeaders(forwardingOptions);
+
+// Content Security Policy
+var relaxedCspPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+{
+    "/datagrid-rowreorder",
+    "/datagrid-rowdragbetween",
+    "/datagrid-rowdrag-scheduler",
+    "/tree-dragdrop",
+};
+
+var baseCsp = string.Join("; ",
+    "base-uri 'self'",
+    "default-src 'self' http://localhost:* ws://localhost:*",
+    "connect-src 'self' https: wss: http://localhost:* ws://localhost:*",
+    "img-src data: https:",
+    "object-src 'none'",
+    "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' http://localhost:* cdnjs.cloudflare.com cdn.syndication.twimg.com platform.linkedin.com www.linkedin.com analytics.radzen.com maps.googleapis.com unpkg.com",
+    "style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com maps.googleapis.com fonts.googleapis.com fonts.gstatic.com",
+    "font-src 'self' data: cdnjs.cloudflare.com maps.googleapis.com fonts.googleapis.com fonts.gstatic.com",
+    "frame-src www.youtube.com platform.twitter.com platform.linkedin.com www.linkedin.com",
+    "worker-src 'self' blob:",
+    "upgrade-insecure-requests");
+
+var relaxedCsp = string.Join("; ",
+    "base-uri 'self'",
+    "default-src 'self' http://localhost:* ws://localhost:*",
+    "connect-src 'self' https: wss: http://localhost:* ws://localhost:*",
+    "img-src data: https:",
+    "object-src 'none'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' http://localhost:* cdnjs.cloudflare.com cdn.syndication.twimg.com platform.linkedin.com www.linkedin.com analytics.radzen.com maps.googleapis.com unpkg.com",
+    "style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com maps.googleapis.com fonts.googleapis.com fonts.gstatic.com",
+    "font-src 'self' data: cdnjs.cloudflare.com maps.googleapis.com fonts.googleapis.com fonts.gstatic.com",
+    "frame-src www.youtube.com platform.twitter.com platform.linkedin.com www.linkedin.com",
+    "worker-src 'self' blob:",
+    "upgrade-insecure-requests");
+
+app.Use(async (context, next) =>
+{
+    var csp = relaxedCspPaths.Contains(context.Request.Path.Value) ? relaxedCsp : baseCsp;
+    context.Response.Headers["Content-Security-Policy"] = csp;
+    await next();
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -119,6 +168,23 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 */
 app.UseStatusCodePagesWithReExecute("/not-found");
 app.UseHttpsRedirection();
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.Equals("/.well-known/api-catalog", StringComparison.OrdinalIgnoreCase))
+    {
+        var filePath = Path.Combine(app.Environment.WebRootPath, ".well-known", "api-catalog");
+        if (File.Exists(filePath))
+        {
+            context.Response.ContentType = "application/linkset+json";
+            context.Response.Headers.AccessControlAllowOrigin = "*";
+            await context.Response.SendFileAsync(filePath);
+            return;
+        }
+    }
+    await next();
+});
+
 app.MapStaticAssets();
 if (!app.Environment.IsDevelopment())
 {
@@ -138,8 +204,11 @@ if (!app.Environment.IsDevelopment())
 var contentTypeProvider = new FileExtensionContentTypeProvider(new Dictionary<string, string>
 {
     [".txt"] = "text/plain; charset=utf-8",
-    [".md"] = "text/plain; charset=utf-8"
+    [".md"] = "text/markdown; charset=utf-8"
 });
+
+app.UseLinkHeaders(app.Environment);
+app.UseMarkdownNegotiation(app.Environment);
 
 app.UseStaticFiles(new StaticFileOptions
 {

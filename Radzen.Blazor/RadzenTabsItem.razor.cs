@@ -148,7 +148,11 @@ namespace Radzen.Blazor
 
         async Task SelectTab(RadzenTabsItem item)
         {
-            if (Tabs == null) return;
+            if (Tabs == null)
+            {
+                return;
+            }
+
             if (Tabs.RenderMode == TabRenderMode.Server)
             {
                 await Tabs.SelectTab(this, true);
@@ -192,11 +196,18 @@ namespace Radzen.Blazor
             GC.SuppressFinalize(this);
         }
 
-        bool stopKeydownPropagation = true;
-        void OnGuardKeyDown(KeyboardEventArgs args)
+        bool suppressNextRender;
+
+        /// <inheritdoc />
+        protected override bool ShouldRender()
         {
-            var key = args.Code ?? args.Key;
-            stopKeydownPropagation = key != "Escape";
+            if (suppressNextRender)
+            {
+                suppressNextRender = false;
+                return false;
+            }
+
+            return true;
         }
 
         string getStyle()

@@ -32,7 +32,8 @@ namespace Radzen.Blazor
         /// Gets or sets the message displayed when the component is invalid. Set to <c>"Invalid length"</c> by default.
         /// </summary>
         [Parameter]
-        public override string Text { get; set; } = "Invalid length";
+        public override string Text { get => text ?? Localize(nameof(RadzenStrings.LengthValidator_Text)); set => text = value; }
+        private string? text;
 
         /// <summary>
         /// Specifies the minimum accepted length. The component value length should be greater than the minimum in order to be valid.
@@ -52,7 +53,7 @@ namespace Radzen.Blazor
             ArgumentNullException.ThrowIfNull(component);
             string? value = component.GetValue() as string;
 
-            if (Min.HasValue && (string.IsNullOrEmpty(value) || value.Length < Min))
+            if (Min.HasValue && (value == null || value.Length < Min))
             {
                 return false;
             }

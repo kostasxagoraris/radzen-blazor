@@ -53,11 +53,11 @@
                 {
                     var dayOfWeek = StartDate.AddDays(days++);
                     var slot = week.Days[day];
-                    <div @onclick="@(args => OnSlotClick(dayOfWeek))" ondragover="event.preventDefault();" @ondrop=@(args => @OnDrop(dayOfWeek)) @attributes=@Attributes(dayOfWeek)>
+                    <div @onclick="@(args => OnSlotClick(dayOfWeek))" @ondragover:preventDefault @ondrop=@(args => @OnDrop(dayOfWeek)) @attributes=@Attributes(dayOfWeek)>
                         <div class="rz-slot-title @(dayOfWeek == CurrentDate ? " rz-state-focused" : "")" role="button" tabindex="0"
                              @onclick=@(args => OnDayClick(dayOfWeek)) @onclick:stopPropagation
                              @onkeydown="@(args => OnDayHeaderKeyDown(args, dayOfWeek))">
-                            @dayOfWeek.Day
+                            @((Scheduler?.Culture ?? System.Globalization.CultureInfo.CurrentCulture).Calendar.GetDayOfMonth(dayOfWeek))
                             @if (slot.Hidden > 0)
                             {
                                 <button type="button" class="rz-event-list-btn" @onclick=@(args => { if (slot.Appointments != null && MoreText != null) _ = OnListClick(slot.Start, slot.Appointments); }) @onclick:stopPropagation>@(MoreText != null ? String.Format(MoreText, slot.Hidden) : "")</button>
@@ -326,7 +326,12 @@
         if (Scheduler != null)
         {
             await Scheduler.SelectAppointment(data);
-            await contentView.FocusAsync();
+
+            try
+            {
+                await contentView.FocusAsync();
+            }
+            catch (JSException) {}
         }
     }
 
@@ -338,8 +343,9 @@
         }
 
         return Appointments.Where(item => Scheduler.IsAppointmentInRange(item, start, end))
-                .OrderBy(item => item.Start)
-                .ThenBy(item => item.End)
+                .OrderByDescending(item => item.End.Subtract(item.Start).TotalDays > 1)
+                .ThenBy(item => item.Start)
+                .ThenByDescending(item => item.End)
                 .ToArray();
     }
 

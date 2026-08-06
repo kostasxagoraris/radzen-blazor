@@ -2,10 +2,13 @@ using AngleSharp.Dom;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.AspNetCore.Components.Web;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Radzen.Blazor.Tests
@@ -43,6 +46,36 @@ namespace Radzen.Blazor.Tests
             Assert.Contains(@$"rz-grid-table", component.Markup);
             Assert.Contains(@$"rz-grid-table-fixed", component.Markup);
             Assert.Contains(@$"rz-grid-table-striped", component.Markup);
+        }
+
+        [Fact]
+        public void DataGrid_Respects_ShowHeaderParameter()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1 }, new { Id = 2 }, new { Id = 3 } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.AddAttribute(2, "Title", "MyId");
+                    builder.CloseComponent();
+                });
+            });
+
+            // Default: header is visible
+            Assert.NotEmpty(component.FindAll("thead tr"));
+            Assert.Contains("MyId", component.Markup);
+
+            // ShowHeader=false hides the column header row
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.ShowHeader, false));
+
+            Assert.Empty(component.FindAll("thead tr"));
+            Assert.DoesNotContain("MyId", component.Markup);
         }
 
         // Columns tests
@@ -386,6 +419,31 @@ namespace Radzen.Blazor.Tests
             });
 
             Assert.Contains(@$"rz-pager", component.Markup);
+        }
+
+        [Fact]
+        public void DataGrid_Renders_PagerInputSizeParameter()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, Enumerable.Range(0, 100).Select(i => new { Id = i }));
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.AddAttribute(2, "Title", "Id");
+                    builder.CloseComponent();
+                });
+                parameterBuilder.Add<bool>(p => p.AllowPaging, true);
+                parameterBuilder.Add<IEnumerable<int>>(p => p.PageSizeOptions, new int[] { 10, 20, 50 });
+                parameterBuilder.Add<InputSize>(p => p.PagerInputSize, InputSize.ExtraSmall);
+            });
+
+            Assert.Contains(@$"rz-input-xs", component.Markup);
         }
 
         [Fact]
@@ -1925,6 +1983,113 @@ namespace Radzen.Blazor.Tests
             Assert.Contains("Not equals", component.Markup);
         }
 
+        [Fact]
+        public void DataGrid_ClearsFilterValue_WhenSwitchingFromIsEmptyToValueOperator()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1, Name = "Test" } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Name");
+                    builder.CloseComponent();
+                });
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.SimpleWithMenu);
+            });
+
+            var column = component.FindComponent<RadzenDataGridColumn<dynamic>>().Instance;
+
+            column.SetFilterOperator(FilterOperator.IsEmpty);
+            Assert.Equal(string.Empty, column.GetFilterValue());
+            Assert.True(column.HasActiveFilter());
+
+            column.SetFilterOperator(FilterOperator.DoesNotContain);
+            Assert.Null(column.GetFilterValue());
+            Assert.False(column.HasActiveFilter());
+
+            column.SetSecondFilterOperator(FilterOperator.IsNotEmpty);
+            Assert.Equal(string.Empty, column.GetSecondFilterValue());
+
+            column.SetSecondFilterOperator(FilterOperator.Contains);
+            Assert.Null(column.GetSecondFilterValue());
+        }
+
+        [Fact]
+        public void DataGrid_SimpleWithMenuMode_FilterMenuIdsRemainBoundToColumn_AfterHidingColumn()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new { Id = 1, FirstName = "Anna", LastName = "Lee" },
+                new { Id = 2, FirstName = "Bob",  LastName = "Kim" },
+            };
+
+            bool hideId = false;
+
+            RenderFragment Columns(RenderTreeBuilder builder)
+            {
+                builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                builder.AddAttribute(1, "Property", "Id");
+                builder.AddAttribute(2, "Title", "Id");
+                builder.AddAttribute(3, "Visible", !hideId);
+                builder.CloseComponent();
+
+                builder.OpenComponent(4, typeof(RadzenDataGridColumn<dynamic>));
+                builder.AddAttribute(5, "Property", "FirstName");
+                builder.AddAttribute(6, "Title", "First Name");
+                builder.CloseComponent();
+
+                builder.OpenComponent(7, typeof(RadzenDataGridColumn<dynamic>));
+                builder.AddAttribute(8, "Property", "LastName");
+                builder.AddAttribute(9, "Title", "Last Name");
+                builder.CloseComponent();
+
+                return null;
+            }
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, data);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder => Columns(builder));
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.SimpleWithMenu);
+            });
+
+            hideId = true;
+            component.SetParametersAndRender(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, data);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder => Columns(builder));
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.SimpleWithMenu);
+            });
+
+            var firstNameColumn = component.Instance.ColumnsCollection.Single(c => c.Property == "FirstName");
+            var lastNameColumn = component.Instance.ColumnsCollection.Single(c => c.Property == "LastName");
+
+            var menuButtons = component.FindAll("button.rz-filter-button").ToList();
+            Assert.Equal(2, menuButtons.Count);
+
+            var firstNameMenuId = $"{component.Instance.PopupID}FirstName{firstNameColumn.UniqueID}fm";
+            var lastNameMenuId = $"{component.Instance.PopupID}LastName{lastNameColumn.UniqueID}fm";
+
+            Assert.Contains(menuButtons, b => b.GetAttribute("aria-controls") == firstNameMenuId);
+            Assert.Contains(menuButtons, b => b.GetAttribute("aria-controls") == lastNameMenuId);
+
+            var popupIds = component.FindAll("div.rz-overlaypanel[role='menu']").Select(d => d.Id).ToList();
+            Assert.Contains(firstNameMenuId, popupIds);
+            Assert.Contains(lastNameMenuId, popupIds);
+        }
+
         // Combined FilterMode and data type tests
         [Fact]
         public void DataGrid_SimpleMode_SupportsStringColumns()
@@ -3186,5 +3351,869 @@ namespace Radzen.Blazor.Tests
             // Even with Count=0, the inserted row should be visible
             Assert.DoesNotContain("rz-datatable-emptymessage", component.Markup);
         }
+
+        [Fact]
+        public void DataGrid_Reset_DoesNotInfinitelyCallLoadData_WhenColumnHasSortOrder()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var loadDataCallCount = 0;
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1 }, new { Id = 2 }, new { Id = 3 } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.AddAttribute(2, "Title", "ID");
+                    builder.AddAttribute(3, "SortOrder", SortOrder.Descending);
+                    builder.CloseComponent();
+                });
+                parameterBuilder.Add<bool>(p => p.AllowSorting, true);
+                parameterBuilder.Add<EventCallback<LoadDataArgs>>(p => p.LoadData,
+                    new EventCallback<LoadDataArgs>(null, (LoadDataArgs args) => { loadDataCallCount++; }));
+            });
+
+            loadDataCallCount = 0;
+
+            component.InvokeAsync(() => component.Instance.Reset());
+            component.Render();
+
+            Assert.True(loadDataCallCount <= 2, $"LoadData was called {loadDataCallCount} times, expected at most 2 (indicating possible infinite loop)");
+        }
+
+        [Fact]
+        public void DataGrid_Sorts_KeepsInternalSortsInSync_OnClearAndRemove()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new { City = "Sofia", FirstName = "Ivan", Country = "BG" },
+                new { City = "Berlin", FirstName = "Anna", Country = "DE" },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<object>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<object>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowSorting, true);
+                parameterBuilder.Add<bool>(p => p.AllowMultiColumnSorting, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<object>));
+                    builder.AddAttribute(1, "Property", "City");
+                    builder.CloseComponent();
+
+                    builder.OpenComponent(2, typeof(RadzenDataGridColumn<object>));
+                    builder.AddAttribute(3, "Property", "FirstName");
+                    builder.CloseComponent();
+
+                    builder.OpenComponent(4, typeof(RadzenDataGridColumn<object>));
+                    builder.AddAttribute(5, "Property", "Country");
+                    builder.CloseComponent();
+                });
+            });
+
+            var grid = component.Instance;
+
+            component.InvokeAsync(() =>
+            {
+                grid.Sorts.Add(new SortDescriptor { Property = "City", SortOrder = SortOrder.Ascending });
+                grid.Sorts.Add(new SortDescriptor { Property = "FirstName", SortOrder = SortOrder.Ascending });
+            });
+
+            Assert.Equal(new[] { "City", "FirstName" }, grid.sorts.Select(s => s.Property).ToArray());
+
+            component.InvokeAsync(() => grid.Sorts.Clear());
+
+            Assert.Empty(grid.sorts);
+            Assert.All(grid.ColumnsCollection, c => Assert.Null(c.GetSortOrder()));
+
+            component.InvokeAsync(() =>
+            {
+                grid.Sorts.Add(new SortDescriptor { Property = "Country", SortOrder = SortOrder.Ascending });
+                grid.Sorts.Add(new SortDescriptor { Property = "FirstName", SortOrder = SortOrder.Ascending });
+            });
+
+            Assert.Equal(new[] { "Country", "FirstName" }, grid.sorts.Select(s => s.Property).ToArray());
+            Assert.Equal(new[] { "Country", "FirstName" }, grid.Sorts.Select(s => s.Property).ToArray());
+
+            var firstNameDescriptor = grid.Sorts.First(s => s.Property == "FirstName");
+            component.InvokeAsync(() => grid.Sorts.Remove(firstNameDescriptor));
+
+            Assert.Equal(new[] { "Country" }, grid.sorts.Select(s => s.Property).ToArray());
+        }
+
+        [Fact]
+        public void DataGrid_Wrapper_Has_RoleGrid_AsFocusTarget()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1 }, new { Id = 2 } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            var wrapper = component.Find("div.rz-data-grid");
+            Assert.Equal("grid", wrapper.GetAttribute("role"));
+            Assert.Equal("0", wrapper.GetAttribute("tabindex"));
+            Assert.True(string.IsNullOrEmpty(wrapper.GetAttribute("aria-activedescendant")));
+        }
+
+        [Fact]
+        public void DataGrid_ActiveDescendant_IsClearedWhenNoActiveRow()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1 }, new { Id = 2 } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            var instance = component.Instance;
+
+            Assert.Null(instance.GetActiveDescendantId());
+
+            instance.HasActiveDescendant = () => false;
+            Assert.Null(instance.GetActiveDescendantId());
+
+            instance.HasActiveDescendant = () => true;
+            Assert.False(string.IsNullOrEmpty(instance.GetActiveDescendantId()));
+        }
+
+        [Fact]
+        public void DataGrid_AppliesAriaGridRolesToTableDescendants()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1 }, new { Id = 2 } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            Assert.Equal("presentation", component.Find("table.rz-grid-table").GetAttribute("role"));
+            Assert.Equal("rowgroup", component.Find("thead").GetAttribute("role"));
+            Assert.Equal("rowgroup", component.Find("tbody").GetAttribute("role"));
+
+            var headerCell = component.Find("thead tr th");
+            Assert.Equal("row", headerCell.ParentElement!.GetAttribute("role"));
+            Assert.Equal("columnheader", headerCell.GetAttribute("role"));
+
+            var dataRows = component.FindAll("tbody tr");
+            Assert.NotEmpty(dataRows);
+            foreach (var row in dataRows)
+            {
+                Assert.Equal("row", row.GetAttribute("role"));
+                foreach (var cell in row.QuerySelectorAll("td"))
+                {
+                    Assert.Equal("gridcell", cell.GetAttribute("role"));
+                }
+            }
+        }
+
+        [Fact]
+        public void DataGrid_Virtualization_DoesNotFullyEnumerateData_OnReRender()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            // 1000 items wrapped so the wrapper is NOT ICollection — Enumerable.Count()
+            // would have to walk every element, while Enumerable.Any() stops after 1.
+            // This simulates an IQueryable (e.g. EF Core DbSet) where the difference
+            // is SELECT COUNT(*) / SELECT * vs SELECT EXISTS / SELECT TOP 1.
+            var items = Enumerable.Range(1, 1000).Select(i => new { Id = i }).ToArray();
+            var tracking = new TrackingEnumerable<object>(items);
+
+            var component = ctx.RenderComponent<RadzenDataGrid<object>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<object>>(p => p.Data, tracking);
+                parameterBuilder.Add(p => p.AllowVirtualization, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<object>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            // Snapshot after the initial render. LoadItems (called by Virtualize) does
+            // its own view.Count() per invocation, so each render already iterates the
+            // source ~once. The fix prevents a SECOND full iteration from the razor
+            // empty-message guard.
+            var baseline = tracking.MoveNextCalls;
+
+            const int extraRenders = 5;
+            for (int i = 0; i < extraRenders; i++)
+            {
+                component.Render();
+            }
+
+            var growth = tracking.MoveNextCalls - baseline;
+            var iterationsPerRender = (double)growth / extraRenders / items.Length;
+
+            // With Data.Any() the empty-message guard adds 1 MoveNext per render on top
+            // of LoadItems' single full iteration — so iterationsPerRender ≈ 1.0.
+            // With Data.Count() the guard adds a SECOND full iteration — so it's ≈ 2.0.
+            // 1.5 cleanly separates the two regimes.
+            Assert.True(iterationsPerRender < 1.5,
+                $"Data was iterated {iterationsPerRender:F2}× per render ({growth} MoveNext calls across {extraRenders} renders for {items.Length} items). " +
+                "Expected ≤1× (LoadItems only). The virtualization empty-message guard must use Data.Any() rather than Data.Count() to avoid an extra full enumeration of the IQueryable on every render.");
+        }
+
+        [Fact]
+        public void DataGrid_Virtualization_ShowsEmptyMessage_WhenDataIsEmpty()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<object>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<object>>(p => p.Data, Enumerable.Empty<object>());
+                parameterBuilder.Add(p => p.AllowVirtualization, true);
+                parameterBuilder.Add(p => p.EmptyText, "Nothing to display");
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<object>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            // Guards the original fix from fb0d588cb: empty data with virtualization
+            // must still render the empty-message row.
+            Assert.Contains("rz-datatable-emptymessage", component.Markup);
+            Assert.Contains("Nothing to display", component.Markup);
+        }
+
+        private sealed class AutoApplyItem
+        {
+            public string Name { get; set; } = string.Empty;
+            public int Code { get; set; }
+        }
+
+        [Fact]
+        public void DataGrid_AutoApplyCheckBoxListFilter_FiltersOnSelectionWithoutApply()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new AutoApplyItem { Name = "A", Code = 1 },
+                new AutoApplyItem { Name = "B", Code = 2 },
+                new AutoApplyItem { Name = "C", Code = 1 },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<AutoApplyItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<AutoApplyItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.CheckBoxList);
+                parameterBuilder.Add<bool>(p => p.AutoApplyCheckBoxListFilter, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<AutoApplyItem>));
+                    builder.AddAttribute(1, "Property", nameof(AutoApplyItem.Code));
+                    builder.CloseComponent();
+                });
+            });
+
+            // Open the Code filter popup (the filter icon toggles via @onmousedown=ToggleFilter)
+            component.Find("button.rz-grid-filter-icon").MouseDown();
+
+            // Wait for the listbox to load its filter values asynchronously.
+            component.WaitForAssertion(() => Assert.NotEmpty(component.FindAll(".rz-multiselect-item")), TimeSpan.FromSeconds(3));
+
+            // Apply button must NOT be present in auto-apply mode
+            Assert.Empty(component.FindAll("button.rz-apply-filter"));
+
+            // Select the option for Code == 1 in the listbox and confirm the grid filters immediately.
+            // Find the listbox item whose text is "1" and click it.
+            var item = component.FindAll(".rz-multiselect-item")
+                .FirstOrDefault(i => i.TextContent.Trim() == "1");
+            Assert.NotNull(item);
+            item!.Click();
+
+            var grid = component.Instance;
+            component.WaitForAssertion(() =>
+            {
+                var codes = ((System.Collections.IEnumerable)grid.View).Cast<AutoApplyItem>().Select(x => x.Code).Distinct().ToArray();
+                Assert.Equal(new[] { 1 }, codes);
+            }, TimeSpan.FromSeconds(3));
+
+            // The popup must stay open after auto-apply so additional options can be selected.
+            // Applying the filter with closePopup:false means no popup-closing JS interop runs;
+            // closePopup:true would invoke Radzen.closePopup / Radzen.closeAllPopups.
+            Assert.DoesNotContain(ctx.JSInterop.Invocations,
+                i => i.Identifier.Contains("close", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void DataGrid_CheckBoxListFilter_RendersApplyButton_WhenAutoApplyOff()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[] { new AutoApplyItem { Name = "A", Code = 1 } };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<AutoApplyItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<AutoApplyItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.CheckBoxList);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<AutoApplyItem>));
+                    builder.AddAttribute(1, "Property", nameof(AutoApplyItem.Code));
+                    builder.CloseComponent();
+                });
+            });
+
+            component.Find("button.rz-grid-filter-icon").MouseDown();
+
+            Assert.NotEmpty(component.FindAll("button.rz-apply-filter"));
+        }
+
+        private sealed class FilterLookupItem
+        {
+            public string Reference { get; set; } = string.Empty;
+            public int Code { get; set; }
+        }
+
+        [Fact]
+        public async Task DataGrid_FilterLookupData_FiltersByValueProperty()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new FilterLookupItem { Reference = "A", Code = 1 },
+                new FilterLookupItem { Reference = "B", Code = 2 },
+                new FilterLookupItem { Reference = "C", Code = 3 },
+            };
+
+            var options = new[]
+            {
+                new { Id = 1, Name = "Urgent" },
+                new { Id = 2, Name = "Normal" },
+                new { Id = 3, Name = "Critical" },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<FilterLookupItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<FilterLookupItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.CheckBoxList);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<FilterLookupItem>));
+                    builder.AddAttribute(1, "Property", nameof(FilterLookupItem.Code));
+                    builder.AddAttribute(2, "FilterLookupData", options);
+                    builder.AddAttribute(3, "FilterLookupTextProperty", "Name");
+                    builder.AddAttribute(4, "FilterLookupValueProperty", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            var grid = component.Instance;
+            var column = grid.ColumnsCollection.Single();
+
+            await component.InvokeAsync(() => column.SetFilterValue(new List<int> { 2, 3 }));
+            await component.InvokeAsync(() => grid.Reload());
+
+            var refs = grid.View.ToList().Select(x => x.Reference).OrderBy(x => x).ToArray();
+
+            Assert.Equal(new[] { "B", "C" }, refs);
+        }
+
+        [Fact]
+        public void DataGrid_CheckBoxList_WithoutFilterLookupData_RendersNativeFilter()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new FilterLookupItem { Reference = "A", Code = 1 },
+                new FilterLookupItem { Reference = "B", Code = 2 },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<FilterLookupItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<FilterLookupItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.CheckBoxList);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<FilterLookupItem>));
+                    builder.AddAttribute(1, "Property", nameof(FilterLookupItem.Code));
+                    builder.CloseComponent();
+                });
+            });
+
+            Assert.Contains("rz-grid-filter-icon", component.Markup);
+        }
+
+        [Fact]
+        public void DataGrid_FilterLookupData_RendersOptionLabelsFromTextProperty()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[] { new FilterLookupItem { Reference = "A", Code = 1 } };
+            var options = new[]
+            {
+                new { Id = 1, Name = "Urgent" },
+                new { Id = 2, Name = "Normal" },
+                new { Id = 3, Name = "Critical" },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<FilterLookupItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<FilterLookupItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.CheckBoxList);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<FilterLookupItem>));
+                    builder.AddAttribute(1, "Property", nameof(FilterLookupItem.Code));
+                    builder.AddAttribute(2, "FilterLookupData", options);
+                    builder.AddAttribute(3, "FilterLookupTextProperty", "Name");
+                    builder.AddAttribute(4, "FilterLookupValueProperty", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            component.Find("button.rz-grid-filter-icon").MouseDown();
+
+            var markup = component.Markup;
+            Assert.Contains("Urgent", markup);
+            Assert.Contains("Critical", markup);
+        }
+
+        private sealed class TrackingEnumerable<T> : IEnumerable<T>
+        {
+            private readonly IEnumerable<T> _source;
+            public int MoveNextCalls { get; private set; }
+
+            public TrackingEnumerable(IEnumerable<T> source) => _source = source;
+
+            public IEnumerator<T> GetEnumerator() => new TrackingEnumerator(this, _source.GetEnumerator());
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+            private sealed class TrackingEnumerator : IEnumerator<T>
+            {
+                private readonly TrackingEnumerable<T> _owner;
+                private readonly IEnumerator<T> _inner;
+
+                public TrackingEnumerator(TrackingEnumerable<T> owner, IEnumerator<T> inner)
+                {
+                    _owner = owner;
+                    _inner = inner;
+                }
+
+                public T Current => _inner.Current;
+                object System.Collections.IEnumerator.Current => Current!;
+                public void Dispose() => _inner.Dispose();
+                public bool MoveNext() { _owner.MoveNextCalls++; return _inner.MoveNext(); }
+                public void Reset() => _inner.Reset();
+            }
+        }
+
+        static IComparer PriorityNameComparer()
+        {
+            var names = new Dictionary<int, string> { [1] = "Urgent", [2] = "Normal", [3] = "Critical" };
+            return Comparer<object>.Create((a, b) =>
+                string.Compare(
+                    names.TryGetValue(Convert.ToInt32(a), out var an) ? an : string.Empty,
+                    names.TryGetValue(Convert.ToInt32(b), out var bn) ? bn : string.Empty,
+                    StringComparison.Ordinal));
+        }
+
+        static IRenderedComponent<RadzenDataGrid<SortComparerItem>> RenderSortComparerGrid(
+            TestContext ctx, SortComparerItem[] data, SortOrder order)
+        {
+            return ctx.RenderComponent<RadzenDataGrid<SortComparerItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<SortComparerItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowSorting, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<SortComparerItem>));
+                    builder.AddAttribute(1, "Property", nameof(SortComparerItem.Reference));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent(2, typeof(RadzenDataGridColumn<SortComparerItem>));
+                    builder.AddAttribute(3, "Property", nameof(SortComparerItem.Code));
+                    builder.AddAttribute(4, "SortComparer", PriorityNameComparer());
+                    builder.AddAttribute(5, "SortOrder", order);
+                    builder.CloseComponent();
+                });
+            });
+        }
+
+        [Fact]
+        public void DataGrid_SortComparer_OrdersByMappedName_Ascending()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new SortComparerItem { Reference = "A", Code = 1 },
+                new SortComparerItem { Reference = "B", Code = 2 },
+                new SortComparerItem { Reference = "C", Code = 3 },
+            };
+
+            var component = RenderSortComparerGrid(ctx, data, SortOrder.Ascending);
+
+            var order = component.Instance.View.ToList().Select(x => x.Reference).ToArray();
+
+            Assert.Equal(new[] { "C", "B", "A" }, order);
+        }
+
+        [Fact]
+        public void DataGrid_SortComparer_OrdersByMappedName_Descending()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new SortComparerItem { Reference = "A", Code = 1 },
+                new SortComparerItem { Reference = "B", Code = 2 },
+                new SortComparerItem { Reference = "C", Code = 3 },
+            };
+
+            var component = RenderSortComparerGrid(ctx, data, SortOrder.Descending);
+
+            var order = component.Instance.View.ToList().Select(x => x.Reference).ToArray();
+
+            Assert.Equal(new[] { "A", "B", "C" }, order);
+        }
+
+        [Fact]
+        public void DataGrid_SortComparer_ComposesWithSecondaryColumn()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            // Two rows share Code=2 (Normal); secondary sort by Reference breaks the tie.
+            var data = new[]
+            {
+                new SortComparerItem { Reference = "B2", Code = 2 },
+                new SortComparerItem { Reference = "A", Code = 1 },
+                new SortComparerItem { Reference = "B1", Code = 2 },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<SortComparerItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<SortComparerItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowSorting, true);
+                parameterBuilder.Add<bool>(p => p.AllowMultiColumnSorting, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<SortComparerItem>));
+                    builder.AddAttribute(1, "Property", nameof(SortComparerItem.Code));
+                    builder.AddAttribute(2, "SortComparer", PriorityNameComparer());
+                    builder.AddAttribute(3, "SortOrder", SortOrder.Ascending);
+                    builder.CloseComponent();
+
+                    builder.OpenComponent(4, typeof(RadzenDataGridColumn<SortComparerItem>));
+                    builder.AddAttribute(5, "Property", nameof(SortComparerItem.Reference));
+                    builder.AddAttribute(6, "SortOrder", SortOrder.Ascending);
+                    builder.CloseComponent();
+                });
+            });
+
+            var order = component.Instance.View.ToList().Select(x => x.Reference).ToArray();
+
+            // Primary by mapped name asc: Normal (Code 2) before Urgent (Code 1).
+            // Secondary by Reference asc breaks the Normal tie: B1 before B2.
+            Assert.Equal(new[] { "B1", "B2", "A" }, order);
+        }
+
+        [Fact]
+        public void DataGrid_WithoutSortComparer_OrdersByRawValue()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new SortComparerItem { Reference = "A", Code = 3 },
+                new SortComparerItem { Reference = "B", Code = 1 },
+                new SortComparerItem { Reference = "C", Code = 2 },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<SortComparerItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<SortComparerItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowSorting, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<SortComparerItem>));
+                    builder.AddAttribute(1, "Property", nameof(SortComparerItem.Reference));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent(2, typeof(RadzenDataGridColumn<SortComparerItem>));
+                    builder.AddAttribute(3, "Property", nameof(SortComparerItem.Code));
+                    builder.AddAttribute(4, "SortOrder", SortOrder.Ascending);
+                    builder.CloseComponent();
+                });
+            });
+
+            var order = component.Instance.View.ToList().Select(x => x.Reference).ToArray();
+
+            // No comparer: default ordering by raw Code value 1,2,3 -> B, C, A
+            Assert.Equal(new[] { "B", "C", "A" }, order);
+        }
+
+        [Fact]
+        public void DataGrid_SortComparer_HandlesValuesMissingFromMap()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            // Code 99 is not in the comparer's map; the comparer treats it as empty string (sorts first asc).
+            var data = new[]
+            {
+                new SortComparerItem { Reference = "A", Code = 1 },
+                new SortComparerItem { Reference = "X", Code = 99 },
+                new SortComparerItem { Reference = "C", Code = 3 },
+            };
+
+            var component = RenderSortComparerGrid(ctx, data, SortOrder.Ascending);
+
+            var order = component.Instance.View.ToList().Select(x => x.Reference).ToArray();
+
+            // "" (X) first, then Critical (C), then Urgent (A)
+            Assert.Equal(new[] { "X", "C", "A" }, order);
+        }
+
+        [Fact]
+        public void DataGrid_LoadData_PreservesHiddenColumnFilter()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new { Name = "Alice", Country = "BG" },
+                new { Name = "Bob", Country = "DE" },
+            };
+
+            LoadDataArgs capturedArgs = null;
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Name");
+                    builder.CloseComponent();
+
+                    builder.OpenComponent(2, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(3, "Property", "Country");
+                    builder.AddAttribute(4, "Visible", false);
+                    builder.AddAttribute(5, "FilterValue", "BG");
+                    builder.CloseComponent();
+                });
+                parameterBuilder.Add<LoadDataArgs>(p => p.LoadData, args => { capturedArgs = args; });
+            });
+
+            component.InvokeAsync(() => component.Instance.Reload());
+
+            Assert.NotNull(capturedArgs);
+            Assert.Contains(capturedArgs.Filters, f => f.Property == "Country");
+        }
+
+        [Fact]
+        public void DataGrid_ColumnPickerSorting_TogglesColumnAndSortsPicker()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1, Name = "A" }, new { Id = 2, Name = "B" } });
+                parameterBuilder.Add(p => p.AllowColumnPicking, true);
+                parameterBuilder.Add(p => p.AllowSortingColumnPicker, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.AddAttribute(2, "Title", "Id");
+                    builder.CloseComponent();
+                    builder.OpenComponent(3, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(4, "Property", "Name");
+                    builder.AddAttribute(5, "Title", "Name");
+                    builder.CloseComponent();
+                });
+            });
+
+            Assert.NotNull(component.Find(".rz-column-picker th.rz-sortable-column"));
+            Assert.Contains("aria-label=\"All\"", component.Find(".rz-column-picker thead").ToMarkup());
+
+            Assert.Contains("2 columns showing", component.Find(".rz-column-picker .rz-dropdown-label").TextContent);
+
+            component.Find(".rz-column-picker tbody tr .rz-chkbox").Click();
+            var label = component.Find(".rz-column-picker .rz-dropdown-label");
+            Assert.DoesNotContain("2 columns showing", label.TextContent);
+            Assert.Equal("Name", label.TextContent.Trim());
+
+            Assert.Null(component.Find(".rz-column-picker th.rz-sortable-column").GetAttribute("aria-sort"));
+            component.Find(".rz-column-picker th.rz-sortable-column > div").Click();
+            Assert.Equal("ascending", component.Find(".rz-column-picker th.rz-sortable-column").GetAttribute("aria-sort"));
+        }
+
+        static IRenderedComponent<RadzenDataGrid<dynamic>> RenderSimpleFilterDataGrid(TestContext ctx, bool filterAsYouType)
+        {
+            return ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Name = "A" }, new { Name = "B" } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Name");
+                    builder.AddAttribute(2, "Title", "Name");
+                    builder.CloseComponent();
+                });
+                parameterBuilder.Add(p => p.AllowFiltering, true);
+                parameterBuilder.Add(p => p.FilterMode, FilterMode.Simple);
+                parameterBuilder.Add(p => p.FilterAsYouType, filterAsYouType);
+                parameterBuilder.Add(p => p.FilterDelay, 60000);
+            });
+        }
+
+        [Fact]
+        public void DataGrid_DoesNotAttachSimpleFilterKeyDownHandler_WhenFilterAsYouTypeIsDisabled()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = RenderSimpleFilterDataGrid(ctx, false);
+
+            var input = component.Find(".rz-cell-filter input.rz-textbox");
+
+            Assert.Throws<MissingEventHandlerException>(() => input.KeyDown(new KeyboardEventArgs { Key = "a", Code = "KeyA" }));
+        }
+
+        [Fact]
+        public void DataGrid_DoesNotRerender_OnSimpleFilterKeyDown_WhenFilterAsYouTypeIsEnabled()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = RenderSimpleFilterDataGrid(ctx, true);
+
+            var input = component.Find(".rz-cell-filter input.rz-textbox");
+            var renderCount = component.RenderCount;
+
+            input.KeyDown(new KeyboardEventArgs { Key = "a", Code = "KeyA" });
+
+            Assert.Equal(renderCount, component.RenderCount);
+        }
+
+        [Fact]
+        public async Task DataGrid_AppliesCustomFilterExpression_WhenNoOtherFilterIsActive()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new AutoApplyItem { Name = "A", Code = 1 },
+                new AutoApplyItem { Name = "B", Code = 2 },
+                new AutoApplyItem { Name = "C", Code = 1 },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<AutoApplyItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<AutoApplyItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<AutoApplyItem>));
+                    builder.AddAttribute(1, "Property", nameof(AutoApplyItem.Code));
+                    builder.AddAttribute(2, "FilterOperator", FilterOperator.Custom);
+                    builder.CloseComponent();
+                });
+            });
+
+            var grid = component.Instance;
+            var column = grid.ColumnsCollection.Single();
+
+            await component.InvokeAsync(() => column.SetCustomFilterExpressionAsync("it.Code == 1"));
+
+            component.WaitForAssertion(() =>
+            {
+                var names = grid.View.Select(x => x.Name).ToArray();
+                Assert.Equal(new[] { "A", "C" }, names);
+            }, TimeSpan.FromSeconds(3));
+
+            await component.InvokeAsync(() => column.SetCustomFilterExpressionAsync(null));
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.Equal(3, grid.View.Count());
+            }, TimeSpan.FromSeconds(3));
+        }
+    }
+
+    public class SortComparerItem
+    {
+        public string Reference { get; set; } = string.Empty;
+        public int Code { get; set; }
     }
 }

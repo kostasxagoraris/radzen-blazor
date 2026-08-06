@@ -5,12 +5,16 @@
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
-    <div @ref=@element class="@($"{"rz-event"} {CssClass}".Trim())" style=@Style
+    <div @ref=@element class="@($"rz-event {CssClass}".Trim())" style=@Style
          role="button" tabindex="0" aria-label="@Data?.Text"
          @onclick=@OnClick @onkeydown="OnKeyDown" @onmouseenter=@OnMouseEnter @onmouseleave=@OnMouseLeave
          @attributes="@FilteredAdditionalAttributes">
-        <div class="rz-event-content" title=@Title @attributes=@Attributes>
-            @if (ShowAppointmentContent && Scheduler != null && Data != null)
+        <div title=@Title @attributes=@Attributes>
+            @if (ChildContent != null)
+            {
+                @ChildContent
+            }
+            else if (ShowAppointmentContent && Scheduler != null && Data != null)
             {
                 @Scheduler.RenderAppointment(Data)
             }
@@ -35,6 +39,9 @@
 
     [Parameter]
     public double? Height { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public EventCallback<AppointmentData> Click { get; set; }
@@ -69,6 +76,7 @@
     protected override void OnParametersSet()
     {
         Attributes = (Scheduler != null && Data != null) ? Scheduler.GetAppointmentAttributes(Data) : new Dictionary<string, object>();
+        Attributes["class"] = ClassList.Create("rz-event-content").Add(Attributes).ToString();
 
         var style = new List<string>();
 

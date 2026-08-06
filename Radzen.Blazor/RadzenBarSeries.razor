@@ -18,10 +18,12 @@
             return _ => { };
         }
 
-        var value = ComposeValue(categoryScale);
-        var category = ComposeCategory(valueScale);
-        var ticks = chart.CategoryScale.Ticks(chart.ValueAxis.TickDistance);
-        var x0 = chart.CategoryScale.Scale(Math.Max(0, ticks.Start));
+        var vs = chart.GetInvertedValueScale(ValueAxisName);
+        var va = chart.GetValueAxis(ValueAxisName);
+        var value = ComposeValue(vs);
+        var category = ComposeCategory(chart.ValueScale);
+        var ticks = vs.Ticks(va.TickDistance);
+        var x0 = vs.Scale(Math.Max(0, ticks.Start));
         var style = $"clip-path: url(#{chart.ClipPath}); -webkit-clip-path: url(#{chart.ClipPath});";
 
         var barSeries = VisibleBarSeries;
@@ -39,14 +41,17 @@
         var padding = barOptions?.Margin ?? 0;
 
         var barHeight = BandHeight;
-        var height = barHeight / barSeries.Count - padding + padding / barSeries.Count;
+        var (height, groupHeight) = BandLayout.Resolve(barHeight, barSeries.Count, padding, barOptions?.EffectiveMaxHeight);
         var className = $"rz-bar-series rz-series-{chart.Series.IndexOf(this)}";
 
+        var groupStyle = $"--rz-zero-x: {x0.ToInvariantString()}px";
+        var grad = new GradientFill(chart.UniqueID, chart.Series.IndexOf(this));
+        var gradient = FillMode == FillMode.Gradient;
         return
-        @<g class="@className">
+        @<g class="@className" style="@groupStyle">
             @foreach (var data in Items)
             {
-                var y = category(data) - barHeight / 2 + index * height + index * padding;
+                var y = category(data) - groupHeight / 2 + index * (height + padding);
                 var x = value(data);
                 var itemValue = Value(data);
                 var radius = barOptions?.Radius ?? 0;
@@ -67,8 +72,13 @@
                 }
                 var fill = PickColor(Items.IndexOf(data), Fills, Fill, FillRange, itemValue);
                 var stroke = PickColor(Items.IndexOf(data), Strokes, Stroke, StrokeRange, itemValue);
+                var fillRef = gradient ? grad.Url(fill ?? "var(--rz-series-color)", itemValue < 0 ? -1 : 1) : (FillMode == FillMode.None ? "none" : fill);
 
-                <Path @key="@path" D="@path" Stroke="@stroke" StrokeWidth="@StrokeWidth" Fill="@fill" LineType="@LineType" Style="@style" />
+                <Path @key="@path" D="@path" Stroke="@stroke" StrokeWidth="@StrokeWidth" Fill="@fillRef" LineType="@LineType" Style="@style" />
+            }
+            @if (gradient)
+            {
+                <GradientDefs Plan="@grad" Vertical="false" StartOpacity="@GradientStartOpacity" EndOpacity="@GradientEndOpacity" />
             }
         </g>;
     }

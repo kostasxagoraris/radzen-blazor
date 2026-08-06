@@ -3,6 +3,7 @@ using Microsoft.JSInterop;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -223,7 +224,11 @@ namespace Radzen.Blazor
             }
 
             var vbWidth = x + Math.Max(0, QuietZoneModules);
-            if (vbWidth <= 0) vbWidth = 1;
+            if (vbWidth <= 0)
+            {
+                vbWidth = 1;
+            }
+
             return (rects, vbWidth, checksumText, null);
         }
 
@@ -245,28 +250,40 @@ namespace Radzen.Blazor
                 }
 
                 int j = i + 1;
-                while (j < bits.Length && bits[j] == '1') j++;
+                while (j < bits.Length && bits[j] == '1')
+                {
+                    j++;
+                }
+
                 rects.Add(new BarcodeRect(quiet + i, 0, j - i, BarHeight));
                 i = j;
             }
 
             var vbWidth = quiet + bits.Length + quiet;
-            if (vbWidth <= 0) vbWidth = 1;
+            if (vbWidth <= 0)
+            {
+                vbWidth = 1;
+            }
+
             return (rects, vbWidth, checksumText, null);
         }
 
         (IReadOnlyList<BarcodeRect> bars, double vbWidth, string? checksumText, string? error) CreateFromRects((IReadOnlyList<BarcodeRect> bars, double vbWidth) geometry, string? checksumText)
         {
             var vbWidth = geometry.vbWidth;
-            if (vbWidth <= 0) vbWidth = 1;
+            if (vbWidth <= 0)
+            {
+                vbWidth = 1;
+            }
+
             return (geometry.bars, vbWidth, checksumText, null);
         }
 
         /// <summary>
-        /// Returns the SVG markup of the rendered QR code as a string.
+        /// Returns the SVG markup of the rendered barcode as a string.
         /// </summary>
         /// <returns>
-        /// A <see cref="Task{String}"/> representing the asynchronous operation. The task result contains the SVG markup of the QR code.
+        /// A <see cref="Task{String}"/> representing the asynchronous operation. The task result contains the SVG markup of the barcode.
         /// </returns>
         public async Task<string> ToSvg()
         {
@@ -275,6 +292,49 @@ namespace Radzen.Blazor
                 return await JSRuntime.InvokeAsync<string>("Radzen.outerHTML", Element);
             }
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Renders the barcode as a PNG image and downloads it in the browser.
+        /// </summary>
+        /// <param name="fileName">The download file name. Default is <c>barcode.png</c>.</param>
+        /// <param name="width">The PNG width in pixels. When omitted the rendered size scaled by the device pixel ratio is used.</param>
+        /// <param name="height">The PNG height in pixels. When omitted it is derived from <paramref name="width"/> preserving the aspect ratio.</param>
+        public async Task ToPng(string fileName = "barcode.png", int? width = null, int? height = null)
+        {
+            if (JSRuntime != null)
+            {
+                var svg = await ToSvg();
+                await JSRuntime.InvokeVoidAsync("Radzen.downloadSvgAsPng", svg, fileName, width, height);
+            }
+        }
+
+        /// <summary>
+        /// Renders the barcode as a PNG image and returns the image data.
+        /// Use this to store the barcode in a database, embed it in documents, or send it to an API instead of downloading it.
+        /// </summary>
+        /// <param name="width">The PNG width in pixels. When <c>null</c> the rendered size scaled by the device pixel ratio is used.</param>
+        /// <param name="height">The PNG height in pixels. When <c>null</c> it is derived from <paramref name="width"/> preserving the aspect ratio.</param>
+        /// <returns>
+        /// A <see cref="Task{TResult}"/> representing the asynchronous operation. The task result contains the PNG image data.
+        /// </returns>
+        public async Task<byte[]> ToPng(int? width, int? height = null)
+        {
+            if (JSRuntime != null)
+            {
+                var svg = await ToSvg();
+
+                if (!string.IsNullOrEmpty(svg))
+                {
+                    await using var png = await JSRuntime.InvokeAsync<IJSStreamReference>("Radzen.svgToPng", svg, width, height);
+                    using var stream = await png.OpenReadStreamAsync(maxAllowedSize: 32 * 1024 * 1024);
+                    using var memoryStream = new MemoryStream();
+                    await stream.CopyToAsync(memoryStream);
+                    return memoryStream.ToArray();
+                }
+            }
+
+            return Array.Empty<byte>();
         }
     }
 }

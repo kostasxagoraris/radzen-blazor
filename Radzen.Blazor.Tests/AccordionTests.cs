@@ -1,15 +1,24 @@
 using Bunit;
+using Bunit.JSInterop;
 using Microsoft.AspNetCore.Components;
+using System.Linq;
 using Xunit;
 
 namespace Radzen.Blazor.Tests
 {
     public class AccordionTests
     {
+        static TestContext CreateContext()
+        {
+            var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            return ctx;
+        }
+
         [Fact]
         public void Accordion_Renders_CssClasses()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             var component = ctx.RenderComponent<RadzenAccordion>();
 
             Assert.Contains(@"rz-accordion", component.Markup);
@@ -18,7 +27,7 @@ namespace Radzen.Blazor.Tests
         [Fact]
         public void Accordion_Renders_AccordionItems()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
             {
                 parameters.Add(p => p.Items, builder =>
@@ -40,7 +49,7 @@ namespace Radzen.Blazor.Tests
         [Fact]
         public void Accordion_Renders_ItemWithIcon()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
             {
                 parameters.Add(p => p.Items, builder =>
@@ -63,7 +72,7 @@ namespace Radzen.Blazor.Tests
         [Fact]
         public void Accordion_SingleExpand_OnlyOneItemExpanded()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
             {
                 parameters.Add(p => p.Multiple, false); // Single expand mode
@@ -89,7 +98,7 @@ namespace Radzen.Blazor.Tests
         [Fact]
         public void Accordion_MultipleExpand_AllowsMultipleItemsExpanded()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
             {
                 parameters.Add(p => p.Multiple, true);
@@ -101,7 +110,7 @@ namespace Radzen.Blazor.Tests
         [Fact]
         public void Accordion_Raises_ExpandEvent()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             
             var expandRaised = false;
             int expandedIndex = -1;
@@ -133,7 +142,7 @@ namespace Radzen.Blazor.Tests
         [Fact]
         public void Accordion_Raises_CollapseEvent()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             
             var collapseRaised = false;
             int collapsedIndex = -1;
@@ -166,7 +175,7 @@ namespace Radzen.Blazor.Tests
         [Fact]
         public void Accordion_DisabledItem_CannotExpand()
         {
-            using var ctx = new TestContext();
+            using var ctx = CreateContext();
             
             var expandRaised = false;
 
@@ -189,6 +198,472 @@ namespace Radzen.Blazor.Tests
 
             // Event should not be raised for disabled item
             Assert.False(expandRaised);
+        }
+        [Fact]
+        public void Accordion_RenderMode_DefaultsToServer()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>();
+
+            Assert.Equal(AccordionRenderMode.Server, component.Instance.RenderMode);
+        }
+
+        [Fact]
+        public void Accordion_RenderMode_CanBeSetToClient()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+                });
+            });
+
+            Assert.Equal(AccordionRenderMode.Client, component.Instance.RenderMode);
+            Assert.Contains("Item 1", component.Markup);
+            Assert.Contains("Content 1", component.Markup);
+        }
+
+        [Fact]
+        public void Accordion_ClientMode_RendersAllItems()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(3);
+                    builder.AddAttribute(4, "Text", "Item 2");
+                    builder.AddAttribute(5, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(6);
+                    builder.AddAttribute(7, "Text", "Item 3");
+                    builder.AddAttribute(8, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 3")));
+                    builder.CloseComponent();
+                });
+            });
+
+            // All items should be rendered in client mode
+            Assert.Contains("Content 1", component.Markup);
+            Assert.Contains("Content 2", component.Markup);
+            Assert.Contains("Content 3", component.Markup);
+        }
+
+        [Fact]
+        public void Accordion_ClientMode_Raises_ExpandEvent()
+        {
+            using var ctx = CreateContext();
+
+            var expandRaised = false;
+            int expandedIndex = -1;
+
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.Expand, EventCallback.Factory.Create<int>(this, (index) =>
+                {
+                    expandRaised = true;
+                    expandedIndex = index;
+                }));
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Test Item");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var header = component.Find(".rz-accordion-header button");
+            header.Click();
+
+            Assert.True(expandRaised);
+            Assert.Equal(0, expandedIndex);
+        }
+
+        [Fact]
+        public void Accordion_ClientMode_Raises_CollapseEvent()
+        {
+            using var ctx = CreateContext();
+
+            var collapseRaised = false;
+            int collapsedIndex = -1;
+
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.Collapse, EventCallback.Factory.Create<int>(this, (index) =>
+                {
+                    collapseRaised = true;
+                    collapsedIndex = index;
+                }));
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Test Item");
+                    builder.AddAttribute(2, "Selected", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var header = component.Find(".rz-accordion-header button");
+            header.Click();
+
+            Assert.True(collapseRaised);
+            Assert.Equal(0, collapsedIndex);
+        }
+
+        [Fact]
+        public void Accordion_ClientMode_DisabledItem_CannotExpand()
+        {
+            using var ctx = CreateContext();
+
+            var expandRaised = false;
+
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.Expand, EventCallback.Factory.Create<int>(this, (_) => expandRaised = true));
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Disabled Item");
+                    builder.AddAttribute(2, "Disabled", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var header = component.Find(".rz-accordion-header button");
+            header.Click();
+
+            Assert.False(expandRaised);
+        }
+
+        [Fact]
+        public void Accordion_ClientMode_SingleExpand_CollapsesOthers()
+        {
+            using var ctx = CreateContext();
+
+            var collapseRaised = false;
+            int collapsedIndex = -1;
+
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.Multiple, false);
+                parameters.Add(p => p.Collapse, EventCallback.Factory.Create<int>(this, (index) =>
+                {
+                    collapseRaised = true;
+                    collapsedIndex = index;
+                }));
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "Selected", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(4);
+                    builder.AddAttribute(5, "Text", "Item 2");
+                    builder.AddAttribute(6, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+                });
+            });
+
+            // Click Item 2 to expand it — Item 1 should collapse
+            var headers = component.FindAll(".rz-accordion-header button");
+            headers[1].Click();
+
+            Assert.True(collapseRaised);
+            Assert.Equal(0, collapsedIndex);
+        }
+
+        [Fact]
+        public void Accordion_ClientMode_Multiple_DoesNotCollapseOthers()
+        {
+            using var ctx = CreateContext();
+
+            var collapsedIndices = new System.Collections.Generic.List<int>();
+
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.Multiple, true);
+                parameters.Add(p => p.Collapse, EventCallback.Factory.Create<int>(this, (index) =>
+                {
+                    collapsedIndices.Add(index);
+                }));
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "Selected", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(4);
+                    builder.AddAttribute(5, "Text", "Item 2");
+                    builder.AddAttribute(6, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+                });
+            });
+
+            // Click Item 2 to expand it — Item 1 should NOT collapse
+            var headers = component.FindAll(".rz-accordion-header button");
+            headers[1].Click();
+
+            // No collapse events should fire (Item 1 stays expanded)
+            Assert.Empty(collapsedIndices);
+        }
+
+        [Fact]
+        public void Accordion_ClientMode_SelectedIndexChanged_Fires()
+        {
+            using var ctx = CreateContext();
+
+            int selectedIndex = -1;
+
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.RenderMode, AccordionRenderMode.Client);
+                parameters.Add(p => p.SelectedIndexChanged, EventCallback.Factory.Create<int>(this, (index) =>
+                {
+                    selectedIndex = index;
+                }));
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(3);
+                    builder.AddAttribute(4, "Text", "Item 2");
+                    builder.AddAttribute(5, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var headers = component.FindAll(".rz-accordion-header button");
+            headers[1].Click();
+
+            Assert.Equal(1, selectedIndex);
+        }
+
+        [Fact]
+        public void Accordion_Container_HasNoTabindexOrRole()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var container = component.Find(".rz-accordion");
+            Assert.False(container.HasAttribute("tabindex"));
+            Assert.False(container.HasAttribute("role"));
+        }
+
+        [Fact]
+        public void Accordion_AllHeaderButtons_AreInTabOrder()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "Selected", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(4);
+                    builder.AddAttribute(5, "Text", "Item 2");
+                    builder.AddAttribute(6, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+                });
+            });
+
+            // No header button should be removed from the tab order via tabindex="-1"
+            foreach (var button in component.FindAll(".rz-accordion-header button"))
+            {
+                Assert.False(button.HasAttribute("tabindex"),
+                    "Header buttons must remain in the natural tab order so every panel is reachable with Tab.");
+            }
+        }
+
+        [Fact]
+        public void Accordion_DisabledItem_RendersDisabledButton()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Disabled Item");
+                    builder.AddAttribute(2, "Disabled", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var button = component.Find(".rz-accordion-header button");
+            Assert.True(button.HasAttribute("disabled"));
+        }
+
+        [Fact]
+        public void Accordion_HeaderButtons_ExposeAriaExpanded()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "Selected", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(4);
+                    builder.AddAttribute(5, "Text", "Item 2");
+                    builder.AddAttribute(6, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var buttons = component.FindAll(".rz-accordion-header button");
+            Assert.Equal("true", buttons[0].GetAttribute("aria-expanded"));
+            Assert.Equal("false", buttons[1].GetAttribute("aria-expanded"));
+        }
+
+        [Fact]
+        public void Accordion_ArrowDown_MovesFocusToNextHeader()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(3);
+                    builder.AddAttribute(4, "Text", "Item 2");
+                    builder.AddAttribute(5, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var buttons = component.FindAll(".rz-accordion-header button");
+
+            // Arrow navigation moves real DOM focus via FocusAsync (JS interop) without throwing.
+            buttons[0].KeyDown(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Code = "ArrowDown" });
+
+            Assert.Contains(ctx.JSInterop.Invocations,
+                i => i.Identifier == "Blazor._internal.domWrapper.focus");
+        }
+
+        [Fact]
+        public void Accordion_Header_HasHeadingRoleAndDefaultLevel()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var header = component.Find(".rz-accordion-header");
+
+            Assert.Equal("heading", header.GetAttribute("role"));
+            Assert.Equal("3", header.GetAttribute("aria-level"));
+            Assert.NotNull(header.QuerySelector("button"));
+        }
+
+        [Fact]
+        public void Accordion_Header_HonorsCustomAriaLevel()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.AriaLevel, 2);
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenAccordionItem>(3);
+                    builder.AddAttribute(4, "Text", "Item 2");
+                    builder.AddAttribute(5, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 2")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var headers = component.FindAll(".rz-accordion-header");
+
+            Assert.All(headers, header =>
+            {
+                Assert.Equal("heading", header.GetAttribute("role"));
+                Assert.Equal("2", header.GetAttribute("aria-level"));
+            });
+        }
+
+        [Fact]
+        public void Accordion_HeaderButton_KeepsAriaWiringInsideHeading()
+        {
+            using var ctx = CreateContext();
+            var component = ctx.RenderComponent<RadzenAccordion>(parameters =>
+            {
+                parameters.Add(p => p.Items, builder =>
+                {
+                    builder.OpenComponent<RadzenAccordionItem>(0);
+                    builder.AddAttribute(1, "Text", "Item 1");
+                    builder.AddAttribute(2, "Selected", true);
+                    builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Content 1")));
+                    builder.CloseComponent();
+                });
+            });
+
+            var header = component.Find(".rz-accordion-header[role='heading']");
+            var button = header.QuerySelector("button");
+
+            Assert.NotNull(button);
+            Assert.Equal("button", button!.GetAttribute("type"));
+            Assert.Equal("true", button.GetAttribute("aria-expanded"));
+            Assert.False(string.IsNullOrEmpty(button.GetAttribute("aria-controls")));
         }
     }
 }

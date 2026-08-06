@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,6 +60,22 @@ namespace Radzen.Blazor
         /// <value><c>true</c> to show built-in navigation buttons; <c>false</c> to use custom navigation. Default is <c>true</c>.</value>
         [Parameter]
         public bool ShowStepsButtons { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the transition animation used when switching between steps.
+        /// </summary>
+        /// <value>The transition type. Default is <see cref="StepsTransition.None"/> (no animation).</value>
+        [Parameter]
+        public StepsTransition Transition { get; set; } = StepsTransition.None;
+
+        /// <summary>
+        /// Gets or sets the duration of the transition animation in milliseconds.
+        /// </summary>
+        /// <value>The animation duration in milliseconds. Default is <c>300</c>.</value>
+        [Parameter]
+        public int TransitionDuration { get; set; } = 300;
+
+        int transitionKey;
 
         /// <summary>
         /// Gets or sets the edit context.
@@ -134,10 +151,12 @@ namespace Radzen.Blazor
         /// If already at the last step, this method does nothing. Respects CanChange validation.
         /// </summary>
         /// <returns>A task representing the asynchronous navigation operation.</returns>
-        public async System.Threading.Tasks.Task NextStep()
+        public virtual async System.Threading.Tasks.Task NextStep()
         {
             if (!IsLastVisibleStep())
             {
+                var currentStep = steps.ElementAtOrDefault(SelectedIndex);
+
                 var nextIndex = SelectedIndex + 1;
                 while (nextIndex < steps.Count)
                 {
@@ -151,6 +170,11 @@ namespace Radzen.Blazor
                 }
 
                 await SelectStepFromIndex(nextIndex);
+
+                if (SelectedIndex == nextIndex && currentStep != null)
+                {
+                    await currentStep.OnNextStep.InvokeAsync();
+                }
             }
         }
 
@@ -159,10 +183,12 @@ namespace Radzen.Blazor
         /// If already at the first step, this method does nothing. Respects CanChange validation.
         /// </summary>
         /// <returns>A task representing the asynchronous navigation operation.</returns>
-        public async System.Threading.Tasks.Task PrevStep()
+        public virtual async System.Threading.Tasks.Task PrevStep()
         {
             if (!IsFirstVisibleStep())
             {
+                var currentStep = steps.ElementAtOrDefault(SelectedIndex);
+
                 var prevIndex = SelectedIndex - 1;
                 while (prevIndex >= 0)
                 {
@@ -176,6 +202,11 @@ namespace Radzen.Blazor
                 }
 
                 await SelectStepFromIndex(prevIndex);
+
+                if (SelectedIndex == prevIndex && currentStep != null)
+                {
+                    await currentStep.OnPreviousStep.InvokeAsync();
+                }
             }
         }
 
@@ -246,7 +277,7 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<StepsCanChangeEventArgs> CanChange { get; set; }
 
-        private string nextStep = "Next";
+        private string? nextStep;
         /// <summary>
         /// Gets or sets the next button text.
         /// </summary>
@@ -256,7 +287,7 @@ namespace Radzen.Blazor
         {
             get
             {
-                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.NextText ?? nextStep;
+                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.NextText ?? nextStep ?? Localize(nameof(RadzenStrings.Steps_NextText));
             }
             set
             {
@@ -269,7 +300,7 @@ namespace Radzen.Blazor
             }
         }
 
-        private string previousText = "Previous";
+        private string? previousText;
         /// <summary>
         /// Gets or sets the previous button text.
         /// </summary>
@@ -279,7 +310,7 @@ namespace Radzen.Blazor
         {
             get
             {
-                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.PreviousText ?? previousText;
+                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.PreviousText ?? previousText ?? Localize(nameof(RadzenStrings.Steps_PreviousText));
             }
             set
             {
@@ -292,7 +323,7 @@ namespace Radzen.Blazor
             }
         }
 
-        private string nextTitle = "Go to the next step.";
+        private string? nextTitle;
         /// <summary>
         /// Gets or sets the next button title attribute.
         /// </summary>
@@ -302,7 +333,7 @@ namespace Radzen.Blazor
         {
             get
             {
-                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.NextTitle ?? nextTitle;
+                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.NextTitle ?? nextTitle ?? Localize(nameof(RadzenStrings.Steps_NextTitle));
             }
             set
             {
@@ -314,7 +345,7 @@ namespace Radzen.Blazor
             }
         }
 
-        private string previousTitle = "Go to the previous step.";
+        private string? previousTitle;
         /// <summary>
         /// Gets or sets the previous button title attribute.
         /// </summary>
@@ -324,7 +355,7 @@ namespace Radzen.Blazor
         {
             get
             {
-                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.PreviousTitle ?? previousTitle;
+                return StepsCollection.ElementAtOrDefault(SelectedIndex)?.PreviousTitle ?? previousTitle ?? Localize(nameof(RadzenStrings.Steps_PreviousTitle));
             }
             set
             {
@@ -362,7 +393,19 @@ namespace Radzen.Blazor
         [Parameter]
         public bool AllowStepSelect { get; set; } = true;
 
-        List<RadzenStepsItem> steps = new List<RadzenStepsItem>();
+        /// <summary>
+        /// Gets or sets the aria-label applied to the steps tab list.
+        /// </summary>
+        /// <value>The tab list aria-label. Default is <c>"Steps"</c>.</value>
+        [Parameter]
+        public string TabListAriaLabel { get => tabListAriaLabel ?? Localize(nameof(RadzenStrings.Steps_TabListAriaLabel)); set => tabListAriaLabel = value; }
+
+        private string? tabListAriaLabel;
+
+        /// <summary>
+        /// The collection of steps.
+        /// </summary>
+        protected List<RadzenStepsItem> steps = new List<RadzenStepsItem>();
 
         /// <summary>
         /// Adds the step.
@@ -414,7 +457,19 @@ namespace Radzen.Blazor
             return SelectedIndex == index;
         }
 
-        internal async System.Threading.Tasks.Task SelectStep(RadzenStepsItem step, bool raiseChange = false)
+        int? focusedIndex;
+
+        bool IsFocused(int index)
+        {
+            return (focusedIndex ?? SelectedIndex) == index;
+        }
+
+        /// <summary>
+        /// Selects the specified step.
+        /// </summary>
+        /// <param name="step">The step to select.</param>
+        /// <param name="raiseChange">Whether to raise change events.</param>
+        protected internal virtual async System.Threading.Tasks.Task SelectStep(RadzenStepsItem step, bool raiseChange = false)
         {
             var newIndex = steps.IndexOf(step);
 
@@ -436,7 +491,9 @@ namespace Radzen.Blazor
 
             if (valid || newIndex < SelectedIndex)
             {
+                transitionKey++;
                 SelectedIndex = newIndex;
+                focusedIndex = newIndex;
 
                 if (raiseChange)
                 {
@@ -450,6 +507,26 @@ namespace Radzen.Blazor
         internal void SelectFirst()
         {
             SelectedIndex = 0;
+        }
+
+        string GetContentCssClass()
+        {
+            return Transition switch
+            {
+                StepsTransition.Fade => "rz-widget-content rz-steps-fade",
+                StepsTransition.Slide => "rz-widget-content rz-steps-slide",
+                _ => "rz-widget-content"
+            };
+        }
+
+        string GetTransitionStyle()
+        {
+            if (Transition != StepsTransition.None)
+            {
+                return $"--rz-steps-transition-duration: {TransitionDuration}ms";
+            }
+
+            return string.Empty;
         }
 
         /// <inheritdoc />
@@ -496,6 +573,84 @@ namespace Radzen.Blazor
                 preventKeyPress = false;
                 stopKeypressPropagation = false;
             }
+        }
+
+        async Task OnTabKeyDown(KeyboardEventArgs args, RadzenStepsItem step, int index)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "Space" || key == "Enter")
+            {
+                preventKeyPress = true;
+                stopKeypressPropagation = true;
+
+                if (!step.Disabled && AllowStepSelect)
+                {
+                    await SelectStep(step, true);
+                }
+            }
+            else if (key == "ArrowLeft" || key == "ArrowRight" || key == "Home" || key == "End")
+            {
+                preventKeyPress = true;
+                stopKeypressPropagation = true;
+
+                await FocusTab(key, index);
+            }
+            else
+            {
+                preventKeyPress = false;
+                stopKeypressPropagation = false;
+            }
+        }
+
+        async Task FocusTab(string key, int index)
+        {
+            var target = -1;
+
+            if (key == "Home")
+            {
+                target = NextFocusableTab(-1, 1);
+            }
+            else if (key == "End")
+            {
+                target = NextFocusableTab(steps.Count, -1);
+            }
+            else
+            {
+                var forward = key != "ArrowLeft";
+                var direction = forward ? 1 : -1;
+                target = NextFocusableTab(index + direction, direction);
+
+                if (target == -1)
+                {
+                    target = forward ? NextFocusableTab(0, 1) : NextFocusableTab(steps.Count - 1, -1);
+                }
+            }
+
+            if (target >= 0 && target < steps.Count && JSRuntime != null)
+            {
+                focusedIndex = target;
+                StateHasChanged();
+
+                await JSRuntime.InvokeVoidAsync("Radzen.focusElement", GetId() + target.ToString(System.Globalization.CultureInfo.InvariantCulture) + "s");
+            }
+        }
+
+        int NextFocusableTab(int start, int direction)
+        {
+            var i = start;
+
+            while (i >= 0 && i < steps.Count)
+            {
+                if (steps[i].Visible)
+                {
+                    return i;
+                }
+
+                i += direction;
+            }
+
+            return -1;
         }
     }
 }

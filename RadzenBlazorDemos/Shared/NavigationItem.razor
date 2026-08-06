@@ -1,4 +1,5 @@
 @inject NavigationManager navigationManager;
+@inject QueryStringThemeService QueryStringThemeService;
 @if (!Example.New && !Example.Updated && !Example.Pro)
 {
     <RadzenPanelMenuItem @bind-Expanded=@Example.Expanded Text="@Example.Name" Path="@GetUrl()" Icon="@Example.Icon" aria-label="@Example.Name" ChildContent=@ChildContent />
@@ -8,7 +9,7 @@ else
     <RadzenPanelMenuItem @bind-Expanded=@Example.Expanded Text="@Example.Name" Path="@GetUrl()" Icon="@Example.Icon" aria-label="@Example.Name" ChildContent="@ChildContent">
         <Template>
             @Example.Name
-            <RadzenBadge Text="Updated" Visible=@Example.Updated BadgeStyle="BadgeStyle.Info"/>
+            <RadzenBadge Text="Upd" Visible=@Example.Updated BadgeStyle="BadgeStyle.Info"/>
             <RadzenBadge Text="New" Visible=@Example.New BadgeStyle="BadgeStyle.Success"/>
             <RadzenBadge Text="Pro" Visible=@Example.Pro BadgeStyle="BadgeStyle.Danger"/>
         </Template>
@@ -23,6 +24,16 @@ else
 
     string GetUrl()
     {
-        return Example.Path == null ? Example.Path : $"{Example.Path}{new Uri(navigationManager.Uri).Query}";
+        if (Example.Path == null)
+        {
+            return Example.Path;
+        }
+
+        if (string.IsNullOrEmpty(new Uri(navigationManager.Uri).Query))
+        {
+            return Example.Path;
+        }
+
+        return QueryStringThemeService.GetUriWithStateQueryParameters(Example.Path);
     }
 }

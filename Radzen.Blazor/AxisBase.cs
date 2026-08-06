@@ -1,5 +1,6 @@
-using System;
 using Microsoft.AspNetCore.Components;
+using System;
+using System.Globalization;
 
 namespace Radzen.Blazor
 {
@@ -56,6 +57,12 @@ namespace Radzen.Blazor
         public RadzenGridLines GridLines { get; set; } = new RadzenGridLines();
 
         /// <summary>
+        /// Gets or sets the crosshair configuration of the current axis.
+        /// </summary>
+        /// <value>The crosshair.</value>
+        public RadzenAxisCrosshair Crosshair { get; set; } = new RadzenAxisCrosshair();
+
+        /// <summary>
         /// Gets or sets the title configuration.
         /// </summary>
         /// <value>The title.</value>
@@ -74,6 +81,13 @@ namespace Radzen.Blazor
         /// <value>The desired pixel distance between ticks.</value>
         [Parameter]
         public int TickDistance { get; set; } = 100;
+
+        /// <summary>
+        /// Gets or sets the width of the axis in pixels. If not set, the width is calculated automatically based on the axis content.
+        /// The parameter only has effect for vertically rendered value axes. It is ignored on the category axis in normal charts and on value axes in inverted (bar) charts
+        /// </summary>
+        [Parameter]
+        public int? Width { get; set; }
 
         /// <summary>
         /// Specifies the minimum value of the axis.
@@ -101,7 +115,40 @@ namespace Radzen.Blazor
         /// <value><c>true</c> if visible; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool Visible { get; set; } = true;
-    /// <summary>
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this axis is inverted.
+        /// When <c>true</c>, the axis direction is reversed: values increase in the opposite visual direction
+        /// and categories are displayed in reverse order.
+        /// </summary>
+        [Parameter]
+        public bool Inverted { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this axis uses a logarithmic scale.
+        /// When <c>true</c>, the axis displays values on a logarithmic scale (base 10 by default).
+        /// Only positive values are supported. Set <see cref="LogarithmicBase"/> to change the base.
+        /// </summary>
+        [Parameter]
+        public bool Logarithmic { get; set; }
+
+        /// <summary>
+        /// Gets or sets the base of the logarithmic scale. Default is 10.
+        /// Only used when <see cref="Logarithmic"/> is <c>true</c>.
+        /// </summary>
+        [Parameter]
+        public double LogarithmicBase { get; set; } = 10;
+
+        /// <summary>
+        /// Specifies the value on the perpendicular axis where this axis should cross.
+        /// When set, the axis line and ticks are positioned at the corresponding location
+        /// instead of the chart edge. For example, setting <c>CrossesAt="0"</c> on the category axis
+        /// positions it where 0 is on the value axis.
+        /// </summary>
+        [Parameter]
+        public object? CrossesAt { get; set; }
+
+        /// <summary>
         /// Specifies the label rotation angle in degrees. Set to <c>null</c> by default which means no rotation is applied. Has higher precedence than <see cref="LabelAutoRotation"/>.
         /// </summary>
         [Parameter]
@@ -121,7 +168,12 @@ namespace Radzen.Blazor
                    DidParameterChange(parameters, nameof(Visible), Visible) ||
                    DidParameterChange(parameters, nameof(LabelRotation), LabelRotation) ||
                    DidParameterChange(parameters, nameof(LabelAutoRotation), LabelAutoRotation) ||
-                   DidParameterChange(parameters, nameof(Step), Step);
+                   DidParameterChange(parameters, nameof(Inverted), Inverted) ||
+                   DidParameterChange(parameters, nameof(CrossesAt), CrossesAt) ||
+                   DidParameterChange(parameters, nameof(Logarithmic), Logarithmic) ||
+                   DidParameterChange(parameters, nameof(LogarithmicBase), LogarithmicBase) ||
+                   DidParameterChange(parameters, nameof(Step), Step) ||
+                   DidParameterChange(parameters, nameof(Width), Width);
         }
 
         internal string Format(ScaleBase scale, double idx)
@@ -141,6 +193,16 @@ namespace Radzen.Blazor
             {
                 return scale.FormatTick(FormatString ?? string.Empty, value);
             }
+        }
+
+        internal double? GetCrossesAtValue()
+        {
+            if (CrossesAt == null)
+            {
+                return null;
+            }
+
+            return Convert.ToDouble(CrossesAt, CultureInfo.InvariantCulture);
         }
 
         internal abstract double Size { get; }

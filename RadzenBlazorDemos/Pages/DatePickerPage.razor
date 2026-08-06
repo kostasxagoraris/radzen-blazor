@@ -4,7 +4,7 @@
     Blazor DatePicker
 </RadzenText>
 <RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
-    Calendar mode, time picker, and date range support.
+    The Radzen Blazor DatePicker is a date and time picker with an inline calendar mode, time selection, date ranges, min/max and disabled dates, and DateOnly/TimeOnly binding.
 </RadzenText>
 
 <RadzenText Anchor="datepicker#get-set-value" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
@@ -178,6 +178,16 @@
 </RadzenExample>
 
 
+<RadzenText Anchor="datepicker#sizes" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-8">
+    DatePicker Sizes
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use the <code>InputSize</code> property to set the DatePicker size. Available sizes are ExtraSmall, Small, Medium (default), and Large.
+</RadzenText>
+<RadzenExample ComponentName="DatePicker" Example="DatePickerSizes">
+    <DatePickerSizes />
+</RadzenExample>
+
 <RadzenText Anchor="datepicker#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
     Keyboard Navigation
 </RadzenText>
@@ -191,13 +201,20 @@
     public List<KeyboardShortcut> shortcuts = new()
     {
         new KeyboardShortcut { Key = "Tab", Action = "Navigate to a DatePicker component." },
+        new KeyboardShortcut { Key = "Alt + DownArrow", Action = "Open the calendar popup." },
         new KeyboardShortcut { Key = "Tab on open popup", Action = "Navigate forward across available picker components." },
         new KeyboardShortcut { Key = "Shift + Tab on open popup", Action = "Navigate backward across available picker components." },
-        new KeyboardShortcut { Key = "RightArrow on open popup", Action = "Select previous day." },
-        new KeyboardShortcut { Key = "LeftArrow on open popup", Action = "Select next day." },
-        new KeyboardShortcut { Key = "UpArrow on open popup", Action = "Select same day from previous week." },
-        new KeyboardShortcut { Key = "DownArrow on open popup", Action = "Select same day from next week." },
-        new KeyboardShortcut { Key = "Enter in an opened popup", Action = "Select the focused day and close the popup." },
+        new KeyboardShortcut { Key = "RightArrow on open popup", Action = "Move focus to the next day." },
+        new KeyboardShortcut { Key = "LeftArrow on open popup", Action = "Move focus to the previous day." },
+        new KeyboardShortcut { Key = "UpArrow on open popup", Action = "Move focus to the same day of the previous week." },
+        new KeyboardShortcut { Key = "DownArrow on open popup", Action = "Move focus to the same day of the next week." },
+        new KeyboardShortcut { Key = "Home on open popup", Action = "Move focus to the first day of the week." },
+        new KeyboardShortcut { Key = "End on open popup", Action = "Move focus to the last day of the week." },
+        new KeyboardShortcut { Key = "PageUp on open popup", Action = "Move focus to the same day of the previous month." },
+        new KeyboardShortcut { Key = "PageDown on open popup", Action = "Move focus to the same day of the next month." },
+        new KeyboardShortcut { Key = "Shift + PageUp on open popup", Action = "Move focus to the same day of the previous year." },
+        new KeyboardShortcut { Key = "Shift + PageDown on open popup", Action = "Move focus to the same day of the next year." },
+        new KeyboardShortcut { Key = "Enter or Space in an opened popup", Action = "Select the focused day and close the popup." },
         new KeyboardShortcut { Key = "Esc in an opened popup", Action = "Close the popup." }
     };
 }

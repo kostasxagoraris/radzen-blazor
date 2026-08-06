@@ -52,7 +52,7 @@ namespace Radzen.Blazor
         [Parameter]
         public bool ShowEmptyMessage { get; set; }
 
-        private string emptyText = "No records to display.";
+        private string? emptyText;
         /// <summary>
         /// Gets or sets the text message displayed when the data source is empty.
         /// Only shown if <see cref="ShowEmptyMessage"/> is true and no <see cref="EmptyTemplate"/> is specified.
@@ -61,7 +61,7 @@ namespace Radzen.Blazor
         [Parameter]
         public string EmptyText
         {
-            get { return emptyText; }
+            get { return emptyText ?? Localize(nameof(RadzenStrings.DataList_EmptyText)); }
             set
             {
                 if (value != emptyText)
@@ -139,7 +139,7 @@ namespace Radzen.Blazor
                 {
                     builder.OpenComponent(0, typeof(Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize<TItem>));
                     builder.AddAttribute(1, "ItemsProvider", new Microsoft.AspNetCore.Components.Web.Virtualization.ItemsProviderDelegate<TItem>(LoadItems));
-                    
+
                     builder.AddAttribute(2, "ChildContent", (RenderFragment<TItem>)((context) =>
                     {
                         return (RenderFragment)((b) =>
@@ -147,6 +147,11 @@ namespace Radzen.Blazor
                             DrawRow(b, context);
                         });
                     }));
+
+                    if (!WrapItems)
+                    {
+                        builder.AddAttribute(3, "SpacerElement", "li");
+                    }
 
                     builder.AddComponentReferenceCapture(4, c => { virtualize = (Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize<TItem>)c; });
 

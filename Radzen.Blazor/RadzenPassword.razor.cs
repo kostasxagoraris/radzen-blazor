@@ -46,23 +46,29 @@ namespace Radzen.Blazor
         public bool Immediate { get; set; }
 
         /// <summary>
-        /// Handles the change event.
+        /// Handles the @bind:set binding of the underlying input element.
         /// </summary>
-        /// <param name="args">The <see cref="ChangeEventArgs"/> instance containing the event data.</param>
-        protected async System.Threading.Tasks.Task OnChange(ChangeEventArgs args)
+        /// <param name="value">The new value reported by the input/change event.</param>
+        protected async System.Threading.Tasks.Task SetValue(string? value)
         {
-            ArgumentNullException.ThrowIfNull(args);
-            Value = $"{args.Value}";
+            var newValue = $"{value}";
+            Value = newValue;
 
-            await ValueChanged.InvokeAsync(Value);
-            if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }
-            await Change.InvokeAsync(Value);
+            await ValueChanged.InvokeAsync(newValue);
+            NotifyFieldChanged(newValue);
+            await Change.InvokeAsync(newValue);
         }
+
+        /// <summary>
+        /// Gets or sets the size of the component.
+        /// </summary>
+        [Parameter]
+        public InputSize InputSize { get; set; } = InputSize.Medium;
 
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("rz-textbox").ToString();
+            return GetClassList("rz-textbox").AddInputSize(InputSize).ToString();
         }
 
         /// <inheritdoc />

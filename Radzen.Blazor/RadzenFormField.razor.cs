@@ -1,5 +1,6 @@
 using Radzen.Blazor.Rendering;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using System;
 using System.Threading.Tasks;
 
@@ -73,8 +74,78 @@ namespace Radzen.Blazor
     /// &lt;/RadzenFormField&gt;
     /// </code>
     /// </example>
-    public partial class RadzenFormField : RadzenComponent
+    public partial class RadzenFormField : RadzenComponent, IAsyncDisposable
     {
+        private IJSObjectReference? _jsRef;
+        private int _jsRefVersion;
+        private bool _visibleChanged;
+
+        /// <inheritdoc />
+        public override async Task SetParametersAsync(ParameterView parameters)
+        {
+            if (parameters.DidParameterChange(nameof(Visible), Visible))
+            {
+                _visibleChanged = true;
+            }
+
+            await base.SetParametersAsync(parameters);
+        }
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            if ((firstRender || _visibleChanged) && JSRuntime != null)
+            {
+                _visibleChanged = false;
+
+                var version = ++_jsRefVersion;
+                var jsRef = _jsRef;
+                _jsRef = null;
+
+                if (jsRef != null)
+                {
+                    await jsRef.InvokeVoidAsync("dispose");
+                    await jsRef.DisposeAsync();
+                }
+
+                if (version != _jsRefVersion)
+                {
+                    return;
+                }
+
+                if (Visible)
+                {
+                    var created = await JSRuntime.InvokeAsync<IJSObjectReference>("Radzen.createFormField", Element);
+
+                    if (version == _jsRefVersion)
+                    {
+                        _jsRef = created;
+                    }
+                    else if (created != null)
+                    {
+                        await created.InvokeVoidAsync("dispose");
+                        await created.DisposeAsync();
+                    }
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            _jsRefVersion++;
+            var jsRef = _jsRef;
+            _jsRef = null;
+
+            if (jsRef != null)
+            {
+                try { await jsRef.InvokeVoidAsync("dispose"); } catch { }
+                try { await jsRef.DisposeAsync(); } catch { }
+            }
+        }
+
         /// <summary>
         /// Gets or sets the input component to wrap.
         /// Place the input component (RadzenTextBox, RadzenDropDown, etc.) here.

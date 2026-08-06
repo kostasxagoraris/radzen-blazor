@@ -91,6 +91,29 @@ namespace Radzen.Blazor
         public EventCallback<int> Change { get; set; }
 
         /// <summary>
+        /// Gets or sets the callback invoked before the selected tab changes in response to user interaction.
+        /// Invoke the <see cref="TabsCanChangeEventArgs.PreventDefault"/> method to cancel the tab change - for example to guard unsaved changes.
+        /// The callback can be asynchronous e.g. await a confirmation dialog before deciding.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// &lt;RadzenTabs CanChange=@OnCanChange&gt;
+        /// &lt;/RadzenTabs&gt;
+        /// @code {
+        ///  async Task OnCanChange(TabsCanChangeEventArgs args)
+        ///  {
+        ///    if (hasUnsavedChanges &amp;&amp; await DialogService.Confirm("Discard unsaved changes?") != true)
+        ///    {
+        ///        args.PreventDefault();
+        ///    }
+        ///  }
+        /// }
+        /// </code>
+        /// </example>
+        [Parameter]
+        public EventCallback<TabsCanChangeEventArgs> CanChange { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the user can reorder tabs by dragging and dropping.
         /// When enabled, tab headers become draggable and can be rearranged by the user.
         /// </summary>
@@ -113,7 +136,53 @@ namespace Radzen.Blazor
         [Parameter]
         public RenderFragment? Tabs { get; set; }
 
+        /// <summary>
+        /// Gets or sets the accessible name applied to the tab list via <c>aria-label</c>.
+        /// Use this to give assistive technologies a label describing the group of tabs.
+        /// </summary>
+        /// <value>The tab list aria-label. Default is <c>null</c>.</value>
+        [Parameter]
+        public string? AriaLabel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the id of the element that labels the tab list via <c>aria-labelledby</c>.
+        /// Use this when a visible element already provides the accessible name for the group of tabs.
+        /// </summary>
+        /// <value>The id of the labelling element. Default is <c>null</c>.</value>
+        [Parameter]
+        public string? AriaLabelledBy { get; set; }
+
+        internal ElementReference tablistElement;
+
         List<RadzenTabsItem> tabs = new List<RadzenTabsItem>();
+
+        internal List<RadzenTabsItem> NavigableTabs()
+        {
+            var item = tabs.ElementAtOrDefault(selectedIndex) ?? tabs.FirstOrDefault();
+
+            if (item == null)
+            {
+                return new List<RadzenTabsItem>();
+            }
+
+            return tabs.Where(t => HasInvisibleBefore(item) ? true : t.Visible).ToList();
+        }
+
+        internal string? GetActiveDescendantId()
+        {
+            if (focusedIndex < 0)
+            {
+                return null;
+            }
+
+            var focused = NavigableTabs().ElementAtOrDefault(focusedIndex);
+            if (focused == null)
+            {
+                return null;
+            }
+
+            return $"{GetId()}-tabpanel-{IndexOf(focused)}-label";
+        }
 
         /// <summary>
         /// Adds the tab.
@@ -197,20 +266,48 @@ namespace Radzen.Blazor
 
         internal async Task SelectTab(RadzenTabsItem tab, bool raiseChange = false)
         {
-            selectedIndex = IndexOf(tab);
+            var newIndex = IndexOf(tab);
+
+            if (raiseChange && newIndex != selectedIndex)
+            {
+                var canChangeArgs = new TabsCanChangeEventArgs { SelectedIndex = selectedIndex, NewIndex = newIndex };
+
+                await CanChange.InvokeAsync(canChangeArgs);
+
+                if (canChangeArgs.IsDefaultPrevented)
+                {
+                    return;
+                }
+            }
+
+            selectedIndex = newIndex;
 
             SetFocusedIndex();
 
-            if (raiseChange)
+            try
             {
-                await Change.InvokeAsync(selectedIndex);
+                if (raiseChange)
+                {
+                    await Change.InvokeAsync(selectedIndex);
 
-                await SelectedIndexChanged.InvokeAsync(selectedIndex);
+                    await SelectedIndexChanged.InvokeAsync(selectedIndex);
 
-                await Element.FocusAsync(preventScroll: true);
+                    try
+                    {
+                        await tablistElement.FocusAsync(preventScroll: true);
+                    }
+                    catch (JSDisconnectedException)
+                    {
+                    }
+                    catch (JSException)
+                    {
+                    }
+                }
             }
-
-            StateHasChanged();
+            finally
+            {
+                StateHasChanged();
+            }
         }
 
         /// <inheritdoc />
@@ -247,16 +344,28 @@ namespace Radzen.Blazor
         {
             selectedIndex = SelectedIndex;
 
-            focusedIndex = focusedIndex == -1 ? 0 : focusedIndex;
+            SetFocusedIndex();
+
+            if (focusedIndex == -1)
+            {
+                focusedIndex = 0;
+            }
 
             base.OnInitialized();
         }
 
         void SetFocusedIndex()
         {
-            if (focusedIndex != selectedIndex)
+            var selected = tabs.ElementAtOrDefault(selectedIndex);
+
+            if (selected != null)
             {
-                focusedIndex = selectedIndex;
+                var navigableIndex = NavigableTabs().IndexOf(selected);
+
+                if (navigableIndex != -1)
+                {
+                    focusedIndex = navigableIndex;
+                }
             }
         }
 
@@ -281,18 +390,31 @@ namespace Radzen.Blazor
             if (JSRuntime != null && RenderMode == TabRenderMode.Client && previousSelectedIndex != selectedIndex)
             {
                 previousSelectedIndex = selectedIndex;
-                await JSRuntime.InvokeVoidAsync("Radzen.selectTab", $"{GetId()}-tabpanel-{selectedIndex}", selectedIndex);
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.selectTab", $"{GetId()}-tabpanel-{selectedIndex}", selectedIndex);
+                }
+                catch (JSDisconnectedException)
+                {
+                }
             }
 
             await base.OnAfterRenderAsync(firstRender);
         }
 
         bool shouldRender = true;
+        bool suppressNextRender;
         /// <summary>
         /// Should render.
         /// </summary>
         protected override bool ShouldRender()
         {
+            if (suppressNextRender)
+            {
+                suppressNextRender = false;
+                return false;
+            }
+
             return shouldRender;
         }
 
@@ -301,18 +423,48 @@ namespace Radzen.Blazor
             var index = IndexOf(tab);
             if (index != selectedIndex && JSRuntime != null)
             {
+                var canChangeArgs = new TabsCanChangeEventArgs { SelectedIndex = selectedIndex, NewIndex = index };
+
+                await CanChange.InvokeAsync(canChangeArgs);
+
+                if (canChangeArgs.IsDefaultPrevented)
+                {
+                    return;
+                }
+
                 selectedIndex = index;
                 previousSelectedIndex = selectedIndex;
                 SetFocusedIndex();
 
-                await JSRuntime.InvokeVoidAsync("Radzen.selectTab", $"{GetId()}-tabpanel-{selectedIndex}", selectedIndex);
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.selectTab", $"{GetId()}-tabpanel-{selectedIndex}", selectedIndex);
+                }
+                catch (JSDisconnectedException)
+                {
+                }
 
                 shouldRender = false;
-                await Change.InvokeAsync(selectedIndex);
-                await SelectedIndexChanged.InvokeAsync(selectedIndex);
-                shouldRender = true;
+                try
+                {
+                    await Change.InvokeAsync(selectedIndex);
+                    await SelectedIndexChanged.InvokeAsync(selectedIndex);
+                }
+                finally
+                {
+                    shouldRender = true;
+                }
 
-                await Element.FocusAsync(preventScroll: true);
+                try
+                {
+                    await tablistElement.FocusAsync(preventScroll: true);
+                }
+                catch (JSDisconnectedException)
+                {
+                }
+                catch (JSException)
+                {
+                }
             }
         }
 
@@ -321,58 +473,83 @@ namespace Radzen.Blazor
             return tabs?.Where(t => t.Visible).FirstOrDefault();
         }
 
+        internal bool IsVertical => TabPosition == TabPosition.Left || TabPosition == TabPosition.Right;
+
         internal int focusedIndex = -1;
         bool preventKeyPress = true;
         bool stopKeydownPropagation;
-
-        bool stopGuardKeydownPropagation = true;
-        void OnGuardKeyDown(KeyboardEventArgs args)
-        {
-            var key = args.Code ?? args.Key;
-            stopGuardKeydownPropagation = key != "Escape";
-        }
 
         async Task OnKeyPress(KeyboardEventArgs args)
         {
             var key = args.Code != null ? args.Code : args.Key;
 
-            var item = tabs.ElementAtOrDefault(focusedIndex) ?? tabs.FirstOrDefault();
+            var navigableTabs = NavigableTabs();
 
-            if (item == null) return;
+            if (navigableTabs.Count == 0)
+            {
+                return;
+            }
 
-            if (key == "ArrowLeft" || key == "ArrowRight")
+            var previousKey = IsVertical ? "ArrowUp" : "ArrowLeft";
+            var nextKey = IsVertical ? "ArrowDown" : "ArrowRight";
+
+            if (key == previousKey || key == nextKey)
             {
                 preventKeyPress = true;
                 stopKeydownPropagation = true;
 
-                focusedIndex = Math.Clamp(focusedIndex + (key == "ArrowLeft" ? -1 : 1), 0, tabs.Where(t => HasInvisibleBefore(item) ? true : t.Visible).Count() - 1);
+                var direction = key == previousKey ? -1 : 1;
+                var count = navigableTabs.Count;
+
+                focusedIndex = ((focusedIndex + direction) % count + count) % count;
+
+                var steps = 0;
+                while (navigableTabs.ElementAtOrDefault(focusedIndex)?.Disabled == true && steps < count)
+                {
+                    focusedIndex = ((focusedIndex + direction) % count + count) % count;
+                    steps++;
+                }
             }
             else if (key == "Home" || key == "End")
             {
                 preventKeyPress = true;
                 stopKeydownPropagation = true;
 
-                focusedIndex = key == "Home" ? 0 : tabs.Where(t => HasInvisibleBefore(item) ? true : t.Visible).Count() - 1;
+                var count = navigableTabs.Count;
+                var direction = key == "Home" ? 1 : -1;
+
+                focusedIndex = key == "Home" ? 0 : count - 1;
+
+                var steps = 0;
+                while (navigableTabs.ElementAtOrDefault(focusedIndex)?.Disabled == true && steps < count)
+                {
+                    focusedIndex = ((focusedIndex + direction) % count + count) % count;
+                    steps++;
+                }
             }
             else if (key == "Space" || key == "Enter")
             {
                 preventKeyPress = true;
                 stopKeydownPropagation = true;
 
-                if (focusedIndex >= 0 && focusedIndex < tabs.Where(t => HasInvisibleBefore(item) ? true : t.Visible).Count())
+                if (focusedIndex >= 0 && focusedIndex < navigableTabs.Count)
                 {
-                    await tabs.Where(t => HasInvisibleBefore(item) ? true : t.Visible).ToList()[focusedIndex].OnClick();
+                    await navigableTabs[focusedIndex].OnClick();
                 }
             }
             else
             {
+                if (!preventKeyPress && !stopKeydownPropagation)
+                {
+                    suppressNextRender = true;
+                }
                 preventKeyPress = false;
                 stopKeydownPropagation = false;
             }
         }
         internal bool IsFocused(RadzenTabsItem item)
         {
-            return tabs.Where(t => HasInvisibleBefore(item) ? true : t.Visible).ToList().IndexOf(item) == focusedIndex && focusedIndex != -1;
+            return NavigableTabs().IndexOf(item) == focusedIndex && focusedIndex != -1;
         }
 
         internal bool HasInvisibleBefore(RadzenTabsItem item)

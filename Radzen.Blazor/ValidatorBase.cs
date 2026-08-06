@@ -104,7 +104,11 @@ namespace Radzen.Blazor
 
         private void ValidateField(object? sender, FieldChangedEventArgs args)
         {
-            if (Form == null) return;
+            if (Form == null)
+            {
+                return;
+            }
+
             var component = Form.FindComponent(Component);
             if (component != null && args != null)
             {
@@ -117,7 +121,11 @@ namespace Radzen.Blazor
 
         private void ValidateModel(object? sender, ValidationRequestedEventArgs args)
         {
-            if (Form == null) return;
+            if (Form == null)
+            {
+                return;
+            }
+
             var component = Form.FindComponent(Component);
 
             if (component == null)
@@ -128,6 +136,8 @@ namespace Radzen.Blazor
             if (component.FieldIdentifier.FieldName != null)
             {
                 var previousIsValid = IsValid;
+                var previousText = Text;
+
                 IsValid = Validate(component);
 
                 messages?.Clear(component.FieldIdentifier);
@@ -137,7 +147,7 @@ namespace Radzen.Blazor
                     messages?.Add(component.FieldIdentifier, Text);
                 }
 
-                if (previousIsValid != IsValid)
+                if (previousIsValid != IsValid || (!IsValid && previousText != Text))
                 {
                     EditContext?.NotifyValidationStateChanged();
                 }

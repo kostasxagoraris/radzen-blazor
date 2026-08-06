@@ -30,13 +30,15 @@ namespace Radzen.Blazor
     /// </example>
     public partial class RadzenLink : RadzenComponent
     {
+        private string? imageAlternateText;
+
         /// <summary>
         /// Gets or sets the alternate text for the image when using the <see cref="Image"/> property.
         /// Provides accessibility text for screen readers when an image is used instead of an icon.
         /// </summary>
         /// <value>The image alternate text. Default is "image".</value>
         [Parameter]
-        public string ImageAlternateText { get; set; } = "image";
+        public string ImageAlternateText { get => imageAlternateText ?? Localize(nameof(RadzenStrings.Link_ImageAlternateText)); set => imageAlternateText = value; }
 
         /// <summary>
         /// Gets or sets custom child content to render as the link content.
@@ -132,6 +134,24 @@ namespace Radzen.Blazor
         protected string? GetTarget()
         {
             return !Disabled ? Target : null;
+        }
+
+        /// <summary>
+        /// Gets the value of the <c>aria-disabled</c> attribute. Returns <c>"true"</c> when the link is disabled; otherwise <c>null</c> so the attribute is omitted.
+        /// </summary>
+        /// <returns></returns>
+        protected string? GetAriaDisabled()
+        {
+            return Disabled ? "true" : null;
+        }
+
+        /// <summary>
+        /// Gets the value of the <c>tabindex</c> attribute. Returns <c>"-1"</c> when the link is disabled so it is removed from the focus order; otherwise <c>null</c> so the attribute is omitted.
+        /// </summary>
+        /// <returns></returns>
+        protected string? GetTabIndex()
+        {
+            return Disabled ? "-1" : null;
         }
     }
 }

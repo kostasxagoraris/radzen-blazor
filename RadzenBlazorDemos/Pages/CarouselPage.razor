@@ -4,11 +4,21 @@
     Blazor Carousel
 </RadzenText>
 <RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
-    Cycle through content with navigation and paging support.
+    The Blazor Carousel cycles through content - images or any markup - with navigation arrows and paging.
 </RadzenText>
 
 <RadzenExample ComponentName="Carousel" Example="CarouselConfig">
     <CarouselConfig />
+</RadzenExample>
+
+<RadzenText Anchor="carousel#multiple-items" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Multiple items per page
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use <code>ItemsPerPage</code> to display multiple items at the same time.
+</RadzenText>
+<RadzenExample ComponentName="Carousel" Example="CarouselMultipleItems">
+    <CarouselMultipleItems />
 </RadzenExample>
 
 <RadzenText Anchor="carousel#navigation-style" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
@@ -56,4 +66,23 @@
 </RadzenText>
 <RadzenExample ComponentName="Carousel" Example="CarouselPager">
     <CarouselPager />
-</RadzenExample> 
+</RadzenExample>
+
+<RadzenText Anchor="carousel#keyboard-navigation" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Keyboard Navigation
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    The following keys or key combinations provide a way for users to navigate and interact with Radzen Blazor Carousel component.
+</RadzenText>
+
+<KeyboardNavigationDataGrid Data="@shortcuts" />
+
+@code {
+    public List<KeyboardShortcut> shortcuts = new()
+    {
+        new KeyboardShortcut { Key = "Tab", Action = "Move focus to the carousel and to the focusable elements inside it." },
+        new KeyboardShortcut { Key = "LeftArrow", Action = "Navigate to the previous slide." },
+        new KeyboardShortcut { Key = "RightArrow", Action = "Navigate to the next slide." },
+        new KeyboardShortcut { Key = "Space or Enter", Action = "Activate the focused navigation or pager button." }
+    };
+}

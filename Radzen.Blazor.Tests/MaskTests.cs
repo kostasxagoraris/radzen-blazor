@@ -9,6 +9,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_CssClass()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -19,6 +20,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_ValueParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -33,6 +35,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_StyleParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -47,6 +50,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_NameParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -58,9 +62,25 @@ namespace Radzen.Blazor.Tests
         }
 
         [Fact]
+        public void Mask_Renders_IdFromNameParameter()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenMask>();
+
+            var value = "DateOfBirth";
+
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.Name, value));
+
+            Assert.Contains(@$"id=""{value}""", component.Markup);
+        }
+
+        [Fact]
         public void Mask_Renders_TabIndexParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -75,6 +95,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_PlaceholderParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -89,6 +110,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_DisabledParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -102,6 +124,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_ReadOnlyParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -116,6 +139,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_AutoCompleteParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -145,6 +169,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_TypedAutoCompleteParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -173,6 +198,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_MaxLengthParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -187,6 +213,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Renders_UnmatchedParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -199,6 +226,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Raises_ChangedEvent()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -218,6 +246,7 @@ namespace Radzen.Blazor.Tests
         public void Mask_Raises_ValueChangedEvent()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenMask>();
 
@@ -231,6 +260,71 @@ namespace Radzen.Blazor.Tests
 
             Assert.True(raised);
             Assert.True(object.Equals(value, newValue));
+        }
+
+        [Fact]
+        public void Mask_KeepsTypedValue_WhenUsedWithoutTwoWayBinding()
+        {
+            // Demo-style usage: no @bind-Value or ValueChanged. The user-typed value
+            // must survive the post-handler @bind:get/:set sync, otherwise the input
+            // clears itself on every blur.
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenMask>();
+
+            component.Find("input").Change("user-typed");
+
+            Assert.Equal("user-typed", component.Instance.Value);
+            Assert.Equal("user-typed", component.Find("input").GetAttribute("value"));
+        }
+
+        [Fact]
+        public void Mask_KeepsTypedValue_WhenBoundWithoutParameterReflow()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var boundValue = "original";
+            var component = ctx.RenderComponent<RadzenMask>(parameters =>
+            {
+                parameters.Add(p => p.Value, boundValue);
+                parameters.Add(p => p.ValueChanged, v => boundValue = v);
+            });
+
+            component.Find("input").Change("user-typed");
+
+            Assert.Equal("user-typed", boundValue);
+            Assert.Equal("user-typed", component.Instance.Value);
+            Assert.Equal("user-typed", component.Find("input").GetAttribute("value"));
+        }
+
+        [Fact]
+        public void Mask_SyncsDomValue_WhenParentTransformsInput()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var wrapper = ctx.RenderComponent<RadzenMaskWrapper>();
+
+            wrapper.Find("input").Change("user-typed");
+
+            Assert.Equal("USER-TYPED", wrapper.Instance.HeldValue);
+            Assert.Equal("USER-TYPED", wrapper.Find("input").GetAttribute("value"));
+        }
+
+        private sealed class RadzenMaskWrapper : Microsoft.AspNetCore.Components.ComponentBase
+        {
+            public string HeldValue { get; private set; } = "fixed";
+
+            protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
+            {
+                builder.OpenComponent<RadzenMask>(0);
+                builder.AddAttribute(1, nameof(RadzenMask.Value), HeldValue);
+                builder.AddAttribute(2, nameof(RadzenMask.ValueChanged),
+                    Microsoft.AspNetCore.Components.EventCallback.Factory.Create<string>(this, v => { HeldValue = v.ToUpperInvariant(); StateHasChanged(); }));
+                builder.CloseComponent();
+            }
         }
     }
 }

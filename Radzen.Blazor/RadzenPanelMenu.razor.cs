@@ -39,12 +39,14 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<MenuItemEventArgs> Click { get; set; }
 
+        private string? ariaLabel;
+
         /// <summary>
         /// Gets or sets the menu aria label text.
         /// </summary>
         /// <value>The menu aria label text.</value>
         [Parameter]
-        public string AriaLabel { get; set; } = "Menu";
+        public string AriaLabel { get => ariaLabel ?? Localize(nameof(RadzenStrings.PanelMenu_AriaLabel)); set => ariaLabel = value; }
 
         /// <summary>
         /// Gets or sets a value representing the URL matching behavior.
@@ -63,6 +65,14 @@ namespace Radzen.Blazor
         /// </summary>
         [Parameter]
         public bool ShowArrow { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets how child items of expandable items are rendered. Set to <see cref="PanelMenuRenderMode.Client" /> by default which renders the whole menu up front.
+        /// Use <see cref="PanelMenuRenderMode.Server" /> to render collapsed branches only when they are expanded, which keeps the DOM small for large menus.
+        /// </summary>
+        /// <value>The render mode. Default is <see cref="PanelMenuRenderMode.Client" />.</value>
+        [Parameter]
+        public PanelMenuRenderMode RenderMode { get; set; } = PanelMenuRenderMode.Client;
 
         internal List<RadzenPanelMenuItem> items = new List<RadzenPanelMenuItem>();
 
@@ -124,6 +134,8 @@ namespace Radzen.Blazor
 
             currentItems ??= [.. items.Where(i => i.Visible)];
 
+            var renderRequired = false;
+
             if (key == "ArrowUp" || key == "ArrowDown")
             {
                 preventKeyPress = true;
@@ -164,14 +176,53 @@ namespace Radzen.Blazor
                 {
                     focusedIndex = Math.Clamp(focusedIndex + (key == "ArrowUp" ? -1 : 1), 0, currentItems.Count - 1);
                 }
+            }
+            else if (key == "Home" || key == "End")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
 
-                if (JSRuntime == null) return;
-                try
+                focusedIndex = key == "Home" ? 0 : currentItems.Count - 1;
+            }
+            else if (key == "ArrowRight")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                var item = currentItems.ElementAtOrDefault(focusedIndex);
+
+                if (item != null && item.ChildContent != null)
                 {
-                    await JSRuntime.InvokeVoidAsync("Radzen.scrollIntoViewIfNeeded", currentItems[focusedIndex].Element);
+                    if (!item.IsExpanded)
+                    {
+                        await item.Toggle();
+                        renderRequired = true;
+                    }
+
+                    if (item.IsExpanded && item.items.Count > 0)
+                    {
+                        currentItems = item.items.Where(i => i.Visible).ToList();
+                        focusedIndex = 0;
+                    }
                 }
-                catch
-                { }
+            }
+            else if (key == "ArrowLeft" || key == "Escape")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                var firstItem = currentItems.FirstOrDefault();
+                var parentItem = firstItem?.ParentItem;
+
+                if (parentItem != null)
+                {
+                    await parentItem.CollapseAsync();
+                    renderRequired = true;
+
+                    var targetItems = parentItem.ParentItem != null ? parentItem.ParentItem.items : parentItem.Parent?.items ?? items;
+                    currentItems = targetItems.Where(i => i.Visible).ToList();
+                    focusedIndex = currentItems.IndexOf(parentItem);
+                }
             }
             else if (key == "Space" || key == "Enter")
             {
@@ -182,16 +233,27 @@ namespace Radzen.Blazor
                 {
                     var item = currentItems[focusedIndex];
 
-                    if (item.items.Count > 0)
+                    if (item.Disabled)
+                    {
+                        return;
+                    }
+
+                    if (item.ChildContent != null)
                     {
                         await item.Toggle();
+                        renderRequired = true;
 
-                    var targetItems = item.IsExpanded ? item.items :
-                        item.ParentItem != null ? item.ParentItem.items : item.Parent?.items;
-
-                    currentItems = (targetItems ?? Enumerable.Empty<RadzenPanelMenuItem>()).Where(i => i.Visible).ToList();
-
-                        focusedIndex = item.IsExpanded ? 0 : currentItems.IndexOf(item);
+                        if (item.IsExpanded && item.items.Count > 0)
+                        {
+                            currentItems = item.items.Where(i => i.Visible).ToList();
+                            focusedIndex = 0;
+                        }
+                        else
+                        {
+                            var targetItems = item.ParentItem != null ? item.ParentItem.items : item.Parent?.items;
+                            currentItems = (targetItems ?? Enumerable.Empty<RadzenPanelMenuItem>()).Where(i => i.Visible).ToList();
+                            focusedIndex = currentItems.IndexOf(item);
+                        }
                     }
                     else
                     {
@@ -212,16 +274,44 @@ namespace Radzen.Blazor
                 stopKeydownPropagation = false;
             }
 
-            if (preventKeyPress)
+            if (!preventKeyPress)
+            {
+                return;
+            }
+
+            if (renderRequired)
             {
                 StateHasChanged();
+
+                if (JSRuntime != null && focusedIndex >= 0 && focusedIndex < currentItems.Count)
+                {
+                    try
+                    {
+                        await JSRuntime.InvokeVoidAsync("Radzen.scrollIntoViewIfNeeded", currentItems[focusedIndex].Element);
+                    }
+                    catch
+                    { }
+                }
+            }
+            else if (JSRuntime != null)
+            {
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.focusPanelMenuItem", Element, ActiveDescendantId);
+                }
+                catch
+                { }
             }
         }
 
         internal bool IsFocused(RadzenPanelMenuItem item)
         {
-            return currentItems?.IndexOf(item) == focusedIndex && focusedIndex != -1;
+            return currentItems != null && focusedIndex >= 0 && focusedIndex < currentItems.Count && currentItems[focusedIndex] == item;
         }
+
+        string? ActiveDescendantId => focusedIndex >= 0 && currentItems != null && focusedIndex < currentItems.Count
+            ? currentItems[focusedIndex].GetItemId()
+            : null;
 
         internal void RemoveItem(RadzenPanelMenuItem item)
         {

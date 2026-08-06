@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Web;
@@ -33,6 +34,7 @@ namespace Radzen
     /// <summary>
     /// Persist the current theme in the query string. Requires <see cref="ThemeService" /> to be registered in the DI container.
     /// </summary>
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2075, Justification = TrimMessages.ThemeTypePreserved)]
     public class QueryStringThemeService : IDisposable
     {
         private readonly NavigationManager navigationManager;
@@ -115,7 +117,13 @@ namespace Radzen
             return (query?.Get(options?.ThemeParameter), wcag, rtl);
         }
 
-        private string GetUriWithStateQueryParameters(string uri)
+        /// <summary>
+        /// Returns the specified URI with the current theme, WCAG, and right-to-left state
+        /// appended as query parameters. Use this when building hrefs that must preserve the
+        /// active theme across navigation - it produces a cleanly URL-encoded query rather
+        /// than reusing whatever query happens to be on the current URI.
+        /// </summary>
+        public string GetUriWithStateQueryParameters(string uri)
         {
             var parameters = new Dictionary<string, object?>
             {

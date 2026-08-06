@@ -124,9 +124,16 @@ namespace Radzen.Blazor
             [Parameter]
             public string? Path { get; set; }
 
+            [Parameter]
+            public string? AriaLabel { get; set; }
+
             private string GetAnchor()
             {
-                if (string.IsNullOrEmpty(Path)) return "";
+                if (string.IsNullOrEmpty(Path))
+                {
+                    return "";
+                }
+
                 var fragments = Path.Split('#');
 
                 return fragments.Length > 1 ? fragments[1] : fragments[0];
@@ -152,7 +159,11 @@ namespace Radzen.Blazor
 
             private string GetPath()
             {
-                if (NavigationManager == null) return "";
+                if (NavigationManager == null)
+                {
+                    return "";
+                }
+
                 var uri = new Uri(NavigationManager.Uri);
 
                 var anchor = GetAnchor();
@@ -171,6 +182,10 @@ namespace Radzen.Blazor
                 builder.OpenComponent<RadzenIcon>(7);
                 builder.AddAttribute(8, "Icon", "link");
                 builder.CloseComponent();
+                builder.OpenElement(9, "span");
+                builder.AddAttribute(10, "class", "rz-sr-only");
+                builder.AddContent(11, AriaLabel);
+                builder.CloseElement();
 
                 builder.CloseElement();
             }
@@ -235,6 +250,20 @@ namespace Radzen.Blazor
         /// <value>The anchor identifier for heading links.</value>
         [Parameter]
         public string? Anchor { get; set; }
+
+        string? anchorAriaLabel;
+
+        /// <summary>
+        /// Gets or sets the visually hidden text of the anchor link rendered when <see cref="Anchor"/> is set.
+        /// Provides an accessible name for the anchor link. Localizable via the <c>Text_AnchorAriaLabel</c> resource key.
+        /// </summary>
+        /// <value>The anchor link label. Default is <c>"Link to this section"</c>.</value>
+        [Parameter]
+        public string AnchorAriaLabel
+        {
+            get => anchorAriaLabel ?? Localize(nameof(RadzenStrings.Text_AnchorAriaLabel));
+            set => anchorAriaLabel = value;
+        }
 
         /// <inheritdoc />
         protected override void BuildRenderTree(RenderTreeBuilder builder)
@@ -415,9 +444,10 @@ namespace Radzen.Blazor
                 {
                     builder.OpenComponent<RadzenTextAnchor>(6);
                     builder.AddAttribute(7, nameof(RadzenTextAnchor.Path), Anchor);
+                    builder.AddAttribute(8, nameof(RadzenTextAnchor.AriaLabel), AnchorAriaLabel);
                     builder.CloseComponent();
                 }
-                builder.AddElementReferenceCapture(8, capture => Element = capture);
+                builder.AddElementReferenceCapture(9, capture => Element = capture);
                 builder.CloseElement();
             }
         }

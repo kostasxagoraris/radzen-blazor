@@ -1,0 +1,11 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using Radzen.Blazor.Spreadsheet
+@using Radzen.Documents.Spreadsheet
+
+<div class="rz-spreadsheet-formula-editor">
+    <SheetEditor @bind-Value=@Editor.Value Focus=@(this.AsNonRenderingEventHandler(OnFocus))
+        Worksheet=@Worksheet Blur=@(this.AsNonRenderingEventHandler(OnBlurAsync))
+        ReadOnly=@(Spreadsheet?.IsFeatureAllowed(SpreadsheetFeature.Editing) == false)
+        InputAttributes=@(new Dictionary<string, object> { { "aria-label", (object)(Spreadsheet?.Localize(nameof(RadzenStrings.Spreadsheet_FormulaBarLabel)) ?? "Formula bar") }, { "tabindex", "-1" } }) />
+</div>

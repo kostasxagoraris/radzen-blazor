@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using Radzen.Blazor.Rendering;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -42,6 +44,12 @@ namespace Radzen.Blazor
     /// &lt;/RadzenDropDownDataGrid&gt;
     /// </code>
     /// </example>
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2067, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2070, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2072, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2087, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2091, Justification = TrimMessages.DataTypePreserved)]
     public partial class RadzenDropDownDataGrid<TValue> : DropDownBase<TValue>
     {
         bool stopKeydownPropagation = true;
@@ -181,10 +189,13 @@ namespace Radzen.Blazor
         [Parameter]
         public string OpenPopupKey { get; set; } = "Enter";
 
+        bool openedOnFocus;
+
         private async Task OnFocus()
         {
             if (OpenOnFocus)
             {
+                openedOnFocus = true;
                 await OpenPopup(OpenPopupKey, false);
             }
         }
@@ -198,7 +209,26 @@ namespace Radzen.Blazor
         protected override async System.Threading.Tasks.Task OpenPopup(string key = "ArrowDown", bool isFilter = false, bool isFromClick = false)
         {
             if (Disabled)
+            {
                 return;
+            }
+
+            if (OpenOnFocus && isFromClick)
+            {
+                var fromFocus = openedOnFocus;
+                openedOnFocus = false;
+
+                if (isPopupOpen)
+                {
+                    if (fromFocus)
+                    {
+                        return;
+                    }
+
+                    await ClosePopup(key);
+                    return;
+                }
+            }
 
             if (IsVirtualizationAllowed() && grid != null)
             {
@@ -247,7 +277,32 @@ namespace Radzen.Blazor
         public Task OnClose()
         {
             isPopupOpen = false;
+            openedOnFocus = false;
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Opens the dropdown popup programmatically.
+        /// </summary>
+        public Task OpenPopup()
+        {
+            return OpenPopup("ArrowDown", false, false);
+        }
+
+        /// <summary>
+        /// Closes the dropdown popup programmatically.
+        /// </summary>
+        public Task ClosePopup()
+        {
+            return ClosePopup(string.Empty);
+        }
+
+        /// <summary>
+        /// Toggles the dropdown popup, opening it if it is closed and closing it if it is open.
+        /// </summary>
+        public Task TogglePopup()
+        {
+            return isPopupOpen ? ClosePopup() : OpenPopup();
         }
 
         /// <summary>
@@ -256,6 +311,15 @@ namespace Radzen.Blazor
         /// <value>The value template.</value>
         [Parameter]
         public RenderFragment<dynamic>? ValueTemplate { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether <see cref="ValueTemplate"/> is rendered even when there is no selected item.
+        /// When <c>true</c>, the template is invoked with a <c>null</c> context so it can render an editor
+        /// (e.g. a text box) for an empty value. Templates must handle a null context.
+        /// </summary>
+        /// <value><c>true</c> to render <see cref="ValueTemplate"/> on empty value; otherwise <c>false</c>. Default is <c>false</c>.</value>
+        [Parameter]
+        public bool ShowValueTemplateOnEmpty { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating DataGrid density.
@@ -370,92 +434,120 @@ namespace Radzen.Blazor
         [Parameter]
         public bool ShowPagingSummary { get; set; } = false;
 
+        private string? pagingSummaryFormat;
+
         /// <summary>
         /// Gets or sets the pager summary format.
         /// </summary>
         /// <value>The pager summary format.</value>
         [Parameter]
-        public string PagingSummaryFormat { get; set; } = "Page {0} of {1} ({2} items)";
+        public string PagingSummaryFormat { get => pagingSummaryFormat ?? Localize(nameof(RadzenStrings.DropDownDataGrid_PagingSummaryFormat)); set => pagingSummaryFormat = value; }
+
+        private string? firstPageTitle;
 
         /// <summary>
         /// Gets or sets the pager's first page button's title attribute.
         /// </summary>
         [Parameter]
-        public string FirstPageTitle { get; set; } = "First page.";
+        public string FirstPageTitle { get => firstPageTitle ?? Localize(nameof(RadzenStrings.DropDownDataGrid_FirstPageTitle)); set => firstPageTitle = value; }
+
+        private string? firstPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's first page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string FirstPageAriaLabel { get; set; } = "Go to first page.";
+        public string FirstPageAriaLabel { get => firstPageAriaLabel ?? Localize(nameof(RadzenStrings.DropDownDataGrid_FirstPageAriaLabel)); set => firstPageAriaLabel = value; }
+
+        private string? prevPageTitle;
 
         /// <summary>
         /// Gets or sets the pager's previous page button's title attribute.
         /// </summary>
         [Parameter]
-        public string PrevPageTitle { get; set; } = "Previous page";
+        public string PrevPageTitle { get => prevPageTitle ?? Localize(nameof(RadzenStrings.DropDownDataGrid_PrevPageTitle)); set => prevPageTitle = value; }
+
+        private string? prevPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's previous page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string PrevPageAriaLabel { get; set; } = "Go to previous page.";
+        public string PrevPageAriaLabel { get => prevPageAriaLabel ?? Localize(nameof(RadzenStrings.DropDownDataGrid_PrevPageAriaLabel)); set => prevPageAriaLabel = value; }
+
+        private string? lastPageTitle;
 
         /// <summary>
         /// Gets or sets the pager's last page button's title attribute.
         /// </summary>
         [Parameter]
-        public string LastPageTitle { get; set; } = "Last page";
+        public string LastPageTitle { get => lastPageTitle ?? Localize(nameof(RadzenStrings.DropDownDataGrid_LastPageTitle)); set => lastPageTitle = value; }
+
+        private string? lastPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's last page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string LastPageAriaLabel { get; set; } = "Go to last page.";
+        public string LastPageAriaLabel { get => lastPageAriaLabel ?? Localize(nameof(RadzenStrings.DropDownDataGrid_LastPageAriaLabel)); set => lastPageAriaLabel = value; }
+
+        private string? nextPageTitle;
 
         /// <summary>
         /// Gets or sets the pager's next page button's title attribute.
         /// </summary>
         [Parameter]
-        public string NextPageTitle { get; set; } = "Next page";
+        public string NextPageTitle { get => nextPageTitle ?? Localize(nameof(RadzenStrings.DropDownDataGrid_NextPageTitle)); set => nextPageTitle = value; }
+
+        private string? nextPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's next page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string NextPageAriaLabel { get; set; } = "Go to next page.";
+        public string NextPageAriaLabel { get => nextPageAriaLabel ?? Localize(nameof(RadzenStrings.DropDownDataGrid_NextPageAriaLabel)); set => nextPageAriaLabel = value; }
+
+        private string? pageTitleFormat;
 
         /// <summary>
         /// Gets or sets the pager's numeric page number buttons' title attributes.
         /// </summary>
         [Parameter]
-        public string PageTitleFormat { get; set; } = "Page {0}";
+        public string PageTitleFormat { get => pageTitleFormat ?? Localize(nameof(RadzenStrings.DropDownDataGrid_PageTitleFormat)); set => pageTitleFormat = value; }
+
+        private string? pageAriaLabelFormat;
 
         /// <summary>
         /// Gets or sets the pager's numeric page number buttons' aria-label attributes.
         /// </summary>
         [Parameter]
-        public string PageAriaLabelFormat { get; set; } = "Go to page {0}.";
+        public string PageAriaLabelFormat { get => pageAriaLabelFormat ?? Localize(nameof(RadzenStrings.DropDownDataGrid_PageAriaLabelFormat)); set => pageAriaLabelFormat = value; }
+
+        private string? emptyText;
 
         /// <summary>
         /// Gets or sets the empty text.
         /// </summary>
         /// <value>The empty text.</value>
         [Parameter]
-        public string EmptyText { get; set; } = "No records to display.";
+        public string EmptyText { get => emptyText ?? Localize(nameof(RadzenStrings.DropDownDataGrid_EmptyText)); set => emptyText = value; }
+
+        private string? searchTextPlaceholder;
 
         /// <summary>
         /// Gets or sets the search input placeholder text.
         /// </summary>
         /// <value>The search input placeholder text.</value>
         [Parameter]
-        public string SearchTextPlaceholder { get; set; } = "Search...";
+        public string SearchTextPlaceholder { get => searchTextPlaceholder ?? Localize(nameof(RadzenStrings.DropDownDataGrid_SearchTextPlaceholder)); set => searchTextPlaceholder = value; }
+
+        private string? addAriaLabel;
 
         /// <summary>
         /// Gets or sets the add button aria-label attribute.
         /// </summary>
         [Parameter]
-        public string AddAriaLabel { get; set; } = "Add";
+        public string AddAriaLabel { get => addAriaLabel ?? Localize(nameof(RadzenStrings.DropDownDataGrid_AddAriaLabel)); set => addAriaLabel = value; }
 
         /// <summary>
         /// Gets or sets the selected value.
@@ -476,18 +568,53 @@ namespace Radzen.Blazor
         int count;
 
         /// <summary>
+        /// Gets the identifier of the currently active (keyboard highlighted) grid row, or null when none is active.
+        /// </summary>
+        /// <returns>The active row identifier or null.</returns>
+        internal string? ActiveDescendantId => selectedIndex >= 0 && grid != null ? $"{grid.GridId()}-active-item" : null;
+
+        internal string GridID => $"{PopupID}-grid";
+
+        internal string? SelectedAriaLabel
+        {
+            get
+            {
+                if (!Multiple)
+                {
+                    return internalValue != null ? $"{PropertyAccess.GetItemOrValueFromProperty(internalValue, TextProperty)}" : EmptyAriaLabel;
+                }
+
+                var itemsToUse = SelectedValue is IEnumerable && SelectedValue is not string ? ((IEnumerable)SelectedValue).Cast<object>().ToHashSet() : selectedItems;
+
+                if (itemsToUse.Count == 0)
+                {
+                    return EmptyAriaLabel;
+                }
+
+                if (itemsToUse.Count < MaxSelectedLabels)
+                {
+                    return string.Join(Separator, itemsToUse.Select(i => $"{PropertyAccess.GetItemOrValueFromProperty(i, TextProperty)}"));
+                }
+
+                return $"{itemsToUse.Count} {SelectedItemsText}";
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the number of maximum selected labels.
         /// </summary>
         /// <value>The maximum selected labels.</value>
         [Parameter]
         public int MaxSelectedLabels { get; set; } = 4;
 
+        private string? selectedItemsText;
+
         /// <summary>
         /// Gets or sets the selected items text.
         /// </summary>
         /// <value>The selected items text.</value>
         [Parameter]
-        public string SelectedItemsText { get; set; } = "items selected";
+        public string SelectedItemsText { get => selectedItemsText ?? Localize(nameof(RadzenStrings.DropDownDataGrid_SelectedItemsText)); set => selectedItemsText = value; }
 
         /// <summary>
         /// Gets or sets whether popup automatically focuses on filter input.
@@ -510,6 +637,11 @@ namespace Radzen.Blazor
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             isFirstRender = firstRender;
+
+            if (grid != null)
+            {
+                grid.HasActiveDescendant ??= () => selectedIndex >= 0;
+            }
 
             if (firstRender)
             {
@@ -592,7 +724,10 @@ namespace Radzen.Blazor
 
         private bool IsColumnFilterPropertyTypeString(RadzenDataGridColumn<object> column)
         {
-            if (column.Type == typeof(string)) return true;
+            if (column.Type == typeof(string))
+            {
+                return true;
+            }
 
             var property = column.GetFilterProperty();
             if(property is not null)
@@ -626,7 +761,9 @@ namespace Radzen.Blazor
                 var query = Query;
 
                 if (query == null)
+                {
                     return;
+                }
 
                 var filterOperator = FilterOperator == StringFilterOperator.Contains ?
                                         Radzen.FilterOperator.Contains :
@@ -687,12 +824,12 @@ namespace Radzen.Blazor
                 if (prevOrder != args.OrderBy && JSRuntime != null)
                 {
                     prevOrder = args.OrderBy!;
-                    await JSRuntime.InvokeVoidAsync("eval");
+                    await JSRuntime.InvokeVoidAsync("Radzen.noop");
                 }
             }
             else
             {
-                await LoadData.InvokeAsync(new Radzen.LoadDataArgs() { Skip = skip, Top = args.Top, OrderBy = args.OrderBy, Filter = searchText });
+                await LoadData.InvokeAsync(new Radzen.LoadDataArgs() { Skip = skip, Top = args.Top, OrderBy = args.OrderBy, Sorts = args.Sorts, Filters = args.Filters, GetFilter = args.GetFilter, Filter = searchText });
             }
             
             if(PreserveRowSelectionOnPaging && selectedIndex != -1)
@@ -852,7 +989,9 @@ namespace Radzen.Blazor
         async System.Threading.Tasks.Task Clear()
         {
             if (Disabled)
+            {
                 return;
+            }
 
             var canRequest = searchText != null;
 
@@ -925,6 +1064,67 @@ namespace Radzen.Blazor
                     //
                 }
             }
+            else if (key == "Home" || key == "End")
+            {
+                preventKeydown = true;
+
+                try
+                {
+                    var newSelectedIndex = key == "Home" ? 0 : items.Count - 1;
+                    var shouldChange = newSelectedIndex != selectedIndex && newSelectedIndex >= 0;
+                    if (shouldChange && JSRuntime != null)
+                    {
+                        selectedIndex = newSelectedIndex;
+                        await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", gridInstance.GridId(), key == "Home" ? "ArrowDown" : "ArrowUp", key == "Home" ? selectedIndex - 1 : selectedIndex + 1, null);
+                        await gridInstance.OnRowSelect(items[selectedIndex], false);
+                    }
+
+                    if (!Multiple && JSRuntime != null)
+                    {
+                        var popupOpened = await JSRuntime.InvokeAsync<bool>("Radzen.popupOpened", PopupID);
+
+                        if (shouldChange && (!popupOpened || gridInstance.IsVirtualizationAllowed()))
+                        {
+                            await OnSelectItem(items[selectedIndex], true);
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
+            else if (key == "PageUp" || key == "PageDown")
+            {
+                preventKeydown = true;
+
+                try
+                {
+                    var pageStep = PageSize > 0 ? PageSize : 1;
+                    var startIndex = selectedIndex >= 0 ? selectedIndex : (key == "PageDown" ? -1 : items.Count);
+                    var newSelectedIndex = Math.Clamp(startIndex + (key == "PageUp" ? -pageStep : pageStep), 0, items.Count - 1);
+                    var shouldChange = newSelectedIndex != selectedIndex && newSelectedIndex >= 0;
+                    if (shouldChange && JSRuntime != null)
+                    {
+                        var previousIndex = selectedIndex;
+                        selectedIndex = newSelectedIndex;
+                        await JSRuntime.InvokeAsync<int[]>("Radzen.focusTableRow", gridInstance.GridId(), key == "PageUp" ? "ArrowUp" : "ArrowDown", previousIndex, null);
+                        await gridInstance.OnRowSelect(items[selectedIndex], false);
+                    }
+
+                    if (!Multiple && JSRuntime != null)
+                    {
+                        var popupOpened = await JSRuntime.InvokeAsync<bool>("Radzen.popupOpened", PopupID);
+
+                        if (shouldChange && (!popupOpened || gridInstance.IsVirtualizationAllowed()))
+                        {
+                            await OnSelectItem(items[selectedIndex], true);
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
             else if ((key == "ArrowLeft" || key == "ArrowRight") && !gridInstance.IsVirtualizationAllowed())
             {
                 if (key == "ArrowLeft")
@@ -940,7 +1140,11 @@ namespace Radzen.Blazor
             {
                 preventKeydown = false;
 
-                if (JSRuntime == null) return;
+                if (JSRuntime == null)
+                {
+                    return;
+                }
+
                 var popupOpened = await JSRuntime.InvokeAsync<bool>("Radzen.popupOpened", PopupID);
 
                 if (!popupOpened)
@@ -970,6 +1174,7 @@ namespace Radzen.Blazor
             {
                 preventKeydown = false;
                 await ClosePopup(key);
+                await JSRuntime.InvokeVoidAsync("Radzen.focusElement", UniqueID);
             }
             else if (key == "Tab")
             {
@@ -992,10 +1197,22 @@ namespace Radzen.Blazor
                     await OnSelectItem(null, true);
                 }
 
+                if (Multiple && !isFilter && (selectedItems.Count > 0 || SelectedValue is IEnumerable && SelectedValue is not string))
+                {
+                    selectedIndex = -1;
+                    await Clear();
+                }
+
                 if (AllowFiltering && isFilter)
                 {
                     Debounce(DebounceFilter, FilterDelay);
                 }
+            }
+            else if (args.CtrlKey && (key == "KeyA" || key == "a" || key == "A") && Multiple && AllowSelectAll)
+            {
+                preventKeydown = true;
+
+                await SelectAll();
             }
             else if (AllowFiltering && isFilter && FilterAsYouType)
             {
@@ -1013,6 +1230,7 @@ namespace Radzen.Blazor
             if (JSRuntime != null)
             {
                 searchText = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", search) ?? string.Empty;
+                await InvokeAsync(() => SearchTextChanged.InvokeAsync(SearchText));
             }
 
             if (searchText != previousSearch)
@@ -1021,8 +1239,6 @@ namespace Radzen.Blazor
                 _view = null;
                 await InvokeAsync(RefreshAfterFilter);
             }
-
-            await InvokeAsync(() => SearchTextChanged.InvokeAsync(SearchText));
         }
 
         async Task CloseOnEscape(KeyboardEventArgs args)
@@ -1031,6 +1247,7 @@ namespace Radzen.Blazor
             if (key == "Escape" && JSRuntime != null)
             {
                 await ClosePopup(key);
+                await JSRuntime.InvokeVoidAsync("Radzen.focusElement", UniqueID);
             }
         }
 
@@ -1121,13 +1338,6 @@ namespace Radzen.Blazor
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this instance loading indicator is shown.
-        /// </summary>
-        /// <value><c>true</c> if this instance loading indicator is shown; otherwise, <c>false</c>.</value>
-        [Parameter]
-        public bool IsLoading { get; set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether sorting is allowed.
         /// </summary>
         /// <value><c>true</c> if sorting is allowed; otherwise, <c>false</c>.</value>
@@ -1195,7 +1405,7 @@ namespace Radzen.Blazor
 
             if (JSRuntime != null)
             {
-                await JSRuntime.InvokeVoidAsync("Radzen.focusElement", UniqueID);
+                await JSRuntime.InvokeVoidAsync("Radzen.focusElement", UniqueID, true);
             }
 
             OpenOnFocus = of;
@@ -1213,11 +1423,21 @@ namespace Radzen.Blazor
             }
         }
 
+        /// <summary>
+        /// Gets or sets the size of the component.
+        /// </summary>
+        [Parameter]
+        public InputSize InputSize { get; set; } = InputSize.Medium;
+
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("rz-dropdown").Add("rz-dropdown-chips", Chips && selectedItems.Count > 0).Add("rz-clear", AllowClear).ToString();
+            return GetClassList("rz-dropdown").AddInputSize(InputSize).Add("rz-dropdown-chips", Chips && selectedItems.Count > 0).Add("rz-clear", AllowClear).ToString();
         }
+
+        string PopupCssClass => ClassList.Create(Multiple ? "rz-multiselect-panel" : "rz-dropdown-panel")
+                                         .AddInputSize(InputSize)
+                                         .ToString();
 
         /// <inheritdoc />
         public override void Dispose()

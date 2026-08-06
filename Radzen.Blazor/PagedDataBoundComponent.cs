@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
@@ -12,6 +13,12 @@ namespace Radzen
     /// Base classes of components that support paging.
     /// </summary>
     /// <typeparam name="T">The type of the data item</typeparam>
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2067, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2070, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2072, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2087, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2091, Justification = TrimMessages.DataTypePreserved)]
     public class PagedDataBoundComponent<T> : RadzenComponent
     {
         /// <summary>
@@ -40,6 +47,13 @@ namespace Radzen
         /// </summary>
         [Parameter]
         public Density Density { get; set; } = Density.Default;
+
+        /// <summary>
+        /// Gets or sets the size of the page size dropdown in the pager. Set to <c>InputSize.Medium</c> by default.
+        /// </summary>
+        /// <value>The size of the page size dropdown in the pager.</value>
+        [Parameter]
+        public InputSize PagerInputSize { get; set; } = InputSize.Medium;
 
         /// <summary>
         /// Gets or sets a value indicating whether paging is allowed. Set to <c>false</c> by default.
@@ -182,19 +196,23 @@ namespace Radzen
         [Parameter]
         public IEnumerable<int>? PageSizeOptions { get; set; }
 
+        private string? pageSizeText;
+
         /// <summary>
         /// Gets or sets the page size description text.
         /// </summary>
         /// <value>The page size description text.</value>
         [Parameter]
-        public string? PageSizeText { get; set; } = "items per page";
-        
+        public string PageSizeText { get => pageSizeText ?? Localize(nameof(RadzenStrings.Pager_PageSizeText)); set => pageSizeText = value; }
+
         /// <summary>
         /// Gets or sets the pager summary visibility.
         /// </summary>
         /// <value>The pager summary visibility.</value>
         [Parameter]
         public bool ShowPagingSummary { get; set; } = false;
+
+        private string? pagingSummaryFormat;
 
 
         /// <summary>
@@ -208,7 +226,7 @@ namespace Radzen
         /// </summary>
         /// <value>The pager summary format.</value>
         [Parameter]
-        public string? PagingSummaryFormat { get; set; } = "Page {0} of {1} ({2} items)";
+        public string PagingSummaryFormat { get => pagingSummaryFormat ?? Localize(nameof(RadzenStrings.Pager_PagingSummaryFormat)); set => pagingSummaryFormat = value; }
 
 #nullable enable
         /// <summary>
@@ -218,17 +236,21 @@ namespace Radzen
         public RenderFragment<PagingInformation>? PagingSummaryTemplate { get; set; }
 #nullable restore
 
+        private string? firstPageTitle;
+
         /// <summary>
         /// Gets or sets the pager's first page button's title attribute.
         /// </summary>
         [Parameter]
-        public string? FirstPageTitle { get; set; } = "First page.";
+        public string FirstPageTitle { get => firstPageTitle ?? Localize(nameof(RadzenStrings.Pager_FirstPageTitle)); set => firstPageTitle = value; }
+
+        private string? firstPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's first page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string? FirstPageAriaLabel { get; set; } = "Go to first page.";
+        public string FirstPageAriaLabel { get => firstPageAriaLabel ?? Localize(nameof(RadzenStrings.Pager_FirstPageAriaLabel)); set => firstPageAriaLabel = value; }
 
         /// <summary>
         /// Gets or sets the pager's optional previous page button's label text.
@@ -236,29 +258,37 @@ namespace Radzen
         [Parameter]
         public string? PrevPageLabel { get; set; }
 
+        private string? prevPageTitle;
+
         /// <summary>
         /// Gets or sets the pager's previous page button's title attribute.
         /// </summary>
         [Parameter]
-        public string? PrevPageTitle { get; set; } = "Previous page";
+        public string PrevPageTitle { get => prevPageTitle ?? Localize(nameof(RadzenStrings.Pager_PrevPageTitle)); set => prevPageTitle = value; }
+
+        private string? prevPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's previous page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string? PrevPageAriaLabel { get; set; } = "Go to previous page.";
+        public string PrevPageAriaLabel { get => prevPageAriaLabel ?? Localize(nameof(RadzenStrings.Pager_PrevPageAriaLabel)); set => prevPageAriaLabel = value; }
+
+        private string? lastPageTitle;
 
         /// <summary>
         /// Gets or sets the pager's last page button's title attribute.
         /// </summary>
         [Parameter]
-        public string? LastPageTitle { get; set; } = "Last page";
+        public string LastPageTitle { get => lastPageTitle ?? Localize(nameof(RadzenStrings.Pager_LastPageTitle)); set => lastPageTitle = value; }
+
+        private string? lastPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's last page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string? LastPageAriaLabel { get; set; } = "Go to last page.";
+        public string LastPageAriaLabel { get => lastPageAriaLabel ?? Localize(nameof(RadzenStrings.Pager_LastPageAriaLabel)); set => lastPageAriaLabel = value; }
 
         /// <summary>
         /// Gets or sets the pager's optional next page button's label text.
@@ -266,30 +296,38 @@ namespace Radzen
         [Parameter]
         public string? NextPageLabel { get; set; }
 
+        private string? nextPageTitle;
+
         /// <summary>
         /// Gets or sets the pager's next page button's title attribute.
         /// </summary>
         [Parameter]
-        public string? NextPageTitle { get; set; } = "Next page";
+        public string NextPageTitle { get => nextPageTitle ?? Localize(nameof(RadzenStrings.Pager_NextPageTitle)); set => nextPageTitle = value; }
+
+        private string? nextPageAriaLabel;
 
         /// <summary>
         /// Gets or sets the pager's next page button's aria-label attribute.
         /// </summary>
         [Parameter]
-        public string? NextPageAriaLabel { get; set; } = "Go to next page.";
-        
+        public string NextPageAriaLabel { get => nextPageAriaLabel ?? Localize(nameof(RadzenStrings.Pager_NextPageAriaLabel)); set => nextPageAriaLabel = value; }
+
+        private string? pageTitleFormat;
+
         /// <summary>
         /// Gets or sets the pager's numeric page number buttons' title attributes.
         /// </summary>
         [Parameter]
-        public string? PageTitleFormat { get; set; } = "Page {0}";
-        
+        public string PageTitleFormat { get => pageTitleFormat ?? Localize(nameof(RadzenStrings.Pager_PageTitleFormat)); set => pageTitleFormat = value; }
+
+        private string? pageAriaLabelFormat;
+
         /// <summary>
         /// Gets or sets the pager's numeric page number buttons' aria-label attributes.
         /// </summary>
         [Parameter]
-        public string? PageAriaLabelFormat { get; set; } = "Go to page {0}.";
-        
+        public string PageAriaLabelFormat { get => pageAriaLabelFormat ?? Localize(nameof(RadzenStrings.Pager_PageAriaLabelFormat)); set => pageAriaLabelFormat = value; }
+
         internal IQueryable<T>? _view;
         /// <summary>
         /// Gets the paged view.

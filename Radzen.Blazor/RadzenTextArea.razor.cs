@@ -84,22 +84,26 @@ namespace Radzen.Blazor
         /// <returns>A task representing the asynchronous operation.</returns>
         protected virtual async Task SetValue(string? value)
         {
-            Value = $"{value}";
+            var newValue = $"{value}";
+            Value = newValue;
 
-            await ValueChanged.InvokeAsync(Value);
+            await ValueChanged.InvokeAsync(newValue);
 
-            if (FieldIdentifier.FieldName != null)
-            {
-                EditContext?.NotifyFieldChanged(FieldIdentifier);
-            }
+            NotifyFieldChanged(newValue);
 
-            await Change.InvokeAsync(Value);
+            await Change.InvokeAsync(newValue);
         }
+
+        /// <summary>
+        /// Gets or sets the size of the component.
+        /// </summary>
+        [Parameter]
+        public InputSize InputSize { get; set; } = InputSize.Medium;
 
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("rz-textarea").ToString();
+            return GetClassList("rz-textarea").AddInputSize(InputSize).ToString();
         }
 
         /// <inheritdoc />

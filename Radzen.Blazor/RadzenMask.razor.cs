@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System;
+using System.Threading.Tasks;
 
 namespace Radzen.Blazor
 {
@@ -82,25 +83,27 @@ namespace Radzen.Blazor
         public string? CharacterPattern { get; set; }
 
         /// <summary>
-        /// Handles the change event.
+        /// Handles the change-event bind:set binding of the underlying input element.
+        /// Reads the JS-formatted masked value when applicable and notifies listeners.
         /// </summary>
-        /// <param name="args">The <see cref="ChangeEventArgs"/> instance containing the event data.</param>
-        protected async System.Threading.Tasks.Task OnChange(ChangeEventArgs args)
+        /// <param name="value">The raw value reported by the change event.</param>
+        protected async System.Threading.Tasks.Task SetValue(string? value)
         {
-            ArgumentNullException.ThrowIfNull(args);
-
+            string? newValue;
             if (!Immediate && JSRuntime != null && !string.IsNullOrEmpty(Mask))
             {
-                Value = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", Element);
+                newValue = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", Element);
             }
             else
             {
-                Value = $"{args.Value}";
+                newValue = value;
             }
 
-            await ValueChanged.InvokeAsync(Value);
-            if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }
-            await Change.InvokeAsync(Value);
+            Value = newValue;
+
+            await ValueChanged.InvokeAsync(newValue);
+            NotifyFieldChanged(newValue);
+            await Change.InvokeAsync(newValue);
         }
 
         /// <summary>
@@ -123,21 +126,98 @@ namespace Radzen.Blazor
             await Change.InvokeAsync(Value);
         }
 
+        /// <summary>
+        /// Gets or sets the size of the component.
+        /// </summary>
+        [Parameter]
+        public InputSize InputSize { get; set; } = InputSize.Medium;
+
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("rz-textbox").ToString();
+            return GetClassList("rz-textbox").AddInputSize(InputSize).ToString();
         }
 
         /// <inheritdoc />
-        protected override void OnAfterRender(bool firstRender)
+        protected override string? GetId()
         {
-            base.OnAfterRender(firstRender);
+            return Name ?? base.GetId();
+        }
 
-            if (firstRender && JSRuntime != null)
+        IJSObjectReference? _jsRef;
+        int _jsRefVersion;
+        bool _jsParamsChanged;
+
+        /// <inheritdoc />
+        public override async Task SetParametersAsync(ParameterView parameters)
+        {
+            if (parameters.DidParameterChange(nameof(Mask), Mask) ||
+                parameters.DidParameterChange(nameof(Pattern), Pattern) ||
+                parameters.DidParameterChange(nameof(CharacterPattern), CharacterPattern) ||
+                parameters.DidParameterChange(nameof(Visible), Visible))
             {
-                JSRuntime.InvokeVoidAsync("eval", $"Radzen.mask('{GetId()}', '{Mask}', '{Pattern}', '{CharacterPattern}')");
+                _jsParamsChanged = true;
             }
+
+            await base.SetParametersAsync(parameters);
+        }
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            if ((firstRender || _jsParamsChanged) && JSRuntime != null)
+            {
+                _jsParamsChanged = false;
+
+                var version = ++_jsRefVersion;
+                var jsRef = _jsRef;
+                _jsRef = null;
+
+                if (jsRef != null)
+                {
+                    await jsRef.InvokeVoidAsync("dispose");
+                    await jsRef.DisposeAsync();
+                }
+
+                if (version != _jsRefVersion)
+                {
+                    return;
+                }
+
+                if (Visible)
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.mask", GetId(), Mask, Pattern, CharacterPattern);
+                    if (!Immediate)
+                    {
+                        var created = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                            "Radzen.createMask", Element, GetId(), Mask, Pattern, CharacterPattern);
+
+                        if (version == _jsRefVersion)
+                        {
+                            _jsRef = created;
+                        }
+                        else if (created != null)
+                        {
+                            await created.InvokeVoidAsync("dispose");
+                            await created.DisposeAsync();
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            base.Dispose();
+            _jsRefVersion++;
+            var jsRef = _jsRef;
+            _jsRef = null;
+            jsRef?.InvokeVoidAsync("dispose");
+            jsRef?.DisposeAsync();
+            GC.SuppressFinalize(this);
         }
     }
 }

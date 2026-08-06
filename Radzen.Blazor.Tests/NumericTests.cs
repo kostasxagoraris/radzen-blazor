@@ -12,6 +12,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_CssClasses()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -26,6 +27,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_ValueParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -40,6 +42,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Respect_MinParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -64,6 +67,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Respect_Nullable_With_MinParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -95,6 +99,7 @@ namespace Radzen.Blazor.Tests
         {
             using var ctx = new TestContext();
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
@@ -118,6 +123,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_StyleParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -132,6 +138,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_UnmatchedParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -145,6 +152,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_NameParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -159,6 +167,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_TabIndexParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -173,6 +182,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_PlaceholderParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -187,6 +197,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_DisabledParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -200,6 +211,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_ReadOnlyParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -214,6 +226,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_AutoCompleteParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -243,6 +256,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Renders_TypedAutoCompleteParameter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -272,6 +286,7 @@ namespace Radzen.Blazor.Tests
         {
             using var ctx = new TestContext();
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
@@ -292,6 +307,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Raises_ChangeEvent_OnBackspace_When_Immediate()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -316,6 +332,7 @@ namespace Radzen.Blazor.Tests
         {
             using var ctx = new TestContext();
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
             var component = ctx.RenderComponent<RadzenNumeric<double?>>(parameters =>
@@ -335,9 +352,32 @@ namespace Radzen.Blazor.Tests
         }
 
         [Fact]
+        public void Numeric_Restores_Cursor_After_Immediate_KeyDown()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            ctx.JSInterop.Setup<int[]>("Radzen.getSelectionRange", _ => true).SetResult(new[] { 3, 3 });
+            ctx.JSInterop.Setup<string>("Radzen.getInputValue", _ => true).SetResult("21345.00");
+
+            var component = ctx.RenderComponent<RadzenNumeric<decimal?>>(parameters =>
+                parameters.Add(p => p.Immediate, true).Add(p => p.Format, "#.00").Add(p => p.Value, 2345m));
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "1", Code = "Digit1" });
+
+            var invocations = ctx.JSInterop.Invocations["Radzen.setSelectionRange"];
+            Assert.NotEmpty(invocations);
+            var invocation = invocations[invocations.Count - 1];
+            Assert.Equal(3, invocation.Arguments[1]);
+            Assert.Equal(3, invocation.Arguments[2]);
+        }
+
+        [Fact]
         public void Numeric_Raises_ValueChangedEvent()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -359,6 +399,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Raises_ChangedAndValueChangedEventOnStepUp()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -395,6 +436,7 @@ namespace Radzen.Blazor.Tests
         {
             using var ctx = new TestContext();
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
@@ -429,6 +471,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_UpDown_Rendered()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>();
 
@@ -443,6 +486,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_UpDown_NotRenderedIfHidden()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var component = ctx.RenderComponent<RadzenNumeric<double>>(ComponentParameter.CreateParameter(nameof(RadzenNumeric<double>.ShowUpDown), false));
 
@@ -457,6 +501,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Formatted()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             double valueToTest = 100.234;
             string format = "0.00";
@@ -484,6 +529,7 @@ namespace Radzen.Blazor.Tests
         {
             using var ctx = new TestContext();
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
             string format = "0.000";
@@ -506,6 +552,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Uses_ConvertValue()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -531,6 +578,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_TypeConverter()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var valueToTest = new Dollars(100.234m);
             string format = "0.00";
@@ -548,6 +596,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_TypeConverterWithCulture()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var valueToTest = new Dollars(100.234m);
             string format = "0.00";
@@ -567,6 +616,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_EmptyString()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var valueToTest = "";
             string format = "0.00";
@@ -586,6 +636,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_ValueString()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var valueToTest = "12.50";
             string format = "0.00";
@@ -605,6 +656,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_ValueStringEsCLCulture()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var valueToTest = "12,50";
             string format = "0.00";
@@ -624,6 +676,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_ValueStringEnUSCulture()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var valueToTest = "12.50";
             string format = "0.00";
@@ -643,6 +696,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_IComparable()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -671,6 +725,7 @@ namespace Radzen.Blazor.Tests
         {
             using var ctx = new TestContext();
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
             var component = ctx.RenderComponent<RadzenNumeric<float>>(
@@ -692,6 +747,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Format_WithOptionalDecimals_PreservesValue_CommaCulture()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.Mode = JSRuntimeMode.Loose;
             ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
 
@@ -716,6 +772,7 @@ namespace Radzen.Blazor.Tests
         public void Numeric_Supports_IFormattable()
         {
             using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
 
             var valueToTest = new Temperature(60.23m);
             const string format = "F";
@@ -729,6 +786,246 @@ namespace Radzen.Blazor.Tests
 
             var input = component.Find("input").GetAttribute("value");
             input.MarkupMatches(valueToTest.ToString(format));
+        }
+
+        [Fact]
+        public void Numeric_Raises_KeyDownEvent()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Value, 5));
+
+            NumericKeyboardEventArgs raised = null;
+
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.KeyDown, args => { raised = args; }));
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "ArrowUp", Code = "ArrowUp" });
+
+            Assert.NotNull(raised);
+            Assert.Equal("ArrowUp", raised.OriginalEvent.Code);
+            Assert.False(raised.IsDefaultPrevented);
+        }
+
+        [Fact]
+        public void Numeric_KeyDown_PreventDefault_Suppresses_ArrowUp_Increment()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Value, 5));
+
+            var changeRaised = false;
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.KeyDown, args => args.PreventDefault())
+                .Add(p => p.Change, _ => changeRaised = true));
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "ArrowUp", Code = "ArrowUp" });
+
+            Assert.False(changeRaised);
+            Assert.Equal(5, component.Instance.Value);
+        }
+
+        [Fact]
+        public void Numeric_KeyDown_PreventDefault_Suppresses_ArrowDown_Decrement()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Value, 5));
+
+            var changeRaised = false;
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.KeyDown, args => args.PreventDefault())
+                .Add(p => p.Change, _ => changeRaised = true));
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "ArrowDown", Code = "ArrowDown" });
+
+            Assert.False(changeRaised);
+            Assert.Equal(5, component.Instance.Value);
+        }
+
+        [Fact]
+        public void Numeric_KeyDown_Without_PreventDefault_Still_Increments_On_ArrowUp()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Value, 5));
+
+            var changeRaised = false;
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.KeyDown, _ => { })
+                .Add(p => p.Change, _ => changeRaised = true));
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "ArrowUp", Code = "ArrowUp" });
+
+            Assert.True(changeRaised);
+            Assert.Equal(6, component.Instance.Value);
+        }
+
+        [Fact]
+        public void Numeric_Renders_SpinbuttonRole()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenNumeric<double>>();
+
+            Assert.Contains(@$"role=""spinbutton""", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Renders_AriaValueNow()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Value, 42));
+
+            Assert.Contains(@$"aria-valuenow=""42""", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Omits_AriaValueNow_WhenNoValue()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenNumeric<int?>>();
+
+            Assert.DoesNotContain(@$"aria-valuenow", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Renders_AriaValueMin_WhenMinSet()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Min, 5));
+
+            Assert.Contains(@$"aria-valuemin=""5""", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Omits_AriaValueMin_WhenMinNotSet()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>();
+
+            Assert.DoesNotContain(@$"aria-valuemin", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Renders_AriaValueMax_WhenMaxSet()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Max, 100));
+
+            Assert.Contains(@$"aria-valuemax=""100""", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Omits_AriaValueMax_WhenMaxNotSet()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>();
+
+            Assert.DoesNotContain(@$"aria-valuemax", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Renders_AriaValueText_WhenFormatSet()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenNumeric<decimal>>(parameters =>
+            {
+                parameters.Add(p => p.Value, 1234.5m);
+                parameters.Add(p => p.Format, "c");
+            });
+
+            Assert.Contains(@$"aria-valuetext=", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_Omits_AriaValueText_WhenNoFormat()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Value, 42));
+
+            Assert.DoesNotContain(@$"aria-valuetext", component.Markup);
+        }
+
+        [Fact]
+        public void Numeric_HomeKey_SetsValueToMin()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters =>
+            {
+                parameters.Add(p => p.Value, 50);
+                parameters.Add(p => p.Min, 5);
+                parameters.Add(p => p.Max, 100);
+            });
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "Home", Code = "Home" });
+
+            Assert.Equal(5, component.Instance.Value);
+        }
+
+        [Fact]
+        public void Numeric_EndKey_SetsValueToMax()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters =>
+            {
+                parameters.Add(p => p.Value, 50);
+                parameters.Add(p => p.Min, 5);
+                parameters.Add(p => p.Max, 100);
+            });
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "End", Code = "End" });
+
+            Assert.Equal(100, component.Instance.Value);
+        }
+
+        [Fact]
+        public void Numeric_HomeKey_NoMin_DoesNotChangeValue()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenNumeric<int>>(parameters => parameters.Add(p => p.Value, 50));
+
+            component.Find("input").KeyDown(new KeyboardEventArgs { Key = "Home", Code = "Home" });
+
+            Assert.Equal(50, component.Instance.Value);
         }
         [Fact]
         public void Numeric_FormattedWithCurrency()

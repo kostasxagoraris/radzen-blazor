@@ -234,5 +234,67 @@ namespace Radzen.Blazor.Tests
             Assert.True(raised);
             Assert.True(object.Equals(value, newValue));
         }
+
+        [Fact]
+        public void Password_KeepsTypedValue_WhenUsedWithoutTwoWayBinding()
+        {
+            // Demo-style usage: no @bind-Value or ValueChanged. The user-typed value
+            // must survive the post-handler @bind:get/:set sync, otherwise the input
+            // clears itself on every blur.
+            using var ctx = new TestContext();
+
+            var component = ctx.RenderComponent<RadzenPassword>();
+
+            component.Find("input").Change("user-typed");
+
+            Assert.Equal("user-typed", component.Instance.Value);
+            Assert.Equal("user-typed", component.Find("input").GetAttribute("value"));
+        }
+
+        [Fact]
+        public void Password_KeepsTypedValue_WhenBoundWithoutParameterReflow()
+        {
+            using var ctx = new TestContext();
+
+            var boundValue = "original";
+            var component = ctx.RenderComponent<RadzenPassword>(parameters =>
+            {
+                parameters.Add(p => p.Value, boundValue);
+                parameters.Add(p => p.ValueChanged, v => boundValue = v);
+            });
+
+            component.Find("input").Change("user-typed");
+
+            Assert.Equal("user-typed", boundValue);
+            Assert.Equal("user-typed", component.Instance.Value);
+            Assert.Equal("user-typed", component.Find("input").GetAttribute("value"));
+        }
+
+        [Fact]
+        public void Password_SyncsDomValue_WhenParentTransformsInput()
+        {
+            using var ctx = new TestContext();
+
+            var wrapper = ctx.RenderComponent<RadzenPasswordTransformWrapper>();
+
+            wrapper.Find("input").Change("user-typed");
+
+            Assert.Equal("USER-TYPED", wrapper.FindComponent<RadzenPassword>().Instance.Value);
+            Assert.Equal("USER-TYPED", wrapper.Find("input").GetAttribute("value"));
+        }
+
+        private sealed class RadzenPasswordTransformWrapper : Microsoft.AspNetCore.Components.ComponentBase
+        {
+            public string HeldValue { get; private set; } = "original";
+
+            protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
+            {
+                builder.OpenComponent<RadzenPassword>(0);
+                builder.AddAttribute(1, nameof(RadzenPassword.Value), HeldValue);
+                builder.AddAttribute(2, nameof(RadzenPassword.ValueChanged),
+                    Microsoft.AspNetCore.Components.EventCallback.Factory.Create<string>(this, v => { HeldValue = v.ToUpperInvariant(); StateHasChanged(); }));
+                builder.CloseComponent();
+            }
+        }
     }
 }

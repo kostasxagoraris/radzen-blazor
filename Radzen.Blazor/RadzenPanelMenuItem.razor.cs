@@ -19,6 +19,8 @@ namespace Radzen.Blazor
             .AddDisabled(Disabled)
             .ToString();
 
+        internal string? GetItemId() => GetId();
+
         /// <summary>
         /// Gets or sets the target.
         /// </summary>
@@ -33,12 +35,14 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<bool> ExpandedChanged { get; set; }
 
+        private string? imageAlternateText;
+
         /// <summary>
         /// Gets or sets the text.
         /// </summary>
         /// <value>The text.</value>
         [Parameter]
-        public string ImageAlternateText { get; set; } = "image";
+        public string ImageAlternateText { get => imageAlternateText ?? Localize(nameof(RadzenStrings.PanelMenuItem_ImageAlternateText)); set => imageAlternateText = value; }
 
         /// <summary>
         /// Gets or sets the text.
@@ -109,10 +113,20 @@ namespace Radzen.Blazor
 
         /// <summary>
         /// Gets or sets a value indicating whether this <see cref="RadzenPanelMenuItem"/> is selected.
+        /// By default the selected state is updated automatically whenever the current URL matches <see cref="Path"/>.
+        /// Set <see cref="SelectedChanged"/> (e.g. via <c>@bind-Selected</c>) to disable that URL synchronization and control the selected state explicitly.
         /// </summary>
         /// <value><c>true</c> if selected; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool Selected { get; set; }
+
+        /// <summary>
+        /// Gets or sets the selected changed callback. Setting it (e.g. via <c>@bind-Selected</c>) disables the automatic
+        /// selection from URL matching and the <see cref="Selected"/> parameter fully controls the selected state.
+        /// </summary>
+        /// <value>The selected changed callback.</value>
+        [Parameter]
+        public EventCallback<bool> SelectedChanged { get; set; }
 
         /// <summary>
         /// Gets or sets the child content.
@@ -164,6 +178,10 @@ namespace Radzen.Blazor
             }
         }
 
+        string ExpandableClass => ChildContent != null && Parent?.RenderMode == PanelMenuRenderMode.Server ? " rz-navigation-item-expandable" : string.Empty;
+
+        bool RenderSubmenu => ChildContent != null && (Parent?.RenderMode != PanelMenuRenderMode.Server || expanded);
+
         string ToggleClass => ClassList.Create("notranslate rzi rz-navigation-item-icon-children")
                             .Add("rz-state-expanded", expanded)
                             .Add("rz-state-collapsed", !expanded)
@@ -212,6 +230,11 @@ namespace Radzen.Blazor
             {
                 items.Add(item);
             }
+        }
+
+        internal void RemoveItem(RadzenPanelMenuItem item)
+        {
+            items.Remove(item);
         }
 
         void EnsureVisible()
@@ -280,6 +303,11 @@ namespace Radzen.Blazor
 
         private void SyncWithNavigationManager()
         {
+            if (SelectedChanged.HasDelegate)
+            {
+                return;
+            }
+
             var matches = ShouldMatch();
 
             if (matches != selected)
@@ -462,7 +490,11 @@ namespace Radzen.Blazor
                 NavigationManager.LocationChanged -= OnLocationChanged;
             }
 
-            if (Parent != null)
+            if (ParentItem != null)
+            {
+                ParentItem.RemoveItem(this);
+            }
+            else if (Parent != null)
             {
                 Parent.RemoveItem(this);
             }

@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -44,6 +45,9 @@ namespace Radzen.Blazor
     /// &lt;/RadzenDataGridColumn&gt;
     /// </code>
     /// </example>
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2087, Justification = TrimMessages.DataTypePreserved)]
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2090, Justification = TrimMessages.DataTypePreserved)]
     public partial class RadzenDataGridColumn<TItem> : ComponentBase, IDisposable where TItem : notnull
     {
         /// <summary>
@@ -147,7 +151,9 @@ namespace Radzen.Blazor
         internal int GetColSpan(bool isDataCell = false)
         {
             if (!Grid.AllowCompositeDataCells && isDataCell || Columns == null)
+            {
                 return 1;
+            }
 
             var span = VisibleColumns.Concat(VisibleColumns.SelectManyRecursive(c => c.VisibleColumns)).Sum(c => c.VisibleColumns.Count())
                 - VisibleColumns.SelectManyRecursive(c => c.VisibleColumns).Count(c => c.VisibleColumns.Any())
@@ -159,7 +165,9 @@ namespace Radzen.Blazor
         internal int GetRowSpan(bool isDataCell = false)
         {
             if (!Grid.AllowCompositeDataCells && isDataCell)
+            {
                 return 1;
+            }
 
             if (Columns == null && Parent != null)
             {
@@ -248,9 +256,13 @@ namespace Radzen.Blazor
             }
 
             if (!string.IsNullOrEmpty(Property) && !string.IsNullOrEmpty(FilterProperty))
+            {
                 UniqueID = $"{Property}.{FilterProperty}"; // To be sure the column uniqueID is unique even when filtering on sub property.
+            }
             else
+            {
                 UniqueID = !string.IsNullOrEmpty(Property) ? Property : FilterProperty;
+            }
 
             if (UseDisplayName && !string.IsNullOrEmpty(Property))
             {
@@ -424,6 +436,21 @@ namespace Radzen.Blazor
         public string SortProperty { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets a custom comparer used to order this column when the DataGrid sorts an
+        /// in-memory data source. When set, the grid orders rows by this column's sort value
+        /// (the value at the sort property) using the supplied comparer instead of the default
+        /// member-path ordering — for example, sorting id values by their mapped display text.
+        /// It does not apply to server-paged data (LoadData or OData), which sorts on the server,
+        /// or to self-referencing (tree) data. Binding a queryable provider (such as Entity
+        /// Framework) directly to Data together with a comparer evaluates the comparer in memory.
+        /// Note that when a column with a SortComparer takes part in a multi-column sort, the whole
+        /// sort is performed in memory — every column's sort key is evaluated in memory, not just
+        /// this column's.
+        /// </summary>
+        [Parameter]
+        public IComparer? SortComparer { get; set; }
+
+        /// <summary>
         /// Gets or sets the group property name.
         /// </summary>
         /// <value>The group property name.</value>
@@ -436,6 +463,41 @@ namespace Radzen.Blazor
         /// <value>The filter property name.</value>
         [Parameter]
         public string FilterProperty { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the data source for the CheckBoxList filter's options. When set, the built-in
+        /// CheckBoxList filter shows these options — using <see cref="FilterLookupTextProperty"/> for the
+        /// label (display and in-dropdown search) and <see cref="FilterLookupValueProperty"/> for the
+        /// value — instead of deriving distinct values from the grid data. Selected values filter the
+        /// column's filter property, so the column's Property should be the underlying value (e.g. an id).
+        /// Applies to FilterMode.CheckBoxList. Mutually exclusive with the grid's LoadColumnFilterData
+        /// event per column: when FilterLookupData is set it supplies the options and LoadColumnFilterData
+        /// is not used for this column.
+        /// </summary>
+        [Parameter]
+        public IEnumerable? FilterLookupData { get; set; }
+
+        /// <summary>
+        /// Gets or sets the property of <see cref="FilterLookupData"/> items used as the option label, shown
+        /// in the CheckBoxList filter and used for its search. Ignored when <see cref="FilterLookupData"/> is not set.
+        /// </summary>
+        [Parameter]
+        public string? FilterLookupTextProperty { get; set; }
+
+        /// <summary>
+        /// Gets or sets the property of <see cref="FilterLookupData"/> items used as the option value — the
+        /// value applied to the column filter when an option is selected. Ignored when
+        /// <see cref="FilterLookupData"/> is not set.
+        /// </summary>
+        [Parameter]
+        public string? FilterLookupValueProperty { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the CheckBoxList filter's search box is shown when
+        /// <see cref="FilterLookupData"/> is set. Default is true. Ignored when FilterLookupData is not set.
+        /// </summary>
+        [Parameter]
+        public bool FilterLookupAllowFiltering { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the filter value.
@@ -869,6 +931,15 @@ namespace Radzen.Blazor
             }
         }
 
+        /// <summary>
+        /// Gets the value used to sort this column for the given item (the value at the sort property).
+        /// </summary>
+        internal object? GetSortValue(TItem item)
+        {
+            var sortProperty = GetSortProperty();
+            return string.IsNullOrEmpty(sortProperty) ? null : PropertyAccess.GetValue(item, sortProperty);
+        }
+
         internal void SetSortOrder(SortOrder? order)
         {
             var descriptor = Grid.sorts.Where(d => d.Property == GetSortProperty()).FirstOrDefault();
@@ -1013,6 +1084,7 @@ namespace Radzen.Blazor
             {
                 var newSortOrder = parameters.GetValueOrDefault<SortOrder?>(nameof(SortOrder));
                 sortOrder = new SortOrder?[] { newSortOrder };
+                SortOrder = newSortOrder;
 
                 if (Grid != null)
                 {
@@ -1444,9 +1516,15 @@ namespace Radzen.Blazor
         /// </summary>
         public void SetFilterOperator(FilterOperator? value)
         {
+            var currentOperator = GetFilterOperator();
             if (value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty || value == FilterOperator.IsNull || value == FilterOperator.IsNotNull)
             {
                 filterValue = value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty ? string.Empty : null;
+            }
+            else if (currentOperator == FilterOperator.IsEmpty || currentOperator == FilterOperator.IsNotEmpty
+                || currentOperator == FilterOperator.IsNull || currentOperator == FilterOperator.IsNotNull)
+            {
+                filterValue = null;
             }
 
             filterOperator = value;
@@ -1457,9 +1535,15 @@ namespace Radzen.Blazor
         /// </summary>
         public void SetSecondFilterOperator(FilterOperator? value)
         {
+            var currentOperator = GetSecondFilterOperator();
             if (value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty || value == FilterOperator.IsNull || value == FilterOperator.IsNotNull)
             {
                 secondFilterValue = value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty ? string.Empty : null;
+            }
+            else if (currentOperator == FilterOperator.IsEmpty || currentOperator == FilterOperator.IsNotEmpty
+                || currentOperator == FilterOperator.IsNull || currentOperator == FilterOperator.IsNotNull)
+            {
+                secondFilterValue = null;
             }
 
             secondFilterOperator = value;
@@ -1542,23 +1626,36 @@ namespace Radzen.Blazor
         /// </summary>
         public virtual IEnumerable<FilterOperator> GetFilterOperators()
         {
-            if (FilterOperators != null) return FilterOperators;
+            if (FilterOperators != null)
+            {
+                return FilterOperators;
+            }
 
             if (FilterPropertyType != null && (PropertyAccess.IsEnum(FilterPropertyType) || FilterPropertyType == typeof(bool)))
+            {
                 return new FilterOperator[] { FilterOperator.Equals, FilterOperator.NotEquals };
+            }
 
             if (FilterPropertyType != null && (PropertyAccess.IsNullableEnum(FilterPropertyType) || FilterPropertyType == typeof(bool?)))
+            {
                 return new FilterOperator[] { FilterOperator.Equals, FilterOperator.NotEquals, FilterOperator.IsNull, FilterOperator.IsNotNull };
+            }
 
             return Enum.GetValues<FilterOperator>().Where(o =>
             {
-                if (o == FilterOperator.Custom) return false;
+                if (o == FilterOperator.Custom)
+                {
+                    return false;
+                }
 
                 var isStringOperator = o == FilterOperator.Contains || o == FilterOperator.DoesNotContain
                     || o == FilterOperator.StartsWith || o == FilterOperator.EndsWith || o == FilterOperator.IsEmpty || o == FilterOperator.IsNotEmpty;
 
                 if ((FilterPropertyType == typeof(string) || !QueryableExtension.IsEnumerable(FilterPropertyType)) &&
-                    (o == FilterOperator.In || o == FilterOperator.NotIn)) return false;
+                    (o == FilterOperator.In || o == FilterOperator.NotIn))
+                {
+                    return false;
+                }
 
                 if (o == FilterOperator.IsNull || o == FilterOperator.IsNotNull)
                 {

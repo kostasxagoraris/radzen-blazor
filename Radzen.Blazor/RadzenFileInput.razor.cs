@@ -41,6 +41,21 @@ namespace Radzen.Blazor
     /// </example>
     public partial class RadzenFileInput<TValue> : FormComponent<TValue>
     {
+        IJSObjectReference? _jsRef;
+        int _jsRefVersion;
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            base.Dispose();
+            _jsRefVersion++;
+            var jsRef = _jsRef;
+            _jsRef = null;
+            jsRef?.InvokeVoidAsync("dispose");
+            jsRef?.DisposeAsync();
+            GC.SuppressFinalize(this);
+        }
+
         /// <summary>
         /// Specifies additional custom attributes that will be rendered by the input.
         /// </summary>
@@ -48,26 +63,32 @@ namespace Radzen.Blazor
         [Parameter]
         public IReadOnlyDictionary<string, object>? InputAttributes { get; set; }
 
+        private string? chooseText;
+
         /// <summary>
         /// Gets or sets the choose button text.
         /// </summary>
         /// <value>The choose button text.</value>
         [Parameter]
-        public string ChooseText { get; set; } = "Choose";
+        public string ChooseText { get => chooseText ?? Localize(nameof(RadzenStrings.FileInput_ChooseText)); set => chooseText = value; }
+
+        private string? deleteText;
 
         /// <summary>
         /// Gets or sets the delete button text.
         /// </summary>
         /// <value>The delete button text.</value>
         [Parameter]
-        public string DeleteText { get; set; } = "Delete";
+        public string DeleteText { get => deleteText ?? Localize(nameof(RadzenStrings.FileInput_DeleteText)); set => deleteText = value; }
+
+        private string? imageAlternateText;
 
         /// <summary>
         /// Gets or sets the text.
         /// </summary>
         /// <value>The text.</value>
         [Parameter]
-        public string ImageAlternateText { get; set; } = "image";
+        public string ImageAlternateText { get => imageAlternateText ?? Localize(nameof(RadzenStrings.FileInput_ImageAlternateText)); set => imageAlternateText = value; }
 
         /// <summary>
         /// Gets or sets the title.
@@ -133,7 +154,11 @@ namespace Radzen.Blazor
         {
             string uploadValue;
 
-            if (JSRuntime == null) return;
+            if (JSRuntime == null)
+            {
+                return;
+            }
+
             try
             {
                 uploadValue = await JSRuntime.InvokeAsync<string>("Radzen.readFileAsBase64", fileUpload, MaxFileSize, MaxWidth, MaxHeight);
@@ -172,7 +197,10 @@ namespace Radzen.Blazor
             }
 
             var file = files.FirstOrDefault();
-            if (file == null) return;
+            if (file == null)
+            {
+                return;
+            }
 
             FileSize = file.Size;
             await FileSizeChanged.InvokeAsync(FileSize);
@@ -197,6 +225,34 @@ namespace Radzen.Blazor
                 if (Visible && JSRuntime != null)
                 {
                     await JSRuntime.InvokeVoidAsync("Radzen.uploads", Reference, Name ?? GetId());
+
+                    var version = ++_jsRefVersion;
+                    var jsRef = _jsRef;
+                    _jsRef = null;
+
+                    if (jsRef != null)
+                    {
+                        await jsRef.InvokeVoidAsync("dispose");
+                        await jsRef.DisposeAsync();
+                    }
+
+                    if (version != _jsRefVersion)
+                    {
+                        return;
+                    }
+
+                    var created = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                        "Radzen.createFileInput", Element);
+
+                    if (version == _jsRefVersion)
+                    {
+                        _jsRef = created;
+                    }
+                    else if (created != null)
+                    {
+                        await created.InvokeVoidAsync("dispose");
+                        await created.DisposeAsync();
+                    }
                 }
             }
         }

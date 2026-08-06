@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Components;
 using System;
-using System.ComponentModel;
 
 namespace Radzen.Blazor.Rendering
 {
@@ -22,15 +20,26 @@ namespace Radzen.Blazor.Rendering
             ArgumentNullException.ThrowIfNull(axis);
             ArgumentNullException.ThrowIfNull(title);
 
+            if (axis.Width.HasValue)
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThan(axis.Width.Value, 24);
+                return axis.Width.Value;
+            }
+
             var ticks = scale.Ticks(axis.TickDistance);
 
             double length = 0;
 
-            for (var y = ticks.Start; y <= ticks.End; y += ticks.Step)
+            if (HasValidTicks(scale, ticks))
             {
-                var text = axis.Format(scale, y);
+                var isLog = scale.IsLogarithmic;
 
-                length = Math.Max(length, TextMeasurer.TextWidth(text));
+                for (var y = ticks.Start; y <= ticks.End; y = isLog ? y * ticks.Step : y + ticks.Step)
+                {
+                    var text = axis.Format(scale, y);
+
+                    length = Math.Max(length, TextMeasurer.TextWidth(text));
+                }
             }
 
             if (!String.IsNullOrEmpty(title.Text))
@@ -63,14 +72,18 @@ namespace Radzen.Blazor.Rendering
             if (angle != null)
             {
                 var ticks = scale.Ticks(axis.TickDistance);
+                var isLogX = scale.IsLogarithmic;
 
                 double length = 0;
 
-                for (var y = ticks.Start; y <= ticks.End; y += ticks.Step)
+                if (HasValidTicks(scale, ticks))
                 {
-                    var text = axis.Format(scale, y);
+                    for (var y = ticks.Start; y <= ticks.End; y = isLogX ? y * ticks.Step : y + ticks.Step)
+                    {
+                        var text = axis.Format(scale, y);
 
-                    length = Math.Max(length, TextMeasurer.TextWidth(text));
+                        length = Math.Max(length, TextMeasurer.TextWidth(text));
+                    }
                 }
 
                 var alpha = Math.Abs(angle.Value) * Math.PI / 180;
@@ -84,6 +97,24 @@ namespace Radzen.Blazor.Rendering
             }
 
             return size;
+        }
+
+        // Guards the tick enumeration loops against ticks that would never terminate: non-finite
+        // bounds (e.g. a scale measured with no data), a multiplicative step that cannot grow the
+        // value (log scales need step > 1 and a positive start) or a zero additive step.
+        private static bool HasValidTicks(ScaleBase scale, (double Start, double End, double Step) ticks)
+        {
+            if (!double.IsFinite(ticks.Start) || !double.IsFinite(ticks.End) || !double.IsFinite(ticks.Step))
+            {
+                return false;
+            }
+
+            if (scale.IsLogarithmic)
+            {
+                return ticks.Step > 1 && ticks.Start > 0;
+            }
+
+            return ticks.Step > 0;
         }
     }
 }

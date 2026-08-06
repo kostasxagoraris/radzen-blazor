@@ -22,26 +22,9 @@ namespace Radzen.Blazor
         public override string Icon => "view_list";
 
         /// <inheritdoc />
-        public override string Title
-        {
-            get
-            {
-                if (Scheduler == null) return "";
-                var culture = Scheduler.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
-                if (StartMonth == Month.January)
-                {
-                    return Scheduler.CurrentDate.ToString("yyyy", culture);
-                }
-                else
-                {
-                    return (Scheduler.CurrentDate.Month < (int)StartMonth + 1) ? $"{Scheduler.CurrentDate.AddYears(-1).ToString("yyyy", culture)}-{Scheduler.CurrentDate.ToString("yyyy", culture)}" : $"{Scheduler.CurrentDate.ToString("yyyy", culture)}-{Scheduler.CurrentDate.AddYears(+1).ToString("yyyy", culture)}";
-                }
-            }
-        }
-
-        /// <inheritdoc />
         [Parameter]
-        public override string Text { get; set; } = "Planner";
+        public override string Text { get => text ?? Localize(nameof(RadzenStrings.YearPlannerView_Text)); set => text = value; }
+        private string? text;
 
         /// <summary>
         /// Specifies the maximum appointnments to render in a slot.
@@ -50,12 +33,14 @@ namespace Radzen.Blazor
         [Parameter]
         public int? MaxAppointmentsInSlot { get; set; }
 
+        private string? moreText;
+
         /// <summary>
         /// Specifies the text displayed when there are more appointments in a slot than <see cref="MaxAppointmentsInSlot" />.
         /// </summary>
         /// <value>The more text. Set to <c>"+ {0} more"</c> by default.</value>
         [Parameter]
-        public string MoreText { get; set; } = "+{0}";
+        public string MoreText { get => moreText ?? Localize(nameof(RadzenStrings.YearPlannerView_MoreText)); set => moreText = value; }
 
         /// <inheritdoc />
         public override DateTime StartDate

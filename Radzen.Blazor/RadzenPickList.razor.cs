@@ -4,6 +4,7 @@ using Radzen;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -15,6 +16,7 @@ namespace Radzen.Blazor
     /// <summary>
     /// RadzenPickList component.
     /// </summary>
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.DataTypePreserved)]
     public partial class RadzenPickList<TItem> : RadzenComponent
     {
         /// <summary>
@@ -150,11 +152,25 @@ namespace Radzen.Blazor
         public string? DisabledProperty { get; set; }
 
         /// <summary>
-        /// Gets or sets the source template
+        /// Gets or sets the template.
+        /// </summary>
+        /// <value>The template.</value>
+        [Parameter]
+        public RenderFragment<TItem>? Template { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the source template. Overrides <see cref="Template"/>.
         /// </summary>
         /// <value>The source template.</value>
         [Parameter]
-        public RenderFragment<TItem>? Template { get; set; }
+        public RenderFragment<TItem>? SourceTemplate { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the target template. Overrides <see cref="Template"/>.
+        /// </summary>
+        /// <value>The target template.</value>
+        [Parameter]
+        public RenderFragment<TItem>? TargetTemplate { get; set; }
 
         /// <summary>
         /// Gets or sets the select all text.
@@ -163,12 +179,32 @@ namespace Radzen.Blazor
         [Parameter]
         public string? SelectAllText { get; set; }
 
+        private string? emptyText;
+
         /// <summary>
         /// Gets or sets the empty text shown when a list has no items.
         /// </summary>
         /// <value>The empty text.</value>
         [Parameter]
-        public string EmptyText { get; set; } = "No records to display.";
+        public string EmptyText { get => emptyText ?? Localize(nameof(RadzenStrings.PickList_EmptyText)); set => emptyText = value; }
+
+        private string? sourceAriaLabel;
+
+        /// <summary>
+        /// Gets or sets the aria-label of the source list. Ignored when <see cref="SourceHeader"/> is rendered - the source list is labelled by the header instead.
+        /// </summary>
+        /// <value>The source list aria-label.</value>
+        [Parameter]
+        public string SourceAriaLabel { get => sourceAriaLabel ?? Localize(nameof(RadzenStrings.PickList_SourceAriaLabel)); set => sourceAriaLabel = value; }
+
+        private string? targetAriaLabel;
+
+        /// <summary>
+        /// Gets or sets the aria-label of the target list. Ignored when <see cref="TargetHeader"/> is rendered - the target list is labelled by the header instead.
+        /// </summary>
+        /// <value>The target list aria-label.</value>
+        [Parameter]
+        public string TargetAriaLabel { get => targetAriaLabel ?? Localize(nameof(RadzenStrings.PickList_TargetAriaLabel)); set => targetAriaLabel = value; }
 
         /// <summary>
         /// Gets or sets the empty text shown when the source list has no items. Overrides <see cref="EmptyText"/>.
@@ -238,7 +274,41 @@ namespace Radzen.Blazor
             }
         }
 
-        private RenderFragment<dynamic>? ListBoxTemplate => Template != null ? item => Template((TItem)item) : null;
+        private RenderFragment<dynamic>? SourceListBoxTemplate
+        {
+            get
+            {
+                if (SourceTemplate != null)
+                {
+                    return item => SourceTemplate(item);
+                }
+
+                if (Template != null)
+                {
+                    return item => Template(item);
+                }
+
+                return null;
+            }
+        }
+
+        private RenderFragment<dynamic>? TargetListBoxTemplate
+        {
+            get
+            {
+                if (TargetTemplate != null)
+                {
+                    return item => TargetTemplate(item);
+                }
+
+                if (Template != null)
+                {
+                    return item => Template(item);
+                }
+
+                return null;
+            }
+        }
 
         /// <summary>
         /// Gets or sets value if filtering is allowed.
@@ -303,33 +373,41 @@ namespace Radzen.Blazor
         [Parameter]
         public ButtonSize ButtonSize { get; set; } = ButtonSize.Medium;
 
+        private string? sourceToTargetTitle;
+
         /// <summary>
         /// Gets or sets the source to target title
         /// </summary>
         /// <value>The source to target title.</value>
         [Parameter]
-        public string SourceToTargetTitle { get; set; } = "Move all items from source to target collection";
+        public string SourceToTargetTitle { get => sourceToTargetTitle ?? Localize(nameof(RadzenStrings.PickList_SourceToTargetTitle)); set => sourceToTargetTitle = value; }
+
+        private string? selectedSourceToTargetTitle;
 
         /// <summary>
         /// Gets or sets the selected source to target title
         /// </summary>
         /// <value>The selected source to target title.</value>
         [Parameter]
-        public string SelectedSourceToTargetTitle { get; set; } = "Move all selected source items to target collection";
+        public string SelectedSourceToTargetTitle { get => selectedSourceToTargetTitle ?? Localize(nameof(RadzenStrings.PickList_SelectedSourceToTargetTitle)); set => selectedSourceToTargetTitle = value; }
+
+        private string? targetToSourceTitle;
 
         /// <summary>
         /// Gets or sets the target to source title
         /// </summary>
         /// <value>The target to source title.</value>
         [Parameter]
-        public string TargetToSourceTitle { get; set; } = "Move all items from target to source collection";
+        public string TargetToSourceTitle { get => targetToSourceTitle ?? Localize(nameof(RadzenStrings.PickList_TargetToSourceTitle)); set => targetToSourceTitle = value; }
+
+        private string? selectedTargetToSourceTitle;
 
         /// <summary>
         /// Gets or sets the selected target to source  title
         /// </summary>
         /// <value>The selected target to source title.</value>
         [Parameter]
-        public string SelectedTargetToSourceTitle { get; set; } = "Move selected target items to source collection";
+        public string SelectedTargetToSourceTitle { get => selectedTargetToSourceTitle ?? Localize(nameof(RadzenStrings.PickList_SelectedTargetToSourceTitle)); set => selectedTargetToSourceTitle = value; }
 
         /// <summary>
         /// Gets or sets the source to target icon
@@ -423,6 +501,14 @@ namespace Radzen.Blazor
         /// <value>The selected target items changed callback.</value>
         [Parameter]
         public EventCallback<IEnumerable<TItem>> SelectedTargetChanged { get; set; }
+
+        /// <summary>
+        /// Gets or sets the callback that is invoked when items are moved between the source and target collections.
+        /// Fires after <see cref="SourceChanged"/> and <see cref="TargetChanged"/>, so the bound collections already reflect the move.
+        /// </summary>
+        /// <value>The move callback.</value>
+        [Parameter]
+        public EventCallback<PickListMoveEventArgs<TItem>> Move { get; set; }
 
         object? selectedSourceItems;
         object? selectedTargetItems;
@@ -524,30 +610,36 @@ namespace Radzen.Blazor
         RadzenListBox<object>? targetListBox;
         private async Task Update(bool sourceToTarget, IEnumerable<TItem>? items)
         {
+            IEnumerable<TItem> movedItems;
+
             if (sourceToTarget)
             {
                 if (items != null)
                 {
-                    target = (target ?? Enumerable.Empty<TItem>()).Concat(items);
-                    source = (source ?? Enumerable.Empty<TItem>()).Except(items);
+                    movedItems = items as IList<TItem> ?? items.ToList();
+                    target = (target ?? Enumerable.Empty<TItem>()).Concat(movedItems);
+                    source = (source ?? Enumerable.Empty<TItem>()).Except(movedItems);
                 }
                 else
                 {
-                    target = (target ?? Enumerable.Empty<TItem>()).Concat(MoveFilteredItemsOnlyOnMoveAll ? sourceListBox?.GetView()?.Cast<TItem>() ?? Enumerable.Empty<TItem>() : source ?? Enumerable.Empty<TItem>());
-                    source = MoveFilteredItemsOnlyOnMoveAll && source != null ? source.Except(sourceListBox?.GetView()?.Cast<TItem>() ?? Enumerable.Empty<TItem>()) : null;
+                    movedItems = (MoveFilteredItemsOnlyOnMoveAll ? sourceListBox?.GetView()?.Cast<TItem>() ?? Enumerable.Empty<TItem>() : source ?? Enumerable.Empty<TItem>()).ToList();
+                    target = (target ?? Enumerable.Empty<TItem>()).Concat(movedItems);
+                    source = MoveFilteredItemsOnlyOnMoveAll && source != null ? source.Except(movedItems) : null;
                 }
             }
             else
             {
                 if (items != null)
                 {
-                    source = (source ?? Enumerable.Empty<TItem>()).Concat(items);
-                    target = (target ?? Enumerable.Empty<TItem>()).Except(items);
+                    movedItems = items as IList<TItem> ?? items.ToList();
+                    source = (source ?? Enumerable.Empty<TItem>()).Concat(movedItems);
+                    target = (target ?? Enumerable.Empty<TItem>()).Except(movedItems);
                 }
                 else
                 {
-                    source = (source ?? Enumerable.Empty<TItem>()).Concat(MoveFilteredItemsOnlyOnMoveAll ? targetListBox?.GetView()?.Cast<TItem>() ?? Enumerable.Empty<TItem>() : target ?? Enumerable.Empty<TItem>());
-                    target = MoveFilteredItemsOnlyOnMoveAll && target != null ? target.Except(targetListBox?.GetView()?.Cast<TItem>() ?? Enumerable.Empty<TItem>()) : null;
+                    movedItems = (MoveFilteredItemsOnlyOnMoveAll ? targetListBox?.GetView()?.Cast<TItem>() ?? Enumerable.Empty<TItem>() : target ?? Enumerable.Empty<TItem>()).ToList();
+                    source = (source ?? Enumerable.Empty<TItem>()).Concat(movedItems);
+                    target = MoveFilteredItemsOnlyOnMoveAll && target != null ? target.Except(movedItems) : null;
                 }
             }
 
@@ -556,6 +648,15 @@ namespace Radzen.Blazor
 
             await SourceChanged.InvokeAsync(source);
             await TargetChanged.InvokeAsync(target);
+
+            if (Move.HasDelegate)
+            {
+                await Move.InvokeAsync(new PickListMoveEventArgs<TItem>
+                {
+                    MoveDirectionToTarget = sourceToTarget,
+                    Items = movedItems,
+                });
+            }
 
             if (EditContext != null)
             {

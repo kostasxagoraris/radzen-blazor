@@ -21,39 +21,26 @@ namespace Radzen.Blazor
         public override string Icon => "calendar_month";
 
         /// <inheritdoc />
-        public override string Title
-        {
-            get
-            {
-                if (Scheduler == null) return "";
-                var culture = Scheduler.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
-                if (StartMonth == Month.January)
-                {
-                    return Scheduler.CurrentDate.ToString("yyyy", culture);
-                }
-                else
-                {
-                    return (Scheduler.CurrentDate.Month < (int)StartMonth + 1) ? $"{Scheduler.CurrentDate.AddYears(-1).ToString("yyyy", culture)}-{Scheduler.CurrentDate.ToString("yyyy", culture)}" : $"{Scheduler.CurrentDate.ToString("yyyy", culture)}-{Scheduler.CurrentDate.AddYears(+1).ToString("yyyy", culture)}";
-                }
-            }
-        }
-
-        /// <inheritdoc />
         [Parameter]
-        public override string Text { get; set; } = "Year";
+        public override string Text { get => text ?? Localize(nameof(RadzenStrings.YearView_Text)); set => text = value; }
+        private string? text;
+
+        private string? moreText;
 
         /// <summary>
         /// Specifies the text displayed when there are more appointments in a slot than MaxAppointmentsInSlot.
         /// </summary>
         /// <value>The more text. Set to <c>"+ {0} more"</c> by default.</value>
         [Parameter]
-        public string MoreText { get; set; } = "+ {0} more";
+        public string MoreText { get => moreText ?? Localize(nameof(RadzenStrings.YearView_MoreText)); set => moreText = value; }
+
+        private string? noDayEventsText;
 
         /// <summary>
         /// Specifies the text displayed when the user clicks on a day with no events in the year view
         /// </summary>
         [Parameter]
-        public string NoDayEventsText { get; set; } = "There are no scheduled events taking place on this day";
+        public string NoDayEventsText { get => noDayEventsText ?? Localize(nameof(RadzenStrings.YearView_NoDayEventsText)); set => noDayEventsText = value; }
 
         /// <inheritdoc />
         public override DateTime StartDate

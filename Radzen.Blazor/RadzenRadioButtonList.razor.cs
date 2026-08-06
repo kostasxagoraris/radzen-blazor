@@ -4,6 +4,7 @@ using Radzen.Blazor.Rendering;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -35,19 +36,21 @@ namespace Radzen.Blazor
     ///                         TextProperty="Name" ValueProperty="Id" DisabledProperty="IsDisabled" /&gt;
     /// </code>
     /// </example>
-    public partial class RadzenRadioButtonList<TValue> : FormComponent<TValue>
+    [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.DataTypePreserved)]
+    [CascadingTypeParameter(nameof(TValue))]
+    public partial class RadzenRadioButtonList<TValue> : FormComponent<TValue>, IRadzenRadioButtonList
     {
-        string ItemClass(RadzenRadioButtonListItem<TValue> item) => ClassList.Create("rz-radiobutton-box")
+        string ItemClass(IRadzenRadioButtonListItem item) => ClassList.Create("rz-radiobutton-box")
                                                                             .Add("rz-state-active", IsSelected(item))
                                                                             .Add("rz-state-focused", IsFocused(item) && focused)
                                                                             .AddDisabled(Disabled || item.Disabled)
                                                                             .ToString();
 
-        string IconClass(RadzenRadioButtonListItem<TValue> item) => ClassList.Create("rz-radiobutton-icon")
+        string IconClass(IRadzenRadioButtonListItem item) => ClassList.Create("rz-radiobutton-icon")
                                                                              .Add("notranslate rzi rzi-circle-on", IsSelected(item))
                                                                              .ToString();
 
-        string LabelClass(RadzenRadioButtonListItem<TValue> item) => ClassList.Create("rz-radiobutton-label")
+        string LabelClass(IRadzenRadioButtonListItem item) => ClassList.Create("rz-radiobutton-label")
                                                                              .AddDisabled(Disabled || item.Disabled)
                                                                              .ToString();
 
@@ -107,7 +110,7 @@ namespace Radzen.Blazor
         [Parameter]
         public string? VisibleProperty { get; set; }
 
-        List<RadzenRadioButtonListItem<TValue>> allItems = new();
+        List<IRadzenRadioButtonListItem> allItems = new();
 
         void UpdateAllItems()
         {
@@ -127,7 +130,7 @@ namespace Radzen.Blazor
                     item.SetVisible(visibleResult);
                 }
 
-                return item;
+                return (IRadzenRadioButtonListItem)item;
             })).ToList();
         }
 
@@ -185,13 +188,22 @@ namespace Radzen.Blazor
         [Parameter]
         public RenderFragment? Items { get; set; }
 
-        List<RadzenRadioButtonListItem<TValue>> items = new List<RadzenRadioButtonListItem<TValue>>();
+        List<IRadzenRadioButtonListItem> items = new List<IRadzenRadioButtonListItem>();
 
         /// <summary>
         /// Adds the item.
         /// </summary>
         /// <param name="item">The item.</param>
         public void AddItem(RadzenRadioButtonListItem<TValue> item)
+        {
+            AddItem((IRadzenRadioButtonListItem)item);
+        }
+
+        /// <summary>
+        /// Adds the item.
+        /// </summary>
+        /// <param name="item">The item.</param>
+        public void AddItem(IRadzenRadioButtonListItem item)
         {
             if (items.IndexOf(item) == -1)
             {
@@ -207,6 +219,15 @@ namespace Radzen.Blazor
         /// <param name="item">The item.</param>
         public void RemoveItem(RadzenRadioButtonListItem<TValue> item)
         {
+            RemoveItem((IRadzenRadioButtonListItem)item);
+        }
+
+        /// <summary>
+        /// Removes the item.
+        /// </summary>
+        /// <param name="item">The item.</param>
+        public void RemoveItem(IRadzenRadioButtonListItem item)
+        {
             if (items.Remove(item))
             {
                 UpdateAllItems();
@@ -221,7 +242,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <param name="item">The item.</param>
         /// <returns><c>true</c> if the specified item is selected; otherwise, <c>false</c>.</returns>
-        protected bool IsSelected(RadzenRadioButtonListItem<TValue> item)
+        protected bool IsSelected(IRadzenRadioButtonListItem item)
         {
             ArgumentNullException.ThrowIfNull(item);
 
@@ -232,15 +253,17 @@ namespace Radzen.Blazor
         /// Selects the item.
         /// </summary>
         /// <param name="item">The item.</param>
-        protected async System.Threading.Tasks.Task SelectItem(RadzenRadioButtonListItem<TValue> item)
+        protected async System.Threading.Tasks.Task SelectItem(IRadzenRadioButtonListItem item)
         {
             ArgumentNullException.ThrowIfNull(item);
             if (Disabled || item.Disabled)
+            {
                 return;
+            }
 
             focusedIndex = allItems.IndexOf(item);
 
-            Value = item.Value!;
+            Value = item.Value is TValue typedValue ? typedValue : default!;
 
             await ValueChanged.InvokeAsync(Value);
             if (FieldIdentifier.FieldName != null)
@@ -250,7 +273,7 @@ namespace Radzen.Blazor
             StateHasChanged();
         }
 
-        async Task OnItemKeyDown(KeyboardEventArgs args, RadzenRadioButtonListItem<TValue> item)
+        async Task OnItemKeyDown(KeyboardEventArgs args, IRadzenRadioButtonListItem item)
         {
             var key = args.Code != null ? args.Code : args.Key;
             if (key == "Enter" || key == "Space")
@@ -269,15 +292,7 @@ namespace Radzen.Blazor
 
         bool focused;
         int focusedIndex = -1;
-        bool preventKeyPress = true;
         bool stopKeydownPropagation;
-
-        bool stopGuardKeydownPropagation = true;
-        void OnGuardKeyDown(KeyboardEventArgs args)
-        {
-            var key = args.Code ?? args.Key;
-            stopGuardKeydownPropagation = key != "Escape";
-        }
 
         async Task OnKeyPress(KeyboardEventArgs args)
         {
@@ -285,58 +300,101 @@ namespace Radzen.Blazor
 
             var item = allItems.ElementAtOrDefault(focusedIndex) ?? allItems.FirstOrDefault();
 
-            if (item == null) return;
-
-            if ((Orientation == Orientation.Horizontal && (key == "ArrowLeft" || key == "ArrowRight")) ||
-                (Orientation == Orientation.Vertical && (key == "ArrowUp" || key == "ArrowDown")))
+            if (item == null)
             {
-                preventKeyPress = true;
+                return;
+            }
+
+            if (key == "ArrowLeft" || key == "ArrowRight" || key == "ArrowUp" || key == "ArrowDown")
+            {
                 stopKeydownPropagation = true;
+
                 var direction = key == "ArrowLeft" || key == "ArrowUp" ? -1 : 1;
+                var next = FindNextSelectable(focusedIndex, direction);
 
-                focusedIndex = Math.Clamp(focusedIndex + direction, 0, allItems.FindLastIndex(t => t.Visible && !t.Disabled));
-
-                while (allItems.ElementAtOrDefault(focusedIndex)?.Disabled == true)
+                if (next >= 0 && next != focusedIndex)
                 {
-                    focusedIndex = focusedIndex + direction;
+                    await SelectItem(allItems[next]);
                 }
             }
             else if (key == "Home" || key == "End")
             {
-                preventKeyPress = true;
                 stopKeydownPropagation = true;
 
-                focusedIndex = key == "Home" ? 0 : allItems.Where(t => HasInvisibleBefore(item) ? true : t.Visible).Count() - 1;
+                var next = key == "Home" ? FindNextSelectable(-1, 1) : FindNextSelectable(allItems.Count, -1);
+
+                if (next >= 0)
+                {
+                    await SelectItem(allItems[next]);
+                }
             }
             else if (key == "Space" || key == "Enter")
             {
-                preventKeyPress = true;
                 stopKeydownPropagation = true;
 
-                if (focusedIndex >= 0 && focusedIndex < allItems.Where(t => HasInvisibleBefore(item) ? true : t.Visible).Count())
+                if (!item.Disabled && item.Visible)
                 {
-                    await SelectItem(allItems.Where(t => HasInvisibleBefore(item) ? true : t.Visible).ToList()[focusedIndex]);
+                    await SelectItem(item);
                 }
             }
             else
             {
-                preventKeyPress = false;
                 stopKeydownPropagation = false;
             }
         }
 
-        bool HasInvisibleBefore(RadzenRadioButtonListItem<TValue> item)
+        int FindNextSelectable(int from, int direction)
         {
-            return allItems.Take(allItems.IndexOf(item)).Any(t => !t.Visible && !t.Disabled);
+            var count = allItems.Count;
+
+            if (count == 0)
+            {
+                return -1;
+            }
+
+            for (var step = 1; step <= count; step++)
+            {
+                var index = from + direction * step;
+                index = ((index % count) + count) % count;
+
+                var candidate = allItems[index];
+
+                if (candidate.Visible && !candidate.Disabled)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
         }
 
-        bool IsFocused(RadzenRadioButtonListItem<TValue> item)
+        string? ActiveDescendantId => focusedIndex >= 0 && focusedIndex < allItems.Count && focused
+            ? allItems[focusedIndex].GetItemId()
+            : null;
+
+        /// <summary>
+        /// Gets or sets the id of an external element that labels the radio group. Sets the aria-labelledby attribute.
+        /// </summary>
+        /// <value>The aria-labelledby value.</value>
+        [Parameter]
+        public string? AriaLabelledBy { get; set; }
+
+        string? GroupAriaLabel => (Attributes != null && Attributes.ContainsKey("aria-label")) || !string.IsNullOrEmpty(AriaLabelledBy)
+            ? null
+            : Name;
+
+        bool IsFocused(IRadzenRadioButtonListItem item)
         {
             return allItems.IndexOf(item) == focusedIndex;
         }
         void OnFocus()
         {
-            focusedIndex = focusedIndex == -1 ? 0 : focusedIndex;
+            if (focusedIndex < 0 || focusedIndex >= allItems.Count)
+            {
+                var selected = allItems.FindIndex(IsSelected);
+                focusedIndex = selected >= 0 ? selected : FindNextSelectable(-1, 1);
+            }
+
             focused = true;
         }
         void OnBlur()

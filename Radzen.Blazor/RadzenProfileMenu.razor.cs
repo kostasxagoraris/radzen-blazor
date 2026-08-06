@@ -29,6 +29,89 @@ namespace Radzen.Blazor
             return "rz-menu rz-profile-menu";
         }
 
+        IJSObjectReference? _jsRef;
+        int _jsRefVersion;
+        bool _visibleChanged;
+
+        /// <inheritdoc />
+        public override async Task SetParametersAsync(ParameterView parameters)
+        {
+            if (parameters.DidParameterChange(nameof(Visible), Visible))
+            {
+                _visibleChanged = true;
+            }
+
+            await base.SetParametersAsync(parameters);
+        }
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            if ((firstRender || _visibleChanged) && JSRuntime != null)
+            {
+                _visibleChanged = false;
+
+                var version = ++_jsRefVersion;
+                var jsRef = _jsRef;
+                _jsRef = null;
+
+                if (jsRef != null)
+                {
+                    await jsRef.InvokeVoidAsync("dispose");
+                    await jsRef.DisposeAsync();
+                }
+
+                if (version == _jsRefVersion && Visible)
+                {
+                    var created = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                        "Radzen.createProfileMenu", Element);
+
+                    if (version == _jsRefVersion)
+                    {
+                        _jsRef = created;
+                    }
+                    else if (created != null)
+                    {
+                        await created.InvokeVoidAsync("dispose");
+                        await created.DisposeAsync();
+                    }
+                }
+            }
+
+            if (shouldFocusMenu)
+            {
+                shouldFocusMenu = false;
+
+                try
+                {
+                    await menuElement.FocusAsync(preventScroll: true);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+                catch (JSDisconnectedException)
+                {
+                }
+                catch (JSException)
+                {
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            base.Dispose();
+            _jsRefVersion++;
+            var jsRef = _jsRef;
+            _jsRef = null;
+            jsRef?.InvokeVoidAsync("dispose");
+            jsRef?.DisposeAsync();
+            GC.SuppressFinalize(this);
+        }
+
         /// <summary>
         /// Gets or sets the template.
         /// </summary>
@@ -50,12 +133,14 @@ namespace Radzen.Blazor
         [Parameter]
         public bool ShowIcon { get; set; } = true;
 
+        private string? toggleAriaLabel;
+
         /// <summary>
         /// Gets or sets the toggle aria label text.
         /// </summary>
         /// <value>The toggle aria label text.</value>
         [Parameter]
-        public string ToggleAriaLabel { get; set; } = "Profile menu";
+        public string ToggleAriaLabel { get => toggleAriaLabel ?? Localize(nameof(RadzenStrings.ProfileMenu_ToggleAriaLabel)); set => toggleAriaLabel = value; }
 
         string contentStyle = "display:none;position:absolute;z-index:1;";
 
@@ -82,13 +167,34 @@ namespace Radzen.Blazor
         public void Close()
         {
             contentStyle = "display:none;";
+            focusedIndex = -1;
             StateHasChanged();
+        }
+
+        ElementReference toggleElement;
+        ElementReference menuElement;
+
+        string? ActiveDescendantId => !Collapsed && focusedIndex >= 0 && focusedIndex < items.Count
+            ? items[focusedIndex].GetItemId()
+            : null;
+
+        async Task RestoreFocusToToggle()
+        {
+            try
+            {
+                await toggleElement.FocusAsync();
+            }
+            catch (InvalidOperationException)
+            {
+            }
         }
 
         [Inject]
         NavigationManager? NavigationManager { get; set; }
 
         internal int focusedIndex = -1;
+
+        bool shouldFocusMenu;
 
         bool preventKeyPress = true;
         bool stopKeydownPropagation;
@@ -101,7 +207,33 @@ namespace Radzen.Blazor
                 preventKeyPress = true;
                 stopKeydownPropagation = true;
 
-                focusedIndex = Math.Clamp(focusedIndex + (key == "ArrowUp" ? -1 : 1), 0, items.Count - 1);
+                if (Collapsed)
+                {
+                    await Toggle(new MouseEventArgs());
+
+                    focusedIndex = key == "ArrowUp" ? items.Count - 1 : 0;
+
+                    shouldFocusMenu = true;
+                }
+                else if (items.Count > 0)
+                {
+                    var start = Math.Clamp(focusedIndex, 0, items.Count - 1);
+                    focusedIndex = (start + (key == "ArrowUp" ? -1 : 1) + items.Count) % items.Count;
+                }
+            }
+            else if (key == "Home" || key == "End")
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                if (Collapsed)
+                {
+                    await Toggle(new MouseEventArgs());
+
+                    shouldFocusMenu = true;
+                }
+
+                focusedIndex = key == "Home" ? 0 : items.Count - 1;
             }
             else if (key == "Space" || key == "Enter")
             {
@@ -128,6 +260,8 @@ namespace Radzen.Blazor
                     if (!Collapsed)
                     {
                         focusedIndex = focusedIndex != -1 ? focusedIndex : 0;
+
+                        shouldFocusMenu = true;
                     }
                 }
             }
@@ -137,6 +271,38 @@ namespace Radzen.Blazor
                 stopKeydownPropagation = true;
 
                 Close();
+
+                await RestoreFocusToToggle();
+            }
+            else if (key == "Tab")
+            {
+                preventKeyPress = false;
+                stopKeydownPropagation = false;
+
+                if (!Collapsed)
+                {
+                    Close();
+                }
+            }
+            else if (!Collapsed && args.Key != null && args.Key.Length == 1 && !char.IsControl(args.Key[0]) && items.Count > 0)
+            {
+                preventKeyPress = true;
+                stopKeydownPropagation = true;
+
+                var search = args.Key;
+                var start = focusedIndex < 0 ? 0 : focusedIndex;
+
+                for (var offset = 1; offset <= items.Count; offset++)
+                {
+                    var index = (start + offset) % items.Count;
+                    var text = items[index].Text;
+
+                    if (text != null && text.StartsWith(search, StringComparison.OrdinalIgnoreCase))
+                    {
+                        focusedIndex = index;
+                        break;
+                    }
+                }
             }
             else
             {
@@ -150,15 +316,6 @@ namespace Radzen.Blazor
         {
             var key = args.Code ?? args.Key;
             stopGuardKeydownPropagation = key != "Escape";
-        }
-
-        async Task OnToggleKeyDown(KeyboardEventArgs args)
-        {
-            var key = args.Code != null ? args.Code : args.Key;
-            if (key == "Space" || key == "Enter")
-            {
-                await Toggle(new MouseEventArgs());
-            }
         }
 
         internal bool IsFocused(RadzenProfileMenuItem item)

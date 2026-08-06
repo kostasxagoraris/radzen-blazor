@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
+using System;
 using System.Threading.Tasks;
 
 namespace Radzen.Blazor
@@ -42,13 +44,27 @@ namespace Radzen.Blazor
         [Parameter]
         public int Stars { get; set; } = 5;
 
+        private string? ariaLabel;
+
+        /// <summary>
+        /// Gets or sets the accessible label text for the rating radio group.
+        /// Used by screen readers to announce the purpose of the component.
+        /// </summary>
+        /// <value>The ARIA label for the rating group. Default is "Rating".</value>
+        [Parameter]
+        public string AriaLabel { get => ariaLabel ?? Localize(nameof(RadzenStrings.Rating_AriaLabel)); set => ariaLabel = value; }
+
+        private string? clearAriaLabel;
+
         /// <summary>
         /// Gets or sets the accessible label text for the clear rating action.
         /// Used by screen readers to announce the clear/reset rating button functionality.
         /// </summary>
         /// <value>The ARIA label for clearing the rating. Default is "Clear".</value>
         [Parameter]
-        public string ClearAriaLabel { get; set; } = "Clear";
+        public string ClearAriaLabel { get => clearAriaLabel ?? Localize(nameof(RadzenStrings.Rating_ClearAriaLabel)); set => clearAriaLabel = value; }
+
+        private string? rateAriaLabel;
 
         /// <summary>
         /// Gets or sets the accessible label text template for rating actions.
@@ -56,7 +72,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The ARIA label for rating actions. Default is "Rate".</value>
         [Parameter]
-        public string RateAriaLabel { get; set; } = "Rate";
+        public string RateAriaLabel { get => rateAriaLabel ?? Localize(nameof(RadzenStrings.Rating_RateAriaLabel)); set => rateAriaLabel = value; }
 
         /// <summary>
         /// Gets or sets whether the rating is read-only and cannot be changed by user interaction.
@@ -79,23 +95,35 @@ namespace Radzen.Blazor
             }
         }
 
-        bool preventKeyPress = true;
-        bool stopKeypressPropagation;
-        async Task OnKeyPress(KeyboardEventArgs args, Task task)
+        int FocusableStar => Value >= 1 && Value <= Stars ? Value : 1;
+
+        bool preventKeyDown;
+
+        async Task OnKeyDown(KeyboardEventArgs args, int index)
         {
             var key = args.Code != null ? args.Code : args.Key;
 
-            if (key == "Space" || key == "Enter")
+            if (key == "ArrowRight" || key == "ArrowUp" || key == "ArrowLeft" || key == "ArrowDown")
             {
-                preventKeyPress = true;
-                stopKeypressPropagation = true;
+                preventKeyDown = true;
 
-                await task;
+                if (Disabled || ReadOnly)
+                {
+                    return;
+                }
+
+                var next = key == "ArrowRight" || key == "ArrowUp" ? Math.Min(index + 1, Stars) : Math.Max(index - 1, 1);
+
+                await SetValue(next);
+
+                if (JSRuntime != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.focusElement", GetId() + next.ToString(System.Globalization.CultureInfo.InvariantCulture) + "r");
+                }
             }
             else
             {
-                preventKeyPress = false;
-                stopKeypressPropagation = false;
+                preventKeyDown = false;
             }
         }
     }

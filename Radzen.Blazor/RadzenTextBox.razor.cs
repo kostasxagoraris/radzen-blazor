@@ -69,7 +69,7 @@ namespace Radzen.Blazor
         protected virtual async Task OnChange(ChangeEventArgs args)
         {
             ArgumentNullException.ThrowIfNull(args);
-            await SetValue($"{args.Value}");
+            await UpdateValue($"{args.Value}", trim: Trim);
         }
 
         /// <summary>
@@ -80,27 +80,42 @@ namespace Radzen.Blazor
         /// <returns>A task representing the asynchronous operation.</returns>
         protected virtual async Task SetValue(string? value)
         {
-            Value = $"{value}";
-
-            if (Trim)
-            {
-                Value = Value.Trim();
-            }
-
-            await ValueChanged.InvokeAsync(Value);
-
-            if (FieldIdentifier.FieldName != null)
-            {
-                EditContext?.NotifyFieldChanged(FieldIdentifier);
-            }
-
-            await Change.InvokeAsync(Value);
+            await UpdateValue(value, trim: Trim && !Immediate);
         }
+
+        private async Task UpdateValue(string? value, bool trim)
+        {
+            var newValue = $"{value}";
+
+            if (trim)
+            {
+                newValue = newValue.Trim();
+            }
+
+            if (string.Equals(Value, newValue, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            Value = newValue;
+
+            await ValueChanged.InvokeAsync(newValue);
+
+            NotifyFieldChanged(newValue);
+
+            await Change.InvokeAsync(newValue);
+        }
+
+        /// <summary>
+        /// Gets or sets the size of the component.
+        /// </summary>
+        [Parameter]
+        public InputSize InputSize { get; set; } = InputSize.Medium;
 
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("rz-textbox").ToString();
+            return GetClassList("rz-textbox").AddInputSize(InputSize).ToString();
         }
 
         /// <inheritdoc />

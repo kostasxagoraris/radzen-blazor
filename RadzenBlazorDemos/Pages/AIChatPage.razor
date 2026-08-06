@@ -6,7 +6,7 @@
     Blazor AIChat
 </RadzenText>
 <RadzenText TextStyle="TextStyle.Subtitle1" TagName="TagName.P" class="rz-pb-4">
-    A conversational AI chat interface for building intelligent assistants and chatbot experiences.
+    The Blazor AI Chat component provides a conversational, streaming chat interface for building AI assistants and chatbot experiences.
 </RadzenText>
 
 <RadzenExample ComponentName="AIChat" Example="AIChatConfig">
@@ -41,6 +41,17 @@
 </RadzenText>
 <RadzenExample ComponentName="AIChat" Example="AIChatEvents">
     <AIChatEvents />
+</RadzenExample>
+
+<RadzenText Anchor="aichat#date-separator" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">
+    Date separator and timestamp format
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" class="rz-mb-8">
+    Use <code>TimestampFormat</code> to control how the time is rendered next to each message, and <code>ShowDateSeparator</code> (with <code>DateSeparatorFormat</code>)
+    to insert a divider between messages whenever the day changes — useful when restoring long conversation history via <code>LoadMessages</code>.
+</RadzenText>
+<RadzenExample ComponentName="AIChat" Example="AIChatDateSeparator">
+    <AIChatDateSeparator />
 </RadzenExample>
 
 <RadzenText Anchor="aichat#memory" TextStyle="TextStyle.H5" TagName="TagName.H2" class="rz-pt-12">

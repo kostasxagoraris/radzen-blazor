@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -20,10 +21,16 @@ namespace Radzen.Blazor
         public string? Theme { get; set; }
 
         /// <summary>
-        /// When set to true the icon font will be preloadd.
+        /// When set to true the icon font will be preloaded.
         /// </summary>
         [Parameter]
         public bool PreloadIconFont { get; set; } = true;
+
+        /// <summary>
+        /// Custom css path. If set, it overwrites the default path.
+        /// </summary>
+        [Parameter]
+        public string? CssPath { get; set; }
 
         /// <summary>
         /// Enables WCAG contrast requirements. If set to true additional CSS file will be loaded.
@@ -48,10 +55,12 @@ namespace Radzen.Blazor
         private PersistingComponentStateSubscription? persistingSubscription;
 
         /// <inheritdoc />
+        [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.ComponentTypePreserved)]
         protected override void OnInitialized()
         {
             persistentComponentState = ServiceProvider.GetService<PersistentComponentState>();
 
+            ThemeService.SetCssPath(CssPath);
             theme = ThemeService.Theme ?? GetCurrentTheme();
             wcag = ThemeService.Wcag ?? Wcag;
 
@@ -73,6 +82,7 @@ namespace Radzen.Blazor
             base.OnInitialized();
         }
 
+        [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.ThemeTypePreserved)]
         private string? GetCurrentTheme()
         {
             if (persistentComponentState?.TryTakeFromJson(nameof(Theme), out string? theme) == true)
@@ -83,6 +93,7 @@ namespace Radzen.Blazor
             return Theme;
         }
 
+        [UnconditionalSuppressMessage(TrimMessages.Trimming, TrimMessages.IL2026, Justification = TrimMessages.ThemeTypePreserved)]
         private Task PersistTheme()
         {
             persistentComponentState?.PersistAsJson(nameof(Theme), theme);

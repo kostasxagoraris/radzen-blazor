@@ -75,11 +75,18 @@ namespace Radzen
         /// <inheritdoc />
         public override async Task SetParametersAsync(ParameterView parameters)
         {
-            parameters = parameters.TryGetValue("aria-autocomplete", out ariaAutoComplete) ?
-                ParameterView.FromDictionary(parameters
-                    .ToDictionary().Where(i => i.Key != "aria-autocomplete").ToDictionary(i => i.Key, i => i.Value)
-                    .ToDictionary(i => i.Key, i => (object?)i.Value))
-                : parameters;
+            if (parameters.TryGetValue("aria-autocomplete", out ariaAutoComplete))
+            {
+                var filtered = new Dictionary<string, object?>();
+                foreach (var p in parameters)
+                {
+                    if (p.Name != "aria-autocomplete")
+                    {
+                        filtered[p.Name] = p.Value;
+                    }
+                }
+                parameters = ParameterView.FromDictionary(filtered);
+            }
 
             await base.SetParametersAsync(parameters).ConfigureAwait(false);
         }
@@ -315,6 +322,31 @@ namespace Radzen
         public object? GetValue()
         {
             return Value;
+        }
+
+        /// <summary>
+        /// Notifies the <see cref="EditContext"/> that the field has changed while validators observe the specified value.
+        /// The stored value is restored afterwards so that two-way binding parameter re-flow keeps working as expected.
+        /// </summary>
+        /// <param name="value">The value validators should observe during the notification.</param>
+        protected void NotifyFieldChanged(T? value)
+        {
+            if (FieldIdentifier.FieldName == null || EditContext == null)
+            {
+                return;
+            }
+
+            var current = _value;
+            _value = value;
+
+            try
+            {
+                EditContext.NotifyFieldChanged(FieldIdentifier);
+            }
+            finally
+            {
+                _value = current;
+            }
         }
 
         /// <summary>

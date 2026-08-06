@@ -83,12 +83,14 @@ namespace Radzen.Blazor
         [Parameter]
         public string? ImageStyle { get; set; }
 
+        private string? imageAlternateText;
+
         /// <summary>
         /// Gets or sets the text.
         /// </summary>
         /// <value>The text.</value>
         [Parameter]
-        public string ImageAlternateText { get; set; } = "image";
+        public string ImageAlternateText { get => imageAlternateText ?? Localize(nameof(RadzenStrings.MenuItem_ImageAlternateText)); set => imageAlternateText = value; }
 
         /// <summary>
         /// Gets or sets the navigation link match.
@@ -112,6 +114,12 @@ namespace Radzen.Blazor
         public RenderFragment? ChildContent { get; set; }
 
         internal string? SubmenuId => ChildContent != null ? $"{GetId()}-submenu" : null;
+
+        internal string? GetMenuItemId() => GetId();
+
+        internal bool Expanded { get; set; }
+
+        internal bool IsActive => Parent?.IsFocused(this) == true;
 
         internal string ArrowIcon => Parent?.Flyout == true
             ? "keyboard_arrow_right"
@@ -217,11 +225,9 @@ namespace Radzen.Blazor
             {
                 if (Parent.ClickToOpen || ChildContent != null)
                 {
-                    events.Add("onclick", "Radzen.toggleMenuItem(this)");
                 }
                 else
                 {
-                    events.Add("onclick", "Radzen.toggleMenuItem(this, event, false)");
                 }
             }
 
@@ -248,6 +254,8 @@ namespace Radzen.Blazor
         /// </summary>
         public async Task Toggle()
         {
+            Expanded = !Expanded;
+
             if (JSRuntime != null)
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.toggleMenuItem", Element);
@@ -259,6 +267,8 @@ namespace Radzen.Blazor
         /// </summary>
         public async Task Close()
         {
+            Expanded = false;
+
             if (JSRuntime != null)
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.toggleMenuItem", Element, "event", false);
@@ -270,6 +280,8 @@ namespace Radzen.Blazor
         /// </summary>
         public async Task Open()
         {
+            Expanded = true;
+
             if (JSRuntime != null)
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.toggleMenuItem", Element, "event", true);

@@ -16,7 +16,7 @@ namespace Radzen.Blazor
     /// RadzenCarousel displays one item at a time with automatic or manual advancement and various navigation options.
     /// Perfect for image galleries, product showcases, hero sections, or any content that benefits from sequential presentation.
     /// Features automatic advancement with configurable interval, Previous/Next buttons with customizable icons and text, dot indicators or page numbers for direct item selection,
-    /// infinite loop for continuous cycling from last to first item, keyboard control (Arrow keys for navigation, Page Up/Down for first/last), swipe gestures on touch devices,
+    /// infinite loop for continuous cycling from last to first item, keyboard control (Left/Right Arrow keys for navigation), swipe gestures on touch devices,
     /// and customization of button styles, pager position (top/bottom/overlay), and navigation visibility.
     /// Items are defined using RadzenCarouselItem components. Each item can contain images, text, or complex layouts. Use Auto property to enable automatic cycling, and Interval to control slide duration.
     /// </summary>
@@ -98,20 +98,66 @@ namespace Radzen.Blazor
         {
             if (Auto)
             {
-                await Reset();
+                if (hovered || focused)
+                {
+                    Stop();
+                }
+                else
+                {
+                    await Reset();
+                }
             }
 
             await GoTo(index);
         }
 
+        int PageCount => ItemsPerPage > 1 ? (int)Math.Ceiling((double)items.Count / ItemsPerPage) : items.Count;
+
+        int ActivePage => ItemsPerPage > 1 ? selectedIndex / ItemsPerPage : selectedIndex;
+
+        internal bool IsItemActive(int index)
+        {
+            if (ItemsPerPage > 1)
+            {
+                var start = ActivePage * ItemsPerPage;
+                return index >= start && index < start + ItemsPerPage;
+            }
+
+            return index == selectedIndex;
+        }
+
+        void RefreshItems()
+        {
+            foreach (var item in items)
+            {
+                item.Refresh();
+            }
+        }
+
         async Task Prev()
         {
-            await Navigate(selectedIndex == 0 ? items.Count - 1 : selectedIndex - 1);
+            if (ItemsPerPage > 1)
+            {
+                var prevIndex = selectedIndex - ItemsPerPage;
+                await Navigate(prevIndex < 0 ? (PageCount - 1) * ItemsPerPage : prevIndex);
+            }
+            else
+            {
+                await Navigate(selectedIndex == 0 ? items.Count - 1 : selectedIndex - 1);
+            }
         }
 
         async Task Next()
         {
-            await Navigate(selectedIndex == items.Count - 1 ? 0 : selectedIndex + 1);
+            if (ItemsPerPage > 1)
+            {
+                var nextIndex = selectedIndex + ItemsPerPage;
+                await Navigate(nextIndex >= items.Count ? 0 : nextIndex);
+            }
+            else
+            {
+                await Navigate(selectedIndex == items.Count - 1 ? 0 : selectedIndex + 1);
+            }
         }
 
         async Task GoTo(int index)
@@ -125,6 +171,7 @@ namespace Radzen.Blazor
                 {
                     await JSRuntime.InvokeVoidAsync("Radzen.scrollCarouselItem", items[selectedIndex].element, AnimationDuration.HasValue ? (object)AnimationDuration.Value : null);
                 }
+                RefreshItems();
                 StateHasChanged();
             }
         }
@@ -180,15 +227,122 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<int> Change { get; set; }
 
+        private string? pagerButtonAriaLabelFormat;
+
         /// <summary>
         /// Gets or sets the pager button aria-label format. Use {0} for the 1-based slide index.
         /// </summary>
         [Parameter]
-        public string PagerButtonAriaLabelFormat { get; set; } = "Go to slide {0}";
+        public string PagerButtonAriaLabelFormat { get => pagerButtonAriaLabelFormat ?? Localize(nameof(RadzenStrings.Carousel_PagerButtonAriaLabelFormat)); set => pagerButtonAriaLabelFormat = value; }
+
+        private string? prevAriaLabel;
+
+        /// <summary>
+        /// Gets or sets the aria-label of the previous button.
+        /// </summary>
+        [Parameter]
+        public string PrevAriaLabel { get => prevAriaLabel ?? Localize(nameof(RadzenStrings.Carousel_PrevAriaLabel)); set => prevAriaLabel = value; }
+
+        private string? nextAriaLabel;
+
+        /// <summary>
+        /// Gets or sets the aria-label of the next button.
+        /// </summary>
+        [Parameter]
+        public string NextAriaLabel { get => nextAriaLabel ?? Localize(nameof(RadzenStrings.Carousel_NextAriaLabel)); set => nextAriaLabel = value; }
+
+        private string? slideAriaLabelFormat;
+
+        /// <summary>
+        /// Gets or sets the slide aria-label format. Use {0} for the 1-based slide index and {1} for the total slide count.
+        /// </summary>
+        [Parameter]
+        public string SlideAriaLabelFormat { get => slideAriaLabelFormat ?? Localize(nameof(RadzenStrings.Carousel_SlideAriaLabelFormat)); set => slideAriaLabelFormat = value; }
+
+        /// <summary>
+        /// Gets or sets the aria-label of the carousel container.
+        /// </summary>
+        [Parameter]
+        public string? AriaLabel { get; set; }
+
+        internal string GetSlideAriaLabel(RadzenCarouselItem item)
+        {
+            return string.Format(System.Globalization.CultureInfo.CurrentCulture, SlideAriaLabelFormat, items.IndexOf(item) + 1, items.Count);
+        }
+
+        bool hovered;
+        bool focused;
+        bool preventKeyPress;
+
+        void UpdateAutoCycle()
+        {
+            if (!Auto)
+            {
+                return;
+            }
+
+            if (hovered || focused)
+            {
+                Stop();
+            }
+            else
+            {
+                Start();
+            }
+        }
+
+        void OnCarouselMouseEnter()
+        {
+            hovered = true;
+            UpdateAutoCycle();
+        }
+
+        void OnCarouselMouseLeave()
+        {
+            hovered = false;
+            UpdateAutoCycle();
+        }
+
+        void OnCarouselFocusIn()
+        {
+            focused = true;
+            UpdateAutoCycle();
+        }
+
+        void OnCarouselFocusOut()
+        {
+            focused = false;
+            UpdateAutoCycle();
+        }
+
+        async Task OnCarouselKeyDown(KeyboardEventArgs args)
+        {
+            var key = args.Code != null ? args.Code : args.Key;
+
+            if (key == "ArrowLeft")
+            {
+                preventKeyPress = true;
+                await Prev();
+            }
+            else if (key == "ArrowRight")
+            {
+                preventKeyPress = true;
+                await Next();
+            }
+            else
+            {
+                preventKeyPress = false;
+            }
+        }
 
         /// <inheritdoc />
         public override async Task SetParametersAsync(ParameterView parameters)
         {
+            if (parameters.DidParameterChange(nameof(Visible), Visible))
+            {
+                _visibleChanged = true;
+            }
+
             var shouldUpdate = false;
             if (parameters.DidParameterChange(nameof(SelectedIndex), SelectedIndex))
             {
@@ -213,6 +367,8 @@ namespace Radzen.Blazor
 
             if (shouldUpdate)
             {
+                RefreshItems();
+
                 if (JSRuntime != null)
                 {
                     await JSRuntime.InvokeVoidAsync("Radzen.scrollCarouselItem", items[selectedIndex].element, AnimationDuration.HasValue ? (object)AnimationDuration.Value : null);
@@ -269,6 +425,13 @@ namespace Radzen.Blazor
         /// <value><c>true</c> if previous/next navigation is allowed; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool AllowNavigation { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the number of items visible at the same time. Set to <c>1</c> by default.
+        /// </summary>
+        /// <value>The number of items per page.</value>
+        [Parameter]
+        public int ItemsPerPage { get; set; } = 1;
 
         /// <summary>
         /// Gets or sets a value indicating whether the user can scroll or swipe through carousel items. Set to <c>true</c> by default.
@@ -337,6 +500,8 @@ namespace Radzen.Blazor
 
         ElementReference itemsElement;
         IJSObjectReference? scrollDisposable;
+        int scrollDisposableVersion;
+        bool _visibleChanged;
 
         /// <summary>
         /// Called from JavaScript when the user scrolls the carousel items container.
@@ -345,7 +510,10 @@ namespace Radzen.Blazor
         [JSInvokable("RadzenCarousel.OnScroll")]
         public async Task OnScroll(int index)
         {
-            if (!AllowScroll) return;
+            if (!AllowScroll)
+            {
+                return;
+            }
 
             if (index >= 0 && index <= items.Count - 1 && selectedIndex != index)
             {
@@ -358,6 +526,7 @@ namespace Radzen.Blazor
                     await Reset();
                 }
 
+                RefreshItems();
                 StateHasChanged();
             }
         }
@@ -372,11 +541,41 @@ namespace Radzen.Blazor
                 var ts = TimeSpan.FromMilliseconds(Interval + (AnimationDuration ?? 0));
                 timer = new System.Threading.Timer(state => InvokeAsync(Next),
                     null, Auto ? ts : Timeout.InfiniteTimeSpan, ts);
+            }
 
-                if (JSRuntime != null)
+            if ((firstRender || _visibleChanged) && JSRuntime != null)
+            {
+                _visibleChanged = false;
+
+                var version = ++scrollDisposableVersion;
+                var jsRef = scrollDisposable;
+                scrollDisposable = null;
+
+                if (jsRef != null)
                 {
-                    scrollDisposable = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                    await jsRef.InvokeVoidAsync("dispose");
+                    await jsRef.DisposeAsync();
+                }
+
+                if (version != scrollDisposableVersion)
+                {
+                    return;
+                }
+
+                if (Visible)
+                {
+                    var created = await JSRuntime.InvokeAsync<IJSObjectReference>(
                         "Radzen.createCarousel", itemsElement, Reference);
+
+                    if (version == scrollDisposableVersion)
+                    {
+                        scrollDisposable = created;
+                    }
+                    else if (created != null)
+                    {
+                        await created.InvokeVoidAsync("dispose");
+                        await created.DisposeAsync();
+                    }
                 }
             }
         }
@@ -392,12 +591,11 @@ namespace Radzen.Blazor
                 timer = null;
             }
 
-            if (scrollDisposable != null)
-            {
-                try { scrollDisposable.InvokeVoidAsync("dispose"); } catch { }
-                try { scrollDisposable.DisposeAsync(); } catch { }
-                scrollDisposable = null;
-            }
+            scrollDisposableVersion++;
+            var jsRef = scrollDisposable;
+            scrollDisposable = null;
+            jsRef?.InvokeVoid("dispose");
+            jsRef?.DisposeFireAndForget();
 
             GC.SuppressFinalize(this);
         }
@@ -407,7 +605,10 @@ namespace Radzen.Blazor
 
         void OnTouchStart(TouchEventArgs args)
         {
-            if (!AllowScroll) return;
+            if (!AllowScroll)
+            {
+                return;
+            }
 
             x = args.Touches[0].ClientX;
             y = args.Touches[0].ClientY;
