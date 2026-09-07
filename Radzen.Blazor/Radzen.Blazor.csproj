@@ -135,8 +135,6 @@
     <Content Remove="wwwroot\themes\dark-wcag.scss" />
     <Content Remove="wwwroot\themes\dark.css" />
     <Content Remove="wwwroot\themes\dark.scss" />
-    <Content Remove="wwwroot\themes\default-base.css" />
-    <Content Remove="wwwroot\themes\default-base.min.css" />
     <Content Remove="wwwroot\themes\default-base.scss" />
     <Content Remove="wwwroot\themes\default-wcag.css" />
     <Content Remove="wwwroot\themes\default-wcag.scss" />
@@ -308,8 +306,6 @@
     <None Include="wwwroot\themes\dark-wcag.scss" />
     <None Include="wwwroot\themes\dark.css" />
     <None Include="wwwroot\themes\dark.scss" />
-    <None Include="wwwroot\themes\default-base.css" />
-    <None Include="wwwroot\themes\default-base.min.css" />
     <None Include="wwwroot\themes\default-base.scss" />
     <None Include="wwwroot\themes\default-wcag.css" />
     <None Include="wwwroot\themes\default-wcag.scss" />
