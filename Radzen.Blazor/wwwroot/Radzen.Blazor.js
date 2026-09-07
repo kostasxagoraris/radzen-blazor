@@ -261,6 +261,9 @@ window.Radzen = {
     // Forward vertical mouse-wheel events to the timeline so the user
     // can still scroll vertically while hovering over the grid.
     var onGridWheel = function (e) {
+      if (e.shiftKey || e.deltaX) {
+        return;
+      }
       if (e.deltaY) {
         timeline.scrollTop += e.deltaY;
         e.preventDefault();
@@ -887,36 +890,37 @@ window.Radzen = {
 
       var hidden = el.querySelector('input[type="hidden"]');
 
-      Radzen[id] = {};
+      var state = {};
+      Radzen[id] = state;
 
-      Radzen[id].inputs = [...el.querySelectorAll('.rz-security-code-input')];
+      state.inputs = [...el.querySelectorAll('.rz-security-code-input')];
 
       var isAndroid = navigator.userAgent.match(/Android/i);
 
-      Radzen[id].paste = function (e) {
+      state.paste = function (e) {
           if (e.clipboardData) {
               var value = e.clipboardData.getData('text');
 
               if (value) {
-                  for (var i = 0; i < Math.min(value.length, Radzen[id].inputs.length); i++) {
+                  for (var i = 0; i < Math.min(value.length, state.inputs.length); i++) {
                       if (isNumber && isNaN(+value[i])) {
                           continue;
                       }
-                      Radzen[id].inputs[i].value = value[i];
+                      state.inputs[i].value = value[i];
                   }
 
-                  var code = Radzen[id].inputs.map(i => i.value).join('').trim();
+                  var code = state.inputs.map(i => i.value).join('').trim();
                   hidden.value = code;
 
                   try { suppressDisposed(ref.invokeMethodAsync('RadzenSecurityCode.OnValueChange', code)); } catch { }
 
-                  Radzen[id].inputs[Radzen[id].inputs.length - 1].focus();
+                  state.inputs[state.inputs.length - 1].focus();
               }
 
               e.preventDefault();
           }
       }
-      Radzen[id].keyPress = function (e) {
+      state.keyPress = function (e) {
           var keyCode = e.data ? e.data.charCodeAt(0) : e.which;
           var ch = e.data || String.fromCharCode(e.which);
 
@@ -945,58 +949,51 @@ window.Radzen = {
 
           e.currentTarget.value = ch;
 
-          var value = Radzen[id].inputs.map(i => i.value).join('').trim();
+          var value = state.inputs.map(i => i.value).join('').trim();
           hidden.value = value;
 
           try { suppressDisposed(ref.invokeMethodAsync('RadzenSecurityCode.OnValueChange', value)); } catch { }
 
-          var index = Radzen[id].inputs.indexOf(e.currentTarget);
-          if (index < Radzen[id].inputs.length - 1) {
-              Radzen[id].inputs[index + 1].focus();
+          var index = state.inputs.indexOf(e.currentTarget);
+          if (index < state.inputs.length - 1) {
+              state.inputs[index + 1].focus();
           }
       }
 
-      Radzen[id].keyDown = function (e) {
+      state.keyDown = function (e) {
           var keyCode = e.which || e.keyCode;
           if (keyCode == 8) {
               e.currentTarget.value = '';
 
-              var value = Radzen[id].inputs.map(i => i.value).join('').trim();
+              var value = state.inputs.map(i => i.value).join('').trim();
               hidden.value = value;
 
               try { suppressDisposed(ref.invokeMethodAsync('RadzenSecurityCode.OnValueChange', value)); } catch { }
 
-              var index = Radzen[id].inputs.indexOf(e.currentTarget);
+              var index = state.inputs.indexOf(e.currentTarget);
               if (index > 0) {
-                  Radzen[id].inputs[index - 1].focus();
+                  state.inputs[index - 1].focus();
               }
           }
       }
 
-      for (var i = 0; i < Radzen[id].inputs.length; i++) {
-          Radzen[id].inputs[i].addEventListener(isAndroid ? 'textInput' : 'keypress', Radzen[id].keyPress);
-          Radzen[id].inputs[i].addEventListener('keydown', Radzen[id].keyDown);
-          Radzen[id].inputs[i].addEventListener('paste', Radzen[id].paste);
+      for (var i = 0; i < state.inputs.length; i++) {
+          state.inputs[i].addEventListener(isAndroid ? 'textInput' : 'keypress', state.keyPress);
+          state.inputs[i].addEventListener('keydown', state.keyDown);
+          state.inputs[i].addEventListener('paste', state.paste);
       }
 
       return {
           dispose: function () {
-              if (!Radzen[id]) return;
-
-              var inputs = el.getElementsByTagName('input');
-
-              if (Radzen[id].keyPress && Radzen[id].keyDown && Radzen[id].paste) {
-                  for (var i = 0; i < inputs.length; i++) {
-                      inputs[i].removeEventListener(isAndroid ? 'textInput' : 'keypress', Radzen[id].keyPress);
-                      inputs[i].removeEventListener('keydown', Radzen[id].keyDown);
-                      inputs[i].removeEventListener('paste', Radzen[id].paste);
-                  }
-                  delete Radzen[id].keyPress;
-                  delete Radzen[id].keyDown;
-                  delete Radzen[id].paste;
+              for (var i = 0; i < state.inputs.length; i++) {
+                  state.inputs[i].removeEventListener(isAndroid ? 'textInput' : 'keypress', state.keyPress);
+                  state.inputs[i].removeEventListener('keydown', state.keyDown);
+                  state.inputs[i].removeEventListener('paste', state.paste);
               }
 
-              Radzen[id] = null;
+              if (Radzen[id] === state) {
+                  Radzen[id] = null;
+              }
           }
       };
   },
@@ -1013,8 +1010,9 @@ window.Radzen = {
     step,
     isVertical
   ) {
-    Radzen[id] = {};
-    Radzen[id].mouseMoveHandler = function (e) {
+    var state = {};
+    Radzen[id] = state;
+    state.mouseMoveHandler = function (e) {
       e.preventDefault();
 
       var handle = slider.isMin ? minHandle : maxHandle;
@@ -1055,16 +1053,16 @@ window.Radzen = {
       }
     };
 
-    Radzen[id].mouseDownHandler = function (e) {
+    state.mouseDownHandler = function (e) {
       if (parent.classList.contains('rz-state-disabled')) return;
 
-      document.addEventListener('mousemove', Radzen[id].mouseMoveHandler);
-      document.addEventListener('touchmove', Radzen[id].mouseMoveHandler, {
+      document.addEventListener('mousemove', state.mouseMoveHandler);
+      document.addEventListener('touchmove', state.mouseMoveHandler, {
         passive: false, capture: true
       });
 
-      document.addEventListener('mouseup', Radzen[id].mouseUpHandler);
-      document.addEventListener('touchend', Radzen[id].mouseUpHandler, {
+      document.addEventListener('mouseup', state.mouseUpHandler);
+      document.addEventListener('touchend', state.mouseUpHandler, {
         passive: true
       });
 
@@ -1092,43 +1090,40 @@ window.Radzen = {
       }
     };
 
-    Radzen[id].mouseUpHandler = function (e) {
+    state.mouseUpHandler = function (e) {
       slider.canChange = false;
-      document.removeEventListener('mousemove', Radzen[id].mouseMoveHandler);
-      document.removeEventListener('touchmove', Radzen[id].mouseMoveHandler, {
+      document.removeEventListener('mousemove', state.mouseMoveHandler);
+      document.removeEventListener('touchmove', state.mouseMoveHandler, {
         passive: false, capture: true
       });
-      document.removeEventListener('mouseup', Radzen[id].mouseUpHandler);
-      document.removeEventListener('touchend', Radzen[id].mouseUpHandler, {
+      document.removeEventListener('mouseup', state.mouseUpHandler);
+      document.removeEventListener('touchend', state.mouseUpHandler, {
         passive: true
       });
     };
 
-    parent.addEventListener('mousedown', Radzen[id].mouseDownHandler);
-    parent.addEventListener('touchstart', Radzen[id].mouseDownHandler, {
+    parent.addEventListener('mousedown', state.mouseDownHandler);
+    parent.addEventListener('touchstart', state.mouseDownHandler, {
       passive: true
     });
 
     return { dispose: function() {
-      if (!Radzen[id]) return;
+      document.removeEventListener('mousemove', state.mouseMoveHandler);
+      document.removeEventListener('touchmove', state.mouseMoveHandler, {
+        passive: false, capture: true
+      });
+      document.removeEventListener('mouseup', state.mouseUpHandler);
+      document.removeEventListener('touchend', state.mouseUpHandler, {
+        passive: true
+      });
+      parent.removeEventListener('mousedown', state.mouseDownHandler);
+      parent.removeEventListener('touchstart', state.mouseDownHandler, {
+        passive: true
+      });
 
-      if (Radzen[id].mouseMoveHandler) {
-        document.removeEventListener('mousemove', Radzen[id].mouseMoveHandler);
-        document.removeEventListener('touchmove', Radzen[id].mouseMoveHandler);
-        delete Radzen[id].mouseMoveHandler;
+      if (Radzen[id] === state) {
+        Radzen[id] = null;
       }
-      if (Radzen[id].mouseUpHandler) {
-        document.removeEventListener('mouseup', Radzen[id].mouseUpHandler);
-        document.removeEventListener('touchend', Radzen[id].mouseUpHandler);
-        delete Radzen[id].mouseUpHandler;
-      }
-      if (Radzen[id].mouseDownHandler) {
-        parent.removeEventListener('mousedown', Radzen[id].mouseDownHandler);
-        parent.removeEventListener('touchstart', Radzen[id].mouseDownHandler);
-        delete Radzen[id].mouseDownHandler;
-      }
-
-      Radzen[id] = null;
     }};
   },
   prepareDrag: function (el) {
@@ -1553,7 +1548,10 @@ window.Radzen = {
         }
         if (el && el.id !== activeId) { el.id = activeId; }
         if (el) {
-            grid.setAttribute('aria-activedescendant', activeId);
+            var roleTarget = grid.matches('[role="grid"],[role="treegrid"]')
+                ? grid
+                : grid.querySelector('[role="grid"],[role="treegrid"]') || grid;
+            roleTarget.setAttribute('aria-activedescendant', activeId);
         }
     };
 
@@ -1997,39 +1995,6 @@ window.Radzen = {
         clearTimeout(Radzen[id + 'duration']);
     }
   },
-  createDatePicker(el, popupId, instance, callback) {
-      if(!el) return { dispose: function() {} };
-      var handler = function (e, condition) {
-          if (condition) {
-              Radzen.togglePopup(e.currentTarget.parentNode, popupId, false, instance, callback, true, false);
-          }
-      };
-
-      var input = el.querySelector('.rz-inputtext');
-      var button = el.querySelector('.rz-datepicker-trigger');
-      if (button) {
-          button.onclick = function (e) {
-              handler(e, !e.currentTarget.classList.contains('rz-state-disabled') && (input ? !input.classList.contains('rz-readonly') : true));
-          };
-      }
-
-      if (input) {
-          input.onclick = function (e) {
-              handler(e, e.currentTarget.classList.contains('rz-input-trigger') && !e.currentTarget.classList.contains('rz-readonly'));
-          };
-      }
-
-      return {
-          dispose: function () {
-              if (button) {
-                  button.onclick = null;
-              }
-              if (input) {
-                  input.onclick = null;
-              }
-          }
-      };
-  },
   findPopup: function (id) {
     var popups = [];
     for (var i = 0; i < document.body.children.length; i++) {
@@ -2166,10 +2131,21 @@ window.Radzen = {
         bottom: ['bottom', 'top', 'right', 'left']
       }[position] || [position];
 
+      var tooltipContent = popup.children[0];
+      var tooltipSide = position;
+      var setTooltipSide = function (side) {
+        if (side == tooltipSide || !tooltipContent || !tooltipContent.classList.contains('rz-' + tooltipSide + '-tooltip-content')) return;
+        tooltipContent.classList.remove('rz-' + tooltipSide + '-tooltip-content');
+        tooltipContent.classList.add('rz-' + side + '-tooltip-content');
+        tooltipSide = side;
+        rect = popup.getBoundingClientRect();
+      };
+
       var resolvedPosition = null;
       var placement = null;
 
       for (var pi = 0; pi < fallbackOrder.length; pi++) {
+        setTooltipSide(fallbackOrder[pi]);
         var candidate = tooltipPlacement(fallbackOrder[pi]);
         if (tooltipFits(candidate)) {
           resolvedPosition = fallbackOrder[pi];
@@ -2179,6 +2155,7 @@ window.Radzen = {
       }
 
       if (!placement) {
+        setTooltipSide(position);
         resolvedPosition = position;
         placement = tooltipPlacement(position);
         placement.left = Math.max(0, Math.min(placement.left, window.innerWidth - rect.width));
@@ -2189,12 +2166,6 @@ window.Radzen = {
       top = placement.top;
 
       if (resolvedPosition != position) {
-        var tooltipContent = popup.children[0];
-        var previousClassName = 'rz-' + position + '-tooltip-content';
-        if (tooltipContent && tooltipContent.classList.contains(previousClassName)) {
-          tooltipContent.classList.remove(previousClassName);
-          tooltipContent.classList.add('rz-' + resolvedPosition + '-tooltip-content');
-        }
         position = resolvedPosition;
         if (instance && callback) {
           try { suppressDisposed(instance.invokeMethodAsync(callback, position)); } catch { }
@@ -3383,20 +3354,96 @@ window.Radzen = {
     ref.navLabelInputEnd = 0;
 
     function formatLabel(fraction) {
-      var inputStart = ref.navLabelInputStart;
-      var inputEnd = ref.navLabelInputEnd;
-      if (inputStart === inputEnd) return '';
-      var value = inputStart + fraction * (inputEnd - inputStart);
-      if (ref.navLabelIsDate) {
-        // .NET ticks to JS Date: ticks are 100ns intervals from 0001-01-01
-        var ticksToMs = value / 10000 - 62135596800000;
-        var d = new Date(ticksToMs);
-        var m = d.getMonth() + 1;
-        var day = d.getDate();
-        var y = d.getFullYear();
-        return (m < 10 ? '0' : '') + m + '/' + (day < 10 ? '0' : '') + day + '/' + y;
-      }
-      return Math.round(value).toString();
+        var inputStart = ref.navLabelInputStart;
+        var inputEnd = ref.navLabelInputEnd;
+        if (inputStart === inputEnd) return '';
+
+        var value = inputStart + fraction * (inputEnd - inputStart);
+
+        if (ref.navLabelIsDate) {
+            // .NET ticks -> JavaScript Date
+            var ticksToMs = value / 10000 - 62135596800000;
+            var d = new Date(ticksToMs);
+
+            var format = ref.handleLabelFormatString || "{0:MM/dd/yyyy}";
+
+            // Extract the format from "{0:MM/dd/yyyy}"
+            format = format.replace(/^\{0:/, '').replace(/\}$/, '');
+
+            var month = d.getMonth();
+            var monthNumber = month + 1;
+            var day = d.getDate();
+            var hours24 = d.getHours();
+            var hours12 = hours24 % 12 || 12;
+
+            var monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            var monthNamesShort = [
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            ];
+
+            var year = d.getFullYear();
+
+            // Single-pass tokenizer. Quoted literals are preserved
+            return format.replace(
+                /'([^']*)'|yyyy|yy|MMMM|MMM|MM|M|dd|d|HH|hh|mm|ss|tt/g,
+                function (match, literal) {
+                    if (literal !== undefined) {
+                        return literal;
+                    }
+
+                    switch (match) {
+                        case 'yyyy':
+                            return String(year);
+
+                        case 'yy':
+                            return String(year % 100).padStart(2, '0');
+
+                        case 'MMMM':
+                            return monthNames[month];
+
+                        case 'MMM':
+                            return monthNamesShort[month];
+
+                        case 'MM':
+                            return String(monthNumber).padStart(2, '0');
+
+                        case 'M':
+                            return String(monthNumber);
+
+                        case 'dd':
+                            return String(day).padStart(2, '0');
+
+                        case 'd':
+                            return String(day);
+
+                        case 'HH':
+                            return String(hours24).padStart(2, '0');
+
+                        case 'hh':
+                            return String(hours12).padStart(2, '0');
+
+                        case 'mm':
+                            return String(d.getMinutes()).padStart(2, '0');
+
+                        case 'ss':
+                            return String(d.getSeconds()).padStart(2, '0');
+
+                        case 'tt':
+                            return hours24 < 12 ? 'AM' : 'PM';
+
+                        default:
+                            return match;
+                    }
+                }
+            );
+        }
+
+        return Math.round(value).toString();
     }
 
     function setLabelText(el, text) {
@@ -3566,12 +3613,13 @@ window.Radzen = {
     return [width, height];
   },
 
-  updateRangeNavigatorLabels: function (ref, isDate, inputStart, inputEnd) {
-    if (!ref) return;
-    ref.navLabelIsDate = isDate;
-    ref.navLabelInputStart = inputStart;
-    ref.navLabelInputEnd = inputEnd;
-  },
+    updateRangeNavigatorLabels: function (ref, isDate, inputStart, inputEnd, handleLabelFormatString) {
+        if (!ref) return;
+        ref.navLabelIsDate = isDate;
+        ref.navLabelInputStart = inputStart;
+        ref.navLabelInputEnd = inputEnd;
+        ref.handleLabelFormatString = handleLabelFormatString;
+    },
 
   destroyGauge: function (ref) {
     if (ref._gaugeRTLObserver) {
@@ -5298,60 +5346,135 @@ window.Radzen = {
     } catch (e) { /* ignore */ }
   },
   startColumnReorder: function(id, gridId, gridRef) {
+      if (Radzen[id + 'reorderCleanup']) {
+          Radzen[id + 'reorderCleanup']();
+      }
+
       var grid = document.getElementById(gridId);
       var el = document.getElementById(id + '-drag');
-      Radzen[id + 'cell'] = el.parentNode.parentNode;
+      var cell = el.parentNode.parentNode;
       var visual = document.createElement("th");
-      visual.className = Radzen[id + 'cell'].className + ' rz-column-draggable';
-      visual.style = Radzen[id + 'cell'].style;
+      visual.className = cell.className + ' rz-column-draggable';
+      visual.style = cell.style;
       visual.style.display = 'none';
       visual.style.position = 'absolute';
-      visual.style.height = Radzen[id + 'cell'].offsetHeight + 'px';
-      visual.style.width = Radzen[id + 'cell'].offsetWidth + 'px';
+      visual.style.height = cell.offsetHeight + 'px';
+      visual.style.width = cell.offsetWidth + 'px';
       visual.style.zIndex = 2000;
       visual.style.pointerEvents = 'none';
-      visual.innerHTML = Radzen[id + 'cell'].firstChild.outerHTML;
+      visual.innerHTML = cell.firstChild.outerHTML;
       visual.id = id + 'visual';
       document.body.appendChild(visual);
 
-      var resizers = Radzen[id + 'cell'].parentNode.querySelectorAll('.rz-column-resizer');
+      var resizers = cell.parentNode.querySelectorAll('.rz-column-resizer');
       for (let i = 0; i < resizers.length; i++) {
           resizers[i].style.display = 'none';
       }
 
-      Radzen[id + 'lastTouchX'] = null;
-      Radzen[id + 'lastTouchY'] = null;
+      var lastTouchX = null;
+      var lastTouchY = null;
+      var scroller = grid.querySelector('.rz-data-grid-data');
+      var autoScrollSpeed = 0;
+      var autoScrollFrame = null;
 
-      Radzen[id + 'end'] = function (e) {
+      var stopAutoScroll = function () {
+          if (autoScrollFrame) {
+              cancelAnimationFrame(autoScrollFrame);
+          }
+          autoScrollFrame = null;
+          autoScrollSpeed = 0;
+      };
+
+      var autoScrollStep = function () {
+          autoScrollFrame = null;
+          if (!autoScrollSpeed || !scroller) {
+              return;
+          }
+          var before = scroller.scrollLeft;
+          scroller.scrollLeft = before + autoScrollSpeed;
+          if (Math.abs(scroller.scrollLeft - before) >= 0.5) {
+              autoScrollFrame = requestAnimationFrame(autoScrollStep);
+          }
+      };
+
+      var updateAutoScroll = function (clientX, clientY) {
+          if (!scroller || scroller.scrollWidth <= scroller.clientWidth) {
+              return;
+          }
+          var gridRect = grid.getBoundingClientRect();
+          var speed = 0;
+          if (clientY >= gridRect.top && clientY <= gridRect.bottom) {
+              var rect = scroller.getBoundingClientRect();
+              var left = rect.left;
+              var right = rect.right;
+              var middle = (rect.left + rect.right) / 2;
+              var frozen = scroller.querySelectorAll('thead th.rz-frozen-cell');
+              for (var i = 0; i < frozen.length; i++) {
+                  var frozenRect = frozen[i].getBoundingClientRect();
+                  if (frozenRect.width === 0) {
+                      continue;
+                  }
+                  if ((frozenRect.left + frozenRect.right) / 2 < middle) {
+                      left = Math.max(left, frozenRect.right);
+                  } else {
+                      right = Math.min(right, frozenRect.left);
+                  }
+              }
+              var visible = right - left;
+              if (visible > 0) {
+                  var zone = Math.max(24, Math.min(80, visible * 0.15));
+                  var depth = 0;
+                  if (clientX < left + zone) {
+                      depth = -(left + zone - clientX);
+                  } else if (clientX > right - zone) {
+                      depth = clientX - (right - zone);
+                  }
+                  if (depth) {
+                      var ratio = Math.min(1, Math.abs(depth) / zone);
+                      speed = Math.sign(depth) * Math.ceil(2 + 18 * ratio * ratio);
+                  }
+              }
+          }
+          autoScrollSpeed = speed;
+          if (speed && !autoScrollFrame) {
+              autoScrollFrame = requestAnimationFrame(autoScrollStep);
+          }
+      };
+
+      var cleanup = function () {
+          stopAutoScroll();
+
+          var ghost = document.getElementById(id + 'visual');
+          if (ghost && ghost.parentNode) {
+              ghost.parentNode.removeChild(ghost);
+          }
+          var resizers = cell.parentNode ? cell.parentNode.querySelectorAll('.rz-column-resizer') : [];
+          for (let i = 0; i < resizers.length; i++) {
+              resizers[i].style.display = 'block';
+          }
+
+          document.removeEventListener('mousemove', move);
+          grid.removeEventListener('touchmove', touchmove);
+          grid.removeEventListener('click', end);
+          document.removeEventListener('mouseup', end);
+          document.removeEventListener('touchend', end);
+          document.removeEventListener('touchcancel', end);
+
+          if (Radzen[id + 'reorderCleanup'] === cleanup) {
+              Radzen[id + 'reorderCleanup'] = null;
+          }
+      };
+
+      var end = function (e) {
           var triggeredByTouch = e && (e.type === 'touchend' || e.type === 'touchcancel');
-          var touchX = Radzen[id + 'lastTouchX'];
-          var touchY = Radzen[id + 'lastTouchY'];
+          var touchX = lastTouchX;
+          var touchY = lastTouchY;
           if (triggeredByTouch && e.changedTouches && e.changedTouches[0]) {
               touchX = e.changedTouches[0].clientX;
               touchY = e.changedTouches[0].clientY;
           }
 
-          var el = document.getElementById(id + 'visual');
-          if (el) {
-              document.body.removeChild(el);
-              var resizers = Radzen[id + 'cell'].parentNode.querySelectorAll('.rz-column-resizer');
-              for (let i = 0; i < resizers.length; i++) {
-                  resizers[i].style.display = 'block';
-              }
-          }
-
-          grid.removeEventListener('mousemove', Radzen[id + 'move']);
-          grid.removeEventListener('touchmove', Radzen[id + 'touchmove']);
-          grid.removeEventListener('click', Radzen[id + 'end']);
-          document.removeEventListener('mouseup', Radzen[id + 'end']);
-          document.removeEventListener('touchend', Radzen[id + 'end']);
-          document.removeEventListener('touchcancel', Radzen[id + 'end']);
-
-          Radzen[id + 'end'] = null;
-          Radzen[id + 'move'] = null;
-          Radzen[id + 'touchmove'] = null;
-          Radzen[id + 'lastTouchX'] = null;
-          Radzen[id + 'lastTouchY'] = null;
+          cleanup();
 
           if (triggeredByTouch && gridRef && touchX != null && touchY != null) {
               var target = document.elementFromPoint(touchX, touchY);
@@ -5370,20 +5493,17 @@ window.Radzen = {
                   }
               }
           }
-      }
-      grid.removeEventListener('click', Radzen[id + 'end']);
-      grid.addEventListener('click', Radzen[id + 'end']);
-      document.removeEventListener('mouseup', Radzen[id + 'end']);
-      document.addEventListener('mouseup', Radzen[id + 'end']);
-      document.removeEventListener('touchend', Radzen[id + 'end']);
-      document.addEventListener('touchend', Radzen[id + 'end'], { passive: true });
-      document.removeEventListener('touchcancel', Radzen[id + 'end']);
-      document.addEventListener('touchcancel', Radzen[id + 'end'], { passive: true });
+      };
 
-      Radzen[id + 'move'] = function (e) {
-          var el = document.getElementById(id + 'visual');
-          if (el) {
-              el.style.display = 'block';
+      var move = function (e) {
+          if (e.buttons === 0 || !grid.isConnected) {
+              cleanup();
+              return;
+          }
+
+          var ghost = document.getElementById(id + 'visual');
+          if (ghost) {
+              ghost.style.display = 'block';
 
               if (/Edge/.test(navigator.userAgent)) {
                   var scrollLeft = document.body.scrollLeft;
@@ -5393,43 +5513,36 @@ window.Radzen = {
                   var scrollTop = document.documentElement.scrollTop;
               }
 
-              el.style.top = e.clientY + scrollTop + 10 + 'px';
-              el.style.left = e.clientX + scrollLeft + 10 + 'px';
+              ghost.style.top = e.clientY + scrollTop + 10 + 'px';
+              ghost.style.left = e.clientX + scrollLeft + 10 + 'px';
           }
-      }
-      grid.removeEventListener('mousemove', Radzen[id + 'move']);
-      grid.addEventListener('mousemove', Radzen[id + 'move']);
+          updateAutoScroll(e.clientX, e.clientY);
+      };
 
-      Radzen[id + 'touchmove'] = function (e) {
+      var touchmove = function (e) {
           if (e.touches && e.touches[0]) {
-              Radzen[id + 'lastTouchX'] = e.touches[0].clientX;
-              Radzen[id + 'lastTouchY'] = e.touches[0].clientY;
-              Radzen[id + 'move']({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+              lastTouchX = e.touches[0].clientX;
+              lastTouchY = e.touches[0].clientY;
+              move({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
               if (e.cancelable) {
                   e.preventDefault();
               }
           }
-      }
-      grid.removeEventListener('touchmove', Radzen[id + 'touchmove']);
-      grid.addEventListener('touchmove', Radzen[id + 'touchmove'], { passive: false });
+      };
+
+      Radzen[id + 'reorderCleanup'] = cleanup;
+
+      grid.addEventListener('click', end);
+      document.addEventListener('mouseup', end);
+      document.addEventListener('touchend', end, { passive: true });
+      document.addEventListener('touchcancel', end, { passive: true });
+      document.addEventListener('mousemove', move);
+      grid.addEventListener('touchmove', touchmove, { passive: false });
   },
   stopColumnResize: function (id, grid, columnIndex) {
-    var el = document.getElementById(id + '-resizer');
-    if(!el) return;
-    var cell = el.parentNode.parentNode;
-    if (!cell) return;
-    if (Radzen[el]) {
-        try { grid.invokeMethodAsync(
-            'RadzenGrid.OnColumnResized',
-            columnIndex,
-            cell.getBoundingClientRect().width
-        ); } catch { }
-        el.style.width = null;
-        document.removeEventListener('mousemove', Radzen[el].mouseMoveHandler);
-        document.removeEventListener('mouseup', Radzen[el].mouseUpHandler);
-        document.removeEventListener('touchmove', Radzen[el].touchMoveHandler)
-        document.removeEventListener('touchend', Radzen[el].mouseUpHandler);
-        Radzen[el] = null;
+    var resize = Radzen[id + 'columnResize'];
+    if (resize) {
+        resize.mouseUpHandler();
     }
   },
   updateFrozenColumnPositions: function(gridElement) {
@@ -5468,60 +5581,108 @@ window.Radzen = {
   },
   startColumnResize: function(id, grid, columnIndex, clientX) {
       var el = document.getElementById(id + '-resizer');
+      var resizeKey = id + 'columnResize';
       var cell = el.parentNode.parentNode;
       var col = document.getElementById(id + '-col');
-      var dataCol = document.getElementById(id + '-data-col');
-      var footerCol = document.getElementById(id + '-footer-col');
-      var isFrozen = cell.classList.contains('rz-frozen-cell');
-      var gridElement = isFrozen ? cell.closest('.rz-data-grid') : null;
-      Radzen[el] = {
+      var gridElement = cell.closest('.rz-data-grid');
+      var hasFrozenColumns = gridElement != null && gridElement.querySelector('.rz-frozen-cell') != null;
+      var table = cell.closest('.rz-grid-table');
+      var colgroup = table ? table.querySelector(':scope > colgroup') : null;
+      var allColumns = colgroup ? Array.from(colgroup.children) : [];
+      var headerCells = cell.parentNode.children.length === allColumns.length
+          ? Array.from(cell.parentNode.children)
+          : [];
+      var pinned = allColumns.map(function (column) {
+          return column === col || !!column.style.width || !column.id.endsWith('-col');
+      });
+      var columns = [];
+      var bounds = [];
+      allColumns.forEach(function (column, index) {
+          if (!column.id.endsWith('-col')) return;
+          var style = getComputedStyle(headerCells[index] || column);
+          columns.push(column);
+          bounds.push({
+              min: parseFloat(style.minWidth) || 0,
+              max: parseFloat(style.maxWidth),
+              pinned: pinned[index]
+          });
+      });
+      var cellStyle = getComputedStyle(cell);
+      var minWidth = parseFloat(cellStyle.minWidth) || 0;
+      var maxWidth = parseFloat(cellStyle.maxWidth);
+      var declaredWidths = allColumns.map(column => column.style.width);
+      var columnWidths = allColumns.map(column => column.getBoundingClientRect().width);
+      allColumns.forEach(function (column, index) {
+          if (pinned[index]) {
+              column.style.width = columnWidths[index] + 'px';
+          }
+      });
+      Radzen[resizeKey] = {
           clientX: clientX,
           width: cell.getBoundingClientRect().width,
+          resized: false,
           mouseUpHandler: function (e) {
-              if (Radzen[el]) {
-                  try { grid.invokeMethodAsync(
-                      'RadzenGrid.OnColumnResized',
-                      columnIndex,
-                      cell.getBoundingClientRect().width
-                  ); } catch { }
-                  el.style.width = null;
-                  document.removeEventListener('mousemove', Radzen[el].mouseMoveHandler);
-                  document.removeEventListener('mouseup', Radzen[el].mouseUpHandler);
-                  document.removeEventListener('touchmove', Radzen[el].touchMoveHandler)
-                  document.removeEventListener('touchend', Radzen[el].mouseUpHandler);
-                  Radzen[el] = null;
+              var resize = Radzen[resizeKey];
+
+              if (!resize) return;
+
+              if (!resize.resized) {
+                  allColumns.forEach(function (column, index) {
+                      column.style.width = declaredWidths[index];
+                  });
               }
+              else {
+                  var widths = columns.map(function (column, index) {
+                      if (!bounds[index].pinned) {
+                          return 0;
+                      }
+
+                      var width = Math.max(parseFloat(column.style.width), bounds[index].min);
+
+                      return Number.isNaN(bounds[index].max) ? width : Math.min(width, bounds[index].max);
+                  });
+
+                  try {
+                      if (columns.length) {
+                          grid.invokeMethodAsync('RadzenGrid.OnColumnsResized', columnIndex, widths[columnIndex], widths);
+                      } else {
+                          grid.invokeMethodAsync('RadzenGrid.OnColumnResized', columnIndex, cell.getBoundingClientRect().width);
+                      }
+                  } catch { }
+              }
+
+              el.style.width = null;
+              document.removeEventListener('mousemove', resize.mouseMoveHandler);
+              document.removeEventListener('mouseup', resize.mouseUpHandler);
+              document.removeEventListener('touchmove', resize.touchMoveHandler)
+              document.removeEventListener('touchend', resize.mouseUpHandler);
+              Radzen[resizeKey] = null;
           },
           mouseMoveHandler: function (e) {
-              if (Radzen[el]) {
-                  var widthFloat = (Radzen[el].width - (Radzen.isRTL(cell) ? -1 : 1) * (Radzen[el].clientX - e.clientX));
-                  var minWidth = parseFloat(cell.style.minWidth || 0)
-                  var maxWidth = parseFloat(cell.style.maxWidth || 0)
+              if (Radzen[resizeKey]) {
+                  var widthFloat = (Radzen[resizeKey].width - (Radzen.isRTL(cell) ? -1 : 1) * (Radzen[resizeKey].clientX - e.clientX));
 
                   if (widthFloat < minWidth) {
                       widthFloat = minWidth;
                   }
 
-                  if (cell.style.maxWidth && widthFloat > maxWidth) {
+                  if (!Number.isNaN(maxWidth) && widthFloat > maxWidth) {
                       widthFloat = maxWidth;
+                  }
+
+                  if (widthFloat !== Radzen[resizeKey].width) {
+                      Radzen[resizeKey].resized = true;
                   }
 
                   var width = widthFloat + 'px';
 
-                  if (cell) {
-                      cell.style.width = width;
-                  }
                   if (col) {
                       col.style.width = width;
-                  }
-                  if (dataCol) {
-                      dataCol.style.width = width;
-                  }
-                  if (footerCol) {
-                      footerCol.style.width = width;
+                  } else {
+                      cell.style.width = width;
                   }
 
-                  if (gridElement) {
+                  if (hasFrozenColumns) {
                       Radzen.updateFrozenColumnPositions(gridElement);
                   }
               }
@@ -5529,15 +5690,15 @@ window.Radzen = {
           touchMoveHandler: function (e) {
               if (e.targetTouches[0]) {
                   e.preventDefault();
-                  Radzen[el].mouseMoveHandler(e.targetTouches[0]);
+                  Radzen[resizeKey].mouseMoveHandler(e.targetTouches[0]);
               }
           }
       };
       el.style.width = "100%";
-      document.addEventListener('mousemove', Radzen[el].mouseMoveHandler);
-      document.addEventListener('mouseup', Radzen[el].mouseUpHandler);
-      document.addEventListener('touchmove', Radzen[el].touchMoveHandler, { passive: false })
-      document.addEventListener('touchend', Radzen[el].mouseUpHandler);
+      document.addEventListener('mousemove', Radzen[resizeKey].mouseMoveHandler);
+      document.addEventListener('mouseup', Radzen[resizeKey].mouseUpHandler);
+      document.addEventListener('touchmove', Radzen[resizeKey].touchMoveHandler, { passive: false })
+      document.addEventListener('touchend', Radzen[resizeKey].mouseUpHandler);
   },
       startSplitterResize: function(id,
         splitter,
@@ -6059,6 +6220,30 @@ Radzen.createDropDown = function(el) {
     el.removeEventListener('click', onFilterClick, true);
   }};
 };
+Radzen.registerProfileMenuClickAway = function (el, ref) {
+  if (!el) return;
+  Radzen.unregisterProfileMenuClickAway(el);
+  el.profileMenuClickAway = function (e) {
+    if (!document.contains(el)) {
+      Radzen.unregisterProfileMenuClickAway(el);
+      return;
+    }
+    if (el.contains(e.target)) {
+      var item = e.target.closest('.rz-navigation-item');
+      if (item && item.querySelector('.rz-navigation-menu')) {
+        return;
+      }
+    }
+    try { suppressDisposed(ref.invokeMethodAsync('CloseOnClickAway')); } catch { }
+  };
+  document.addEventListener('click', el.profileMenuClickAway);
+};
+Radzen.unregisterProfileMenuClickAway = function (el) {
+  if (el && el.profileMenuClickAway) {
+    document.removeEventListener('click', el.profileMenuClickAway);
+    delete el.profileMenuClickAway;
+  }
+};
 Radzen.createFileInput = function(el) {
   if (!el) return { dispose: function() {} };
   var choose = el.querySelector('.rz-fileupload-choose');
@@ -6109,36 +6294,23 @@ Radzen.createNumeric = function(el, isInteger, separator, min, max, isNullable) 
     input.removeEventListener('paste', onPaste);
   }};
 };
-Radzen.createProfileMenu = function(el) {
-  if (!el) return { dispose: function() {} };
-  var toggle = el.querySelector('.rz-navigation-item-wrapper');
-  if (!toggle) return { dispose: function() {} };
-  function onClick() { Radzen.toggleMenuItem(toggle); }
-  toggle.addEventListener('click', onClick);
-  return { dispose: function() { toggle.removeEventListener('click', onClick); }};
+Radzen.menuClick = function (e) {
+  var item = e.target.closest('.rz-navigation-item-wrapper');
+  if (!item) return;
+  var menu = item.closest('[data-click-to-open]');
+  if (!menu) return;
+  var clickToOpen = menu.getAttribute('data-click-to-open') === 'true';
+  var navItem = item.closest('.rz-navigation-item');
+  var hasChildren = navItem && navItem.querySelector('.rz-navigation-menu');
+  if (clickToOpen || hasChildren) {
+    Radzen.toggleMenuItem(item);
+  } else {
+    Radzen.toggleMenuItem(item, e, false);
+  }
 };
-Radzen.createSplitButton = function(el, popupId) {
-  if (!el) return { dispose: function() {} };
-  var btn = el.querySelector('.rz-splitbutton-menubutton');
-  if (!btn) return { dispose: function() {} };
-  function onClick() { if (popupId) Radzen.togglePopup(btn.parentNode, popupId); }
-  btn.addEventListener('click', onClick);
-  return { dispose: function() { btn.removeEventListener('click', onClick); }};
-};
+document.addEventListener('click', Radzen.menuClick);
 Radzen.createMenu = function(el, clickToOpen) {
   if (!el) return { dispose: function() {} };
-  function onClick(e) {
-    var item = e.target.closest('.rz-navigation-item-wrapper');
-    if (!item || !el.contains(item)) return;
-    var navItem = item.closest('.rz-navigation-item');
-    var hasChildren = navItem && navItem.querySelector('.rz-navigation-menu');
-    if (clickToOpen || hasChildren) {
-      Radzen.toggleMenuItem(item);
-    } else {
-      Radzen.toggleMenuItem(item, e, false);
-    }
-  }
-  el.addEventListener('click', onClick);
   var hoverItems = [];
   if (!clickToOpen) {
     el.querySelectorAll('.rz-navigation-item').forEach(function(navItem) {
@@ -6152,7 +6324,6 @@ Radzen.createMenu = function(el, clickToOpen) {
     });
   }
   return { dispose: function() {
-    el.removeEventListener('click', onClick);
     hoverItems.forEach(function(h) {
       h.el.removeEventListener('mouseenter', h.onEnter);
       h.el.removeEventListener('mouseleave', h.onLeave);
@@ -6676,7 +6847,9 @@ class SheetEditor {
   };
 
   onInput = () => {
-    this.dotNetRef.invokeMethodAsync('OnInputAsync', this.element.innerText);
+    // Browsers keep a placeholder <br> in an emptied contenteditable which makes innerText report "\n" for empty content
+    const text = this.element.innerText;
+    this.dotNetRef.invokeMethodAsync('OnInputAsync', text == '\n' ? '' : text);
   };
 
   setValue = (value, moveCaretTo) => {
@@ -6970,3 +7143,66 @@ Radzen.itemListKeydown = function (e) {
   }
 };
 document.addEventListener('keydown', Radzen.itemListKeydown);
+Radzen.chatKeydown = function (e) {
+  var el = e.target;
+  if (!el || !el.classList || !el.classList.contains('rz-chat-textarea')) return;
+  var container = el.closest('.rz-chat-input');
+  var popupOpen = container && container.querySelector('.rz-chat-mention-popup');
+  if (e.key === 'Enter') {
+    if (!e.shiftKey || popupOpen) {
+      e.preventDefault();
+    }
+  } else if (popupOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    e.preventDefault();
+  } else if ((e.key === 'Backspace' || e.key === 'Delete') && el.dataset.mentionSegments) {
+    var start = el.selectionStart;
+    var end = el.selectionEnd;
+    var segments = el.dataset.mentionSegments.split(',');
+    for (var i = 0; i < segments.length; i++) {
+      var parts = segments[i].split(':');
+      var segmentStart = parseInt(parts[0], 10);
+      var segmentEnd = segmentStart + parseInt(parts[1], 10);
+      var hit;
+      if (start !== end) {
+        hit = segmentStart < end && segmentEnd > start;
+      } else {
+        var target = e.key === 'Backspace' ? start - 1 : start;
+        hit = target >= 0 && segmentStart <= target && segmentEnd > target;
+      }
+      if (hit) {
+        e.preventDefault();
+        break;
+      }
+    }
+  }
+};
+document.addEventListener('keydown', Radzen.chatKeydown);
+Radzen.popupTriggerKeydown = function (e) {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  var el = e.target;
+  if (!el || !el.classList) return;
+  var key = e.code ? e.code : e.key;
+  var vertical = key === 'ArrowUp' || key === 'ArrowDown';
+  if (el.classList.contains('rz-splitbutton-menubutton')) {
+    if (vertical) e.preventDefault();
+  } else if (el.classList.contains('rz-menu-list') || el.classList.contains('rz-navigation-menu')) {
+    if (vertical || key === 'Home' || key === 'End' || key === 'Space') e.preventDefault();
+  } else if (el.classList.contains('rz-navigation-item-wrapper') && el.getAttribute('aria-haspopup')) {
+    if (vertical || key === 'Home' || key === 'End' || key === 'Space') e.preventDefault();
+  } else if (el.classList.contains('rz-dropdown') || el.classList.contains('rz-listbox')) {
+    if (vertical || key === 'ArrowLeft' || key === 'ArrowRight' || key === 'Space') e.preventDefault();
+  } else if (el.classList.contains('rz-colorpicker')) {
+    if (key === 'Space') e.preventDefault();
+  }
+};
+document.addEventListener('keydown', Radzen.popupTriggerKeydown);
+Radzen.datePickerKeydown = function (e) {
+  if (e.isComposing) return;
+  var el = e.target;
+  if (!el || el.tagName !== 'INPUT' || !el.classList || !el.classList.contains('rz-inputtext') || !el.closest('.rz-datepicker')) return;
+  var key = e.code ? e.code : e.key;
+  if (key === 'Enter' || (e.altKey && key === 'ArrowDown')) {
+    e.preventDefault();
+  }
+};
+document.addEventListener('keydown', Radzen.datePickerKeydown);

@@ -66,6 +66,35 @@ namespace Radzen.Blazor
         // Holds selected dates when Multiple is true
         List<DateTime> selectedDates = new List<DateTime>();
 
+        List<DateTime>? selectedDatesSetSource;
+        int selectedDatesSetCount = -1;
+        HashSet<DateTime>? selectedDatesSet;
+
+        // Membership test for the Multiple-mode calendar. Rendering a month calls this ~2x per day cell
+        // (aria-selected and the day css class); memoizing the selected days as a set keeps that O(1) per
+        // cell instead of a selectedDates.Any() scan. The cache is dropped on reassignment (reference
+        // check) and on any count-changing in-place edit (an automatic backstop); InvalidateSelectedDates
+        // also drops it explicitly at each mutation site to cover a hypothetical net-zero-count edit.
+        bool IsSelectedDate(DateTime date)
+        {
+            if (selectedDatesSet == null || !ReferenceEquals(selectedDatesSetSource, selectedDates) || selectedDatesSetCount != selectedDates.Count)
+            {
+                selectedDatesSetSource = selectedDates;
+                selectedDatesSetCount = selectedDates.Count;
+                selectedDatesSet = new HashSet<DateTime>(selectedDates.Count);
+                foreach (var d in selectedDates)
+                {
+                    selectedDatesSet.Add(d.Date);
+                }
+            }
+
+            return selectedDatesSet.Contains(date.Date);
+        }
+
+        // Invalidate the memoized set after an in-place edit of selectedDates (reassignments and
+        // count changes are already caught in IsSelectedDate; this also covers a net-zero-count edit).
+        void InvalidateSelectedDates() => selectedDatesSet = null;
+
         private string? calendarWeekTitle;
 
         /// <summary>
@@ -211,7 +240,7 @@ namespace Radzen.Blazor
         {
             if (Multiple)
             {
-                return selectedDates.Any(d => d.Date == date.Date);
+                return IsSelectedDate(date);
             }
 
             return DateTimeValue.HasValue && DateTimeValue.Value.Date.CompareTo(date.Date) == 0;
@@ -495,17 +524,17 @@ namespace Radzen.Blazor
 
                 if (CurrentDate.Hour != hour && hour != null)
                 {
-                    date = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, hour.Value, CurrentDate.Minute, CurrentDate.Second);
+                    date = new DateTime(date.Year, date.Month, date.Day, hour.Value, date.Minute, date.Second);
                 }
 
                 if (CurrentDate.Minute != minutes && minutes != null)
                 {
-                    date = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, CurrentDate.Hour, minutes.Value, CurrentDate.Second);
+                    date = new DateTime(date.Year, date.Month, date.Day, date.Hour, minutes.Value, date.Second);
                 }
 
                 if (CurrentDate.Second != seconds && seconds != null)
                 {
-                    date = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, CurrentDate.Hour, CurrentDate.Minute, seconds.Value);
+                    date = new DateTime(date.Year, date.Month, date.Day, date.Hour, date.Minute, seconds.Value);
                 }
 
                 Value = date;
@@ -855,12 +884,16 @@ namespace Radzen.Blazor
                 if (!EqualityComparer<object>.Default.Equals(value, _value))
                 {
                     _currentDate = default(DateTime);
+                    hour = null;
+                    minutes = null;
+                    seconds = null;
 
                     if (Multiple)
                     {
                         if (value == null)
                         {
                             selectedDates.Clear();
+                            InvalidateSelectedDates();
                             _value = null;
                             _dateTimeValue = null;
                         }
@@ -949,6 +982,7 @@ namespace Radzen.Blazor
                         else
                         {
                             selectedDates.Clear();
+                            InvalidateSelectedDates();
                             _value = null;
                             _dateTimeValue = null;
                         }
@@ -1214,6 +1248,7 @@ namespace Radzen.Blazor
                 else if (nullable)
                 {
                     selectedDates.Clear();
+                    InvalidateSelectedDates();
                     await UpdateValueFromSelectedDates(null);
                 }
             }
@@ -1342,6 +1377,7 @@ namespace Radzen.Blazor
             if (Multiple)
             {
                 selectedDates.Clear();
+                InvalidateSelectedDates();
                 _value = null;
                 _dateTimeValue = null;
 
@@ -1767,6 +1803,7 @@ namespace Radzen.Blazor
             {
                 selectedDates.Add(DateTime.SpecifyKind(date, Kind));
             }
+            InvalidateSelectedDates();
         }
 
         async Task UpdateValueFromSelectedDates(DateTime? lastSelected)
@@ -1927,8 +1964,6 @@ namespace Radzen.Blazor
         }
 
         bool firstRender;
-        IJSObjectReference? _jsRef;
-        int _jsRefVersion;
 
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1936,34 +1971,6 @@ namespace Radzen.Blazor
             await base.OnAfterRenderAsync(firstRender);
 
             this.firstRender = firstRender;
-
-            if (Visible && !Disabled && !ReadOnly && !Inline && PopupRenderMode == PopupRenderMode.Initial && JSRuntime != null)
-            {
-                var version = ++_jsRefVersion;
-                var jsRef = _jsRef;
-                _jsRef = null;
-
-                if (jsRef != null)
-                {
-                    await jsRef.InvokeVoidAsync("dispose");
-                    await jsRef.DisposeAsync();
-                }
-
-                if (version == _jsRefVersion)
-                {
-                    var created = await JSRuntime.InvokeAsync<IJSObjectReference>("Radzen.createDatePicker", Element, PopupID, Reference, nameof(OnPopupClose));
-
-                    if (version == _jsRefVersion)
-                    {
-                        _jsRef = created;
-                    }
-                    else if (created != null)
-                    {
-                        await created.InvokeVoidAsync("dispose");
-                        await created.DisposeAsync();
-                    }
-                }
-            }
 
             if (shouldFocusDay && JSRuntime != null)
             {
@@ -1993,19 +2000,9 @@ namespace Radzen.Blazor
 
             Form?.RemoveComponent(this);
 
-            _jsRefVersion++;
-            var jsRef = _jsRef;
-            _jsRef = null;
-
             if (IsJSRuntimeAvailable && JSRuntime != null)
             {
                 JSRuntime.InvokeVoid("Radzen.destroyPopup", PopupID);
-
-                if (jsRef != null)
-                {
-                    jsRef.InvokeVoid("dispose");
-                    jsRef.DisposeFireAndForget();
-                }
             }
 
             GC.SuppressFinalize(this);
@@ -2039,13 +2036,33 @@ namespace Radzen.Blazor
 
         async Task OnToggle()
         {
-            if (PopupRenderMode == PopupRenderMode.OnDemand && !Disabled && !ReadOnly && !Inline)
+            if (Disabled || ReadOnly || Inline)
+            {
+                return;
+            }
+
+            if (PopupRenderMode == PopupRenderMode.Initial)
+            {
+                if (JSRuntime != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID, false, Reference, nameof(OnPopupClose), true, false);
+                }
+            }
+            else
             {
                 if (popup != null)
                 {
                     await popup.ToggleAsync(Element);
                 }
                 await FocusAsync();
+            }
+        }
+
+        async Task OnInputClick()
+        {
+            if (!ShowButton && !Disabled && !ReadOnly && !Inline && PopupRenderMode == PopupRenderMode.Initial && JSRuntime != null)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID, false, Reference, nameof(OnPopupClose), true, false);
             }
         }
         DateTime FocusedDate { get; set; } = DateTime.Now;
@@ -2055,7 +2072,7 @@ namespace Radzen.Blazor
             var list = ClassList.Create()
                                .Add("rz-state-default", !forCell)
                                .Add("rz-calendar-other-month", GetCalendarMonth(CurrentDate) != GetCalendarMonth(date))
-                               .Add("rz-state-active", !forCell && (Multiple ? selectedDates.Any(d => d.Date == date.Date) : (DateTimeValue.HasValue && DateTimeValue.Value.Date.CompareTo(date.Date) == 0)))
+                               .Add("rz-state-active", !forCell && (Multiple ? IsSelectedDate(date) : (DateTimeValue.HasValue && DateTimeValue.Value.Date.CompareTo(date.Date) == 0)))
                                .Add("rz-calendar-today", !forCell && DateTime.Now.Date.CompareTo(date.Date) == 0)
                                .Add("rz-state-focused", !forCell && FocusedDate.Date.CompareTo(date.Date) == 0)
                                .Add("rz-state-disabled", !forCell && dateArgs.Disabled);

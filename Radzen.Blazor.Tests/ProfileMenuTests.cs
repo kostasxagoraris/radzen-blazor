@@ -20,6 +20,36 @@ namespace Radzen.Blazor.Tests
         }
 
         [Fact]
+        public void ProfileMenu_Opens_OnToggleClick()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenProfileMenu>();
+
+            component.Find(".rz-navigation-item-wrapper").Click();
+
+            Assert.Contains(@"aria-expanded=""true""", component.Markup);
+            Assert.Contains("rz-navigation-item-active", component.Markup);
+            Assert.Contains("rz-navigation-item-wrapper-active", component.Markup);
+        }
+
+        [Fact]
+        public void ProfileMenu_Closes_OnSecondToggleClick()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenProfileMenu>();
+
+            component.Find(".rz-navigation-item-wrapper").Click();
+            component.Find(".rz-navigation-item-wrapper").Click();
+
+            Assert.Contains(@"aria-expanded=""false""", component.Markup);
+            Assert.DoesNotContain("rz-navigation-item-active", component.Markup);
+        }
+
+        [Fact]
         public void ProfileMenu_Renders_RoleMenu()
         {
             using var ctx = new TestContext();
@@ -453,6 +483,51 @@ namespace Radzen.Blazor.Tests
 
             var menu = component.Find("ul.rz-navigation-menu");
             Assert.Equal("true", menu.GetAttribute("aria-hidden"));
+        }
+
+        [Fact]
+        public void ProfileMenu_RegistersClickAway_WhenOpened()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenProfileMenu>();
+
+            component.Find(".rz-navigation-item-wrapper").Click();
+
+            Assert.Contains(ctx.JSInterop.Invocations, i => i.Identifier == "Radzen.registerProfileMenuClickAway");
+        }
+
+        [Fact]
+        public void ProfileMenu_UnregistersClickAway_WhenClosed()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenProfileMenu>();
+
+            component.Find(".rz-navigation-item-wrapper").Click();
+            component.Find(".rz-navigation-item-wrapper").Click();
+
+            Assert.Contains(ctx.JSInterop.Invocations, i => i.Identifier == "Radzen.unregisterProfileMenuClickAway");
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task ProfileMenu_Closes_OnClickAway()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = ctx.RenderComponent<RadzenProfileMenu>();
+
+            component.Find(".rz-navigation-item-wrapper").Click();
+
+            Assert.Contains(@"aria-expanded=""true""", component.Markup);
+
+            await component.InvokeAsync(() => component.Instance.CloseOnClickAway());
+
+            Assert.Contains(@"aria-expanded=""false""", component.Markup);
+            Assert.DoesNotContain("rz-navigation-item-active", component.Markup);
         }
     }
 }

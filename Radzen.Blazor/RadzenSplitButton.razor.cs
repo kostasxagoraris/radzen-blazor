@@ -201,16 +201,19 @@ namespace Radzen.Blazor
                     {
                         IsOpen = !IsOpen;
 
-                        if (IsOpen && focusedIndex == -1 && items.Count > 0)
-                        {
-                            focusedIndex = 0;
-                        }
-
-                        await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID);
-
                         if (IsOpen)
                         {
+                            if (focusedIndex == -1 && items.Count > 0)
+                            {
+                                focusedIndex = 0;
+                            }
+
+                            await JSRuntime.InvokeVoidAsync("Radzen.openPopup", Element, PopupID, false, null, null, null, Reference, nameof(OnPopupClose));
                             await JSRuntime.InvokeVoidAsync("Radzen.focusElement", MenuId);
+                        }
+                        else
+                        {
+                            await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
                         }
                     }
                     else
@@ -233,18 +236,33 @@ namespace Radzen.Blazor
 
             IsOpen = !IsOpen;
 
-            if (IsOpen)
+            if (JSRuntime != null)
             {
-                if (focusedIndex == -1 && items.Count > 0)
+                if (IsOpen)
                 {
-                    focusedIndex = 0;
-                }
+                    if (focusedIndex == -1 && items.Count > 0)
+                    {
+                        focusedIndex = 0;
+                    }
 
-                if (JSRuntime != null)
-                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.openPopup", Element, PopupID, false, null, null, null, Reference, nameof(OnPopupClose));
                     await JSRuntime.InvokeVoidAsync("Radzen.focusElement", MenuId);
                 }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+                }
             }
+        }
+
+        /// <summary>
+        /// Called from JavaScript when the popup is closed client-side, e.g. by clicking outside of it.
+        /// </summary>
+        [JSInvokable("OnPopupClose")]
+        public void OnPopupClose()
+        {
+            IsOpen = false;
+            StateHasChanged();
         }
 
         /// <summary>
@@ -313,24 +331,12 @@ namespace Radzen.Blazor
                                           })
                                           .ToString();
 
-        private string OpenPopupScript()
-        {
-            if (Disabled)
-            {
-                return string.Empty;
-            }
-
-            return $"Radzen.togglePopup(this.parentNode, '{PopupID}')";
-        }
-
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
             return Disabled ? "rz-splitbutton rz-buttonset rz-state-disabled" : "rz-splitbutton rz-buttonset";
         }
 
-        IJSObjectReference? _jsRef;
-        int _jsRefVersion;
         bool _visibleChanged;
 
         /// <inheritdoc />
@@ -353,37 +359,7 @@ namespace Radzen.Blazor
             {
                 _visibleChanged = false;
 
-                var version = ++_jsRefVersion;
-                var jsRef = _jsRef;
-                _jsRef = null;
-
-                if (jsRef != null)
-                {
-                    await jsRef.InvokeVoidAsync("dispose");
-                    await jsRef.DisposeAsync();
-                }
-
-                if (version != _jsRefVersion)
-                {
-                    return;
-                }
-
-                if (Visible)
-                {
-                    var created = await JSRuntime.InvokeAsync<IJSObjectReference>(
-                        "Radzen.createSplitButton", Element, PopupID);
-
-                    if (version == _jsRefVersion)
-                    {
-                        _jsRef = created;
-                    }
-                    else if (created != null)
-                    {
-                        await created.InvokeVoidAsync("dispose");
-                        await created.DisposeAsync();
-                    }
-                }
-                else
+                if (!Visible)
                 {
                     IsOpen = false;
 
@@ -402,12 +378,6 @@ namespace Radzen.Blazor
                 JSRuntime.InvokeVoid("Radzen.destroyPopup", PopupID);
             }
 
-            _jsRefVersion++;
-            var jsRef = _jsRef;
-            _jsRef = null;
-            jsRef?.InvokeVoidAsync("dispose");
-            jsRef?.DisposeAsync();
-
             GC.SuppressFinalize(this);
         }
 
@@ -423,7 +393,7 @@ namespace Radzen.Blazor
 
             if (JSRuntime != null)
             {
-                await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID);
+                await JSRuntime.InvokeVoidAsync("Radzen.openPopup", Element, PopupID, false, null, null, null, Reference, nameof(OnPopupClose));
                 await JSRuntime.InvokeVoidAsync("Radzen.focusElement", MenuId);
             }
         }

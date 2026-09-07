@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Components.Web;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -46,6 +48,151 @@ namespace Radzen.Blazor.Tests
             Assert.Contains(@$"rz-grid-table", component.Markup);
             Assert.Contains(@$"rz-grid-table-fixed", component.Markup);
             Assert.Contains(@$"rz-grid-table-striped", component.Markup);
+        }
+
+        [Fact]
+        public void DataGrid_RendersWidthOnColOnly()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1, Name = "Alice" } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.AddAttribute(2, "Width", "80px");
+                    builder.CloseComponent();
+                    builder.OpenComponent(3, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(4, "Property", "Name");
+                    builder.AddAttribute(5, "MinWidth", "150px");
+                    builder.CloseComponent();
+                });
+            });
+
+            var columns = component.FindAll("colgroup col");
+
+            Assert.Contains("width:80px", columns[0].GetAttribute("style"));
+
+            Assert.DoesNotMatch(@"(?:^|;)\s*width:", columns[1].GetAttribute("style"));
+            Assert.Contains("min-width:150px", columns[1].GetAttribute("style"));
+
+            foreach (var cell in component.FindAll("th, td"))
+            {
+                Assert.DoesNotMatch(@"(?:^|;)\s*width:", cell.GetAttribute("style") ?? string.Empty);
+            }
+
+            Assert.Contains("min-width:150px", component.FindAll("thead th")[1].GetAttribute("style"));
+        }
+
+        [Fact]
+        public void DataGrid_CompositeColumns_RenderWidthOnCells()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1, Name = "Alice" } });
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Title", "Group");
+                    builder.AddAttribute(2, "Columns", (RenderFragment)(child =>
+                    {
+                        child.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                        child.AddAttribute(1, "Property", "Id");
+                        child.AddAttribute(2, "Width", "80px");
+                        child.CloseComponent();
+                        child.OpenComponent(3, typeof(RadzenDataGridColumn<dynamic>));
+                        child.AddAttribute(4, "Property", "Name");
+                        child.CloseComponent();
+                    }));
+                    builder.CloseComponent();
+                });
+            });
+
+            Assert.Empty(component.FindAll("colgroup col"));
+            Assert.Contains(component.FindAll("th"), cell => (cell.GetAttribute("style") ?? string.Empty).Contains("width:80px"));
+        }
+
+        private static IRenderedComponent<RadzenDataGrid<dynamic>> RenderTwoColumnGrid(TestContext ctx,
+            out RadzenDataGridColumn<dynamic> first, out RadzenDataGridColumn<dynamic> second,
+            Action<DataGridColumnResizedEventArgs<dynamic>>? columnResized = null)
+        {
+            RadzenDataGridColumn<dynamic> idColumn = null!;
+            RadzenDataGridColumn<dynamic> nameColumn = null!;
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1, Name = "Alice" } });
+
+                if (columnResized != null)
+                {
+                    parameterBuilder.Add(p => p.ColumnResized, columnResized);
+                }
+
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.AddComponentReferenceCapture(2, value => idColumn = (RadzenDataGridColumn<dynamic>)value);
+                    builder.CloseComponent();
+                    builder.OpenComponent(3, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(4, "Property", "Name");
+                    builder.AddComponentReferenceCapture(5, value => nameColumn = (RadzenDataGridColumn<dynamic>)value);
+                    builder.CloseComponent();
+                });
+            });
+
+            first = idColumn;
+            second = nameColumn;
+
+            return component;
+        }
+
+        [Fact]
+        public async Task DataGrid_Resize_PreservesAllVisibleColumnWidths()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+            DataGridColumnResizedEventArgs<dynamic> args = null!;
+
+            var component = RenderTwoColumnGrid(ctx, out var idColumn, out var nameColumn, e => args = e);
+
+            await component.InvokeAsync(() => component.Instance.OnColumnsResized(1, 240, [90, 240]));
+
+            Assert.Equal("90px", idColumn.GetWidth());
+            Assert.Equal("240px", nameColumn.GetWidth());
+
+            Assert.Equal(nameColumn, args.Column);
+            Assert.Equal(90, args.Widths[idColumn]);
+            Assert.Equal(240, args.Widths[nameColumn]);
+        }
+
+        [Fact]
+        public async Task DataGrid_Resize_LeavesColumnWithoutWidth()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = RenderTwoColumnGrid(ctx, out var idColumn, out var nameColumn);
+
+            await component.InvokeAsync(() => component.Instance.OnColumnsResized(1, 150, [100, 150]));
+
+            Assert.Equal("150px", nameColumn.GetWidth());
+
+            await component.InvokeAsync(() => component.Instance.OnColumnsResized(0, 400, [400, 0]));
+
+            Assert.Equal("400px", idColumn.GetWidth());
+
+            Assert.True(string.IsNullOrEmpty(nameColumn.GetWidth()));
         }
 
         [Fact]
@@ -3385,6 +3532,281 @@ namespace Radzen.Blazor.Tests
             Assert.True(loadDataCallCount <= 2, $"LoadData was called {loadDataCallCount} times, expected at most 2 (indicating possible infinite loop)");
         }
 
+        static (IRenderedComponent<RadzenDataGrid<GroupTestItem>> Component,
+            RadzenDataGridColumn<GroupTestItem> CityColumn,
+            RadzenDataGridColumn<GroupTestItem> NameColumn,
+            RadzenDataGridColumn<GroupTestItem> CountryColumn) RenderGroupsDataGrid(
+                TestContext ctx,
+                ObservableCollection<GroupDescriptor> groups,
+                bool hideGroupedColumn = true,
+                bool allowGrouping = false,
+                DataGridSettings settings = null,
+                Action<DataGridSettings> settingsChanged = null,
+                Action<DataGridRenderEventArgs<GroupTestItem>> render = null,
+                bool countryColumnVisible = true)
+        {
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            RadzenDataGridColumn<GroupTestItem> cityColumn = null!;
+            RadzenDataGridColumn<GroupTestItem> nameColumn = null!;
+            RadzenDataGridColumn<GroupTestItem> countryColumn = null!;
+
+            var component = ctx.RenderComponent<RadzenDataGrid<GroupTestItem>>(parameters =>
+            {
+                parameters
+                    .Add(p => p.Data, new[]
+                    {
+                        new GroupTestItem { City = "Sofia", Name = "Ivan", Country = "BG" },
+                        new GroupTestItem { City = "Berlin", Name = "Anna", Country = "BG" }
+                    })
+                    .Add(p => p.AllowGrouping, allowGrouping)
+                    .Add(p => p.HideGroupedColumn, hideGroupedColumn)
+                    .Add(p => p.Groups, groups)
+                    .Add(p => p.Columns, builder =>
+                    {
+                        builder.OpenComponent<RadzenDataGridColumn<GroupTestItem>>(0);
+                        builder.AddAttribute(1, nameof(RadzenDataGridColumn<GroupTestItem>.Property), nameof(GroupTestItem.City));
+                        builder.AddComponentReferenceCapture(2, value => cityColumn = (RadzenDataGridColumn<GroupTestItem>)value);
+                        builder.CloseComponent();
+
+                        builder.OpenComponent<RadzenDataGridColumn<GroupTestItem>>(3);
+                        builder.AddAttribute(4, nameof(RadzenDataGridColumn<GroupTestItem>.Property), nameof(GroupTestItem.Name));
+                        builder.AddComponentReferenceCapture(5, value => nameColumn = (RadzenDataGridColumn<GroupTestItem>)value);
+                        builder.CloseComponent();
+
+                        builder.OpenComponent<RadzenDataGridColumn<GroupTestItem>>(6);
+                        builder.AddAttribute(7, nameof(RadzenDataGridColumn<GroupTestItem>.Property), nameof(GroupTestItem.Country));
+                        builder.AddAttribute(8, nameof(RadzenDataGridColumn<GroupTestItem>.Visible), countryColumnVisible);
+                        builder.AddComponentReferenceCapture(9, value => countryColumn = (RadzenDataGridColumn<GroupTestItem>)value);
+                        builder.CloseComponent();
+                    });
+
+                if (settings != null)
+                {
+                    parameters.Add(p => p.Settings, settings);
+                }
+
+                if (settingsChanged != null)
+                {
+                    parameters.Add(p => p.SettingsChanged, settingsChanged);
+                }
+
+                if (render != null)
+                {
+                    parameters.Add(p => p.Render, render);
+                }
+            });
+
+            return (component, cityColumn, nameColumn, countryColumn);
+        }
+
+        [Fact]
+        public void DataGrid_GroupsParameter_HidesGroupedColumnOnFirstRender()
+        {
+            using var ctx = new TestContext();
+            var groups = new ObservableCollection<GroupDescriptor>
+            {
+                new GroupDescriptor { Property = nameof(GroupTestItem.City) }
+            };
+            bool? cityVisibleOnFirstRender = null;
+
+            var (component, cityColumn, nameColumn, _) = RenderGroupsDataGrid(
+                ctx,
+                groups,
+                allowGrouping: true,
+                render: args =>
+                {
+                    if (args.FirstRender)
+                    {
+                        cityVisibleOnFirstRender = args.Grid.ColumnsCollection
+                            .Single(c => c.Property == nameof(GroupTestItem.City)).GetVisible();
+                    }
+                });
+
+            Assert.False(cityVisibleOnFirstRender);
+            Assert.False(cityColumn.GetVisible());
+            Assert.True(nameColumn.GetVisible());
+            Assert.Single(component.FindAll(".rz-group-header-item"));
+            Assert.Equal(2, component.Instance.GroupedPagedView.Count());
+        }
+
+        [Fact]
+        public void DataGrid_GroupsParameter_TracksCollectionReplacement()
+        {
+            using var ctx = new TestContext();
+            var oldGroups = new ObservableCollection<GroupDescriptor>
+            {
+                new GroupDescriptor { Property = nameof(GroupTestItem.City) }
+            };
+            var newGroups = new ObservableCollection<GroupDescriptor>
+            {
+                new GroupDescriptor { Property = nameof(GroupTestItem.Name) }
+            };
+            var (component, cityColumn, nameColumn, _) = RenderGroupsDataGrid(ctx, oldGroups);
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.Data, component.Instance.Data)
+                .Add(p => p.HideGroupedColumn, true)
+                .Add(p => p.Groups, newGroups)
+                .Add(p => p.Columns, component.Instance.Columns));
+
+            Assert.True(cityColumn.GetVisible());
+            Assert.False(nameColumn.GetVisible());
+
+            component.InvokeAsync(oldGroups.Clear);
+            Assert.False(nameColumn.GetVisible());
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.Data, component.Instance.Data)
+                .Add(p => p.HideGroupedColumn, false)
+                .Add(p => p.Groups, newGroups)
+                .Add(p => p.Columns, component.Instance.Columns));
+            Assert.True(nameColumn.GetVisible());
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.Data, component.Instance.Data)
+                .Add(p => p.HideGroupedColumn, true)
+                .Add(p => p.Groups, newGroups)
+                .Add(p => p.Columns, component.Instance.Columns));
+            Assert.False(nameColumn.GetVisible());
+
+            component.InvokeAsync(newGroups.Clear);
+            Assert.True(nameColumn.GetVisible());
+        }
+
+        [Fact]
+        public void DataGrid_GroupsParameter_DoesNotDuplicateCollectionSubscription()
+        {
+            using var ctx = new TestContext();
+            var groups = new ObservableCollection<GroupDescriptor>();
+            var settingsChangedCount = 0;
+            var (component, _, _, _) = RenderGroupsDataGrid(
+                ctx,
+                groups,
+                allowGrouping: true,
+                settingsChanged: _ => settingsChangedCount++);
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.Data, component.Instance.Data)
+                .Add(p => p.AllowGrouping, true)
+                .Add(p => p.Groups, groups)
+                .Add(p => p.SettingsChanged, _ => settingsChangedCount++)
+                .Add(p => p.Columns, component.Instance.Columns));
+
+            settingsChangedCount = 0;
+            var renderCount = component.RenderCount;
+            component.InvokeAsync(() => groups.Add(new GroupDescriptor { Property = nameof(GroupTestItem.City) }));
+
+            Assert.Equal(1, settingsChangedCount);
+            Assert.True(component.RenderCount > renderCount);
+            Assert.Single(component.FindAll(".rz-group-header-item"));
+        }
+
+        [Fact]
+        public void DataGrid_GroupsParameter_InvalidatesGroupedViewAndSurvivesReset()
+        {
+            using var ctx = new TestContext();
+            var groups = new ObservableCollection<GroupDescriptor>
+            {
+                new GroupDescriptor { Property = nameof(GroupTestItem.City) }
+            };
+            var (component, cityColumn, _, countryColumn) = RenderGroupsDataGrid(ctx, groups);
+
+            Assert.Equal(2, component.Instance.GroupedPagedView.Count());
+
+            component.InvokeAsync(() => groups[0] = new GroupDescriptor { Property = nameof(GroupTestItem.Country) });
+
+            Assert.Equal(1, component.Instance.GroupedPagedView.Count());
+            Assert.True(cityColumn.GetVisible());
+            Assert.False(countryColumn.GetVisible());
+
+            component.InvokeAsync(() => component.Instance.Reset());
+            Assert.False(countryColumn.GetVisible());
+        }
+
+        [Fact]
+        public void DataGrid_GroupsParameter_SettingsRestoreMutatesSameCollection()
+        {
+            using var ctx = new TestContext();
+            var groups = new ObservableCollection<GroupDescriptor>
+            {
+                new GroupDescriptor { Property = nameof(GroupTestItem.City) }
+            };
+            var settings = new DataGridSettings
+            {
+                Groups = new[] { new GroupDescriptor { Property = nameof(GroupTestItem.Name) } },
+                Columns = new[]
+                {
+                    new DataGridColumnSettings { Property = nameof(GroupTestItem.City), Visible = true },
+                    new DataGridColumnSettings { Property = nameof(GroupTestItem.Name), Visible = true }
+                }
+            };
+            var (component, cityColumn, nameColumn, _) = RenderGroupsDataGrid(
+                ctx,
+                groups,
+                settings: settings,
+                settingsChanged: _ => { });
+
+            Assert.Same(groups, component.Instance.Groups);
+            Assert.Equal(nameof(GroupTestItem.Name), Assert.Single(groups).Property);
+            Assert.True(cityColumn.GetVisible());
+            Assert.False(nameColumn.GetVisible());
+
+            component.SetParametersAndRender(parameters => parameters
+                .Add(p => p.Data, component.Instance.Data)
+                .Add(p => p.HideGroupedColumn, true)
+                .Add(p => p.Groups, groups)
+                .Add<DataGridSettings>(p => p.Settings, null)
+                .Add(p => p.SettingsChanged, _ => { })
+                .Add(p => p.Columns, component.Instance.Columns));
+
+            Assert.Empty(groups);
+            Assert.True(nameColumn.GetVisible());
+        }
+
+        [Fact]
+        public void DataGrid_HideGroupedColumn_RestoresDeclaredVisibilityOnUngroup()
+        {
+            using var ctx = new TestContext();
+            var groups = new ObservableCollection<GroupDescriptor>
+            {
+                new GroupDescriptor { Property = nameof(GroupTestItem.Country) }
+            };
+            var (component, _, _, countryColumn) = RenderGroupsDataGrid(ctx, groups, countryColumnVisible: false);
+
+            Assert.False(countryColumn.GetVisible());
+
+            component.InvokeAsync(groups.Clear);
+
+            Assert.False(countryColumn.GetVisible());
+        }
+
+        [Fact]
+        public void DataGrid_HideGroupedColumn_SavesVisibilityBeforeGrouping()
+        {
+            using var ctx = new TestContext();
+            var groups = new ObservableCollection<GroupDescriptor>
+            {
+                new GroupDescriptor { Property = nameof(GroupTestItem.City) }
+            };
+            DataGridSettings capturedSettings = null;
+            var (component, cityColumn, nameColumn, _) = RenderGroupsDataGrid(ctx, groups, settingsChanged: s => capturedSettings = s);
+
+            component.InvokeAsync(() => groups.Add(new GroupDescriptor { Property = nameof(GroupTestItem.Name) }));
+
+            Assert.False(cityColumn.GetVisible());
+            Assert.False(nameColumn.GetVisible());
+            Assert.NotNull(capturedSettings);
+            Assert.True(capturedSettings.Columns.Single(c => c.Property == nameof(GroupTestItem.City)).Visible);
+            Assert.True(capturedSettings.Columns.Single(c => c.Property == nameof(GroupTestItem.Name)).Visible);
+
+            component.InvokeAsync(groups.Clear);
+
+            Assert.True(cityColumn.GetVisible());
+            Assert.True(nameColumn.GetVisible());
+        }
+
         [Fact]
         public void DataGrid_Sorts_KeepsInternalSortsInSync_OnClearAndRemove()
         {
@@ -3467,10 +3889,43 @@ namespace Radzen.Blazor.Tests
                 });
             });
 
-            var wrapper = component.Find("div.rz-data-grid");
+            var wrapper = component.Find("div.rz-data-grid-data");
             Assert.Equal("grid", wrapper.GetAttribute("role"));
             Assert.Equal("0", wrapper.GetAttribute("tabindex"));
             Assert.True(string.IsNullOrEmpty(wrapper.GetAttribute("aria-activedescendant")));
+            Assert.Null(component.Find("div.rz-data-grid").GetAttribute("role"));
+        }
+
+        [Fact]
+        public void DataGrid_GridRole_OwnsOnlyRowStructure()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var component = ctx.RenderComponent<RadzenDataGrid<dynamic>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<dynamic>>(p => p.Data, new[] { new { Id = 1 }, new { Id = 2 } });
+                parameterBuilder.Add(p => p.AllowPaging, true);
+                parameterBuilder.Add(p => p.PagerAlwaysVisible, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<dynamic>));
+                    builder.AddAttribute(1, "Property", "Id");
+                    builder.CloseComponent();
+                });
+            });
+
+            var gridRole = component.Find("[role=grid]");
+            Assert.Contains("rz-data-grid-data", gridRole.ClassName);
+
+            var table = component.Find("[role=grid] > table");
+            Assert.Equal("presentation", table.GetAttribute("role"));
+            Assert.Equal("rowgroup", component.Find("[role=grid] > table > thead").GetAttribute("role"));
+            Assert.Equal("rowgroup", component.Find("[role=grid] > table > tbody").GetAttribute("role"));
+
+            Assert.NotEmpty(component.FindAll("div.rz-data-grid nav"));
+            Assert.Empty(component.FindAll("[role=grid] nav"));
         }
 
         [Fact]
@@ -3678,6 +4133,58 @@ namespace Radzen.Blazor.Tests
             // closePopup:true would invoke Radzen.closePopup / Radzen.closeAllPopups.
             Assert.DoesNotContain(ctx.JSInterop.Invocations,
                 i => i.Identifier.Contains("close", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void DataGrid_AutoApplyCheckBoxListFilter_KeepsFilterListPopulatedAfterSelection()
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            var data = new[]
+            {
+                new AutoApplyItem { Name = "A", Code = 1 },
+                new AutoApplyItem { Name = "B", Code = 2 },
+                new AutoApplyItem { Name = "C", Code = 1 },
+            };
+
+            var component = ctx.RenderComponent<RadzenDataGrid<AutoApplyItem>>(parameterBuilder =>
+            {
+                parameterBuilder.Add<IEnumerable<AutoApplyItem>>(p => p.Data, data);
+                parameterBuilder.Add<bool>(p => p.AllowFiltering, true);
+                parameterBuilder.Add<FilterMode>(p => p.FilterMode, FilterMode.CheckBoxList);
+                parameterBuilder.Add<bool>(p => p.AutoApplyCheckBoxListFilter, true);
+                parameterBuilder.Add<RenderFragment>(p => p.Columns, builder =>
+                {
+                    builder.OpenComponent(0, typeof(RadzenDataGridColumn<AutoApplyItem>));
+                    builder.AddAttribute(1, "Property", nameof(AutoApplyItem.Code));
+                    builder.CloseComponent();
+                });
+            });
+
+            component.Find("button.rz-grid-filter-icon").MouseDown();
+            component.WaitForAssertion(() => Assert.NotEmpty(component.FindAll(".rz-multiselect-item")), TimeSpan.FromSeconds(3));
+
+            var item = component.FindAll(".rz-multiselect-item")
+                .FirstOrDefault(i => i.TextContent.Trim() == "1");
+            Assert.NotNull(item);
+            item!.Click();
+
+            var grid = component.Instance;
+            component.WaitForAssertion(() =>
+            {
+                var codes = ((System.Collections.IEnumerable)grid.View).Cast<AutoApplyItem>().Select(x => x.Code).Distinct().ToArray();
+                Assert.Equal(new[] { 1 }, codes);
+            }, TimeSpan.FromSeconds(3));
+
+            component.WaitForAssertion(() =>
+            {
+                var itemTexts = component.FindAll(".rz-multiselect-item").Select(i => i.TextContent.Trim()).ToArray();
+                Assert.Contains("1", itemTexts);
+                Assert.Contains("2", itemTexts);
+                Assert.Empty(component.FindAll(".rz-listbox-empty-message"));
+            }, TimeSpan.FromSeconds(3));
         }
 
         [Fact]
@@ -4215,5 +4722,12 @@ namespace Radzen.Blazor.Tests
     {
         public string Reference { get; set; } = string.Empty;
         public int Code { get; set; }
+    }
+
+    public class GroupTestItem
+    {
+        public string City { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
     }
 }

@@ -29,54 +29,35 @@ namespace Radzen.Blazor
             return "rz-menu rz-profile-menu";
         }
 
-        IJSObjectReference? _jsRef;
-        int _jsRefVersion;
-        bool _visibleChanged;
-
-        /// <inheritdoc />
-        public override async Task SetParametersAsync(ParameterView parameters)
-        {
-            if (parameters.DidParameterChange(nameof(Visible), Visible))
-            {
-                _visibleChanged = true;
-            }
-
-            await base.SetParametersAsync(parameters);
-        }
+        bool clickAwayRegistered;
 
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
 
-            if ((firstRender || _visibleChanged) && JSRuntime != null)
+            var shouldRegisterClickAway = Visible && !Collapsed;
+
+            if (shouldRegisterClickAway != clickAwayRegistered && JSRuntime != null)
             {
-                _visibleChanged = false;
+                clickAwayRegistered = shouldRegisterClickAway;
 
-                var version = ++_jsRefVersion;
-                var jsRef = _jsRef;
-                _jsRef = null;
-
-                if (jsRef != null)
+                try
                 {
-                    await jsRef.InvokeVoidAsync("dispose");
-                    await jsRef.DisposeAsync();
+                    if (shouldRegisterClickAway)
+                    {
+                        await JSRuntime.InvokeVoidAsync("Radzen.registerProfileMenuClickAway", Element, Reference);
+                    }
+                    else
+                    {
+                        await JSRuntime.InvokeVoidAsync("Radzen.unregisterProfileMenuClickAway", Element);
+                    }
                 }
-
-                if (version == _jsRefVersion && Visible)
+                catch (JSDisconnectedException)
                 {
-                    var created = await JSRuntime.InvokeAsync<IJSObjectReference>(
-                        "Radzen.createProfileMenu", Element);
-
-                    if (version == _jsRefVersion)
-                    {
-                        _jsRef = created;
-                    }
-                    else if (created != null)
-                    {
-                        await created.InvokeVoidAsync("dispose");
-                        await created.DisposeAsync();
-                    }
+                }
+                catch (JSException)
+                {
                 }
             }
 
@@ -98,18 +79,6 @@ namespace Radzen.Blazor
                 {
                 }
             }
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            base.Dispose();
-            _jsRefVersion++;
-            var jsRef = _jsRef;
-            _jsRef = null;
-            jsRef?.InvokeVoidAsync("dispose");
-            jsRef?.DisposeAsync();
-            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -169,6 +138,40 @@ namespace Radzen.Blazor
             contentStyle = "display:none;";
             focusedIndex = -1;
             StateHasChanged();
+        }
+
+        /// <summary>
+        /// Invoked from client-side when the user clicks outside the expanded menu or activates a menu item.
+        /// </summary>
+        [JSInvokable("CloseOnClickAway")]
+        public async Task CloseOnClickAway()
+        {
+            if (!Collapsed)
+            {
+                await InvokeAsync(Close);
+            }
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            if (clickAwayRegistered)
+            {
+                clickAwayRegistered = false;
+
+                try
+                {
+                    JSRuntime?.InvokeVoidAsync("Radzen.unregisterProfileMenuClickAway", Element);
+                }
+                catch (JSDisconnectedException)
+                {
+                }
+                catch (JSException)
+                {
+                }
+            }
+
+            base.Dispose();
         }
 
         ElementReference toggleElement;

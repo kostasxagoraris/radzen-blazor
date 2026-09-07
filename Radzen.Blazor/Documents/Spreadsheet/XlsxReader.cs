@@ -42,6 +42,7 @@ static class XlsxReader
         var cellStyles = new Dictionary<int, (int FontId, int FillId, int BorderId, TextAlign? TextAlign, VerticalAlign? VerticalAlign, bool WrapText, int NumFmtId, bool? Locked, bool? FormulaHidden, bool QuotePrefix)>(0);
         var numberFormats = new Dictionary<int, string>();
         var borderStyles = new Dictionary<int, (BorderStyle? Top, BorderStyle? Right, BorderStyle? Bottom, BorderStyle? Left)>();
+        var dxfs = new List<Format>();
 
         var stylesEntry = archive.GetEntry("xl/styles.xml");
         if (stylesEntry is not null)
@@ -55,9 +56,77 @@ static class XlsxReader
             ParseNumberFormats(stylesDoc, stylesNs, numberFormats);
             ParseBorders(stylesDoc, stylesNs, borderStyles);
             ParseCellStyles(stylesDoc, stylesNs, fontStyles, fillColors, numberFormats, borderStyles, cellStyles);
+            ParseDxfs(stylesDoc, stylesNs, dxfs);
         }
 
-        return new StyleInfo(fontStyles, fillColors, cellStyles, numberFormats, borderStyles);
+        return new StyleInfo(fontStyles, fillColors, cellStyles, numberFormats, borderStyles, dxfs);
+    }
+
+    private static void ParseDxfs(XDocument stylesDoc, XNamespace stylesNs, List<Format> dxfs)
+    {
+        var dxfsElement = stylesDoc.Root!.Element(stylesNs + "dxfs");
+        if (dxfsElement is null)
+        {
+            return;
+        }
+
+        foreach (var dxf in dxfsElement.Elements(stylesNs + "dxf"))
+        {
+            var format = new Format();
+
+            var font = dxf.Element(stylesNs + "font");
+            if (font is not null)
+            {
+                format.Bold = ParseDxfFontFlag(font.Element(stylesNs + "b"));
+                format.Italic = ParseDxfFontFlag(font.Element(stylesNs + "i"));
+                format.Underline = ParseDxfFontFlag(font.Element(stylesNs + "u"));
+                format.Strikethrough = ParseDxfFontFlag(font.Element(stylesNs + "strike"));
+
+                var rgb = font.Element(stylesNs + "color")?.Attribute("rgb")?.Value;
+                if (rgb is not null && rgb.Length == 8)
+                {
+                    format.Color = "#" + rgb[2..];
+                }
+
+                format.FontFamily = font.Element(stylesNs + "name")?.Attribute("val")?.Value;
+
+                var sz = font.Element(stylesNs + "sz")?.Attribute("val")?.Value;
+                if (sz is not null && double.TryParse(sz, NumberStyles.Float, CultureInfo.InvariantCulture, out var fontSize))
+                {
+                    format.FontSize = fontSize;
+                }
+            }
+
+            // ECMA-376 §18.8.14: a dxf solid fill carries its color in patternFill/bgColor.
+            var patternFill = dxf.Element(stylesNs + "fill")?.Element(stylesNs + "patternFill");
+            var fillRgb = (patternFill?.Element(stylesNs + "bgColor") ?? patternFill?.Element(stylesNs + "fgColor"))?.Attribute("rgb")?.Value;
+            if (fillRgb is not null && fillRgb.Length == 8)
+            {
+                format.BackgroundColor = "#" + fillRgb[2..];
+            }
+
+            var border = dxf.Element(stylesNs + "border");
+            if (border is not null)
+            {
+                format.BorderLeft = ParseBorderSide(border.Element(stylesNs + "left"), stylesNs);
+                format.BorderRight = ParseBorderSide(border.Element(stylesNs + "right"), stylesNs);
+                format.BorderTop = ParseBorderSide(border.Element(stylesNs + "top"), stylesNs);
+                format.BorderBottom = ParseBorderSide(border.Element(stylesNs + "bottom"), stylesNs);
+            }
+
+            dxfs.Add(format);
+        }
+    }
+
+    private static bool ParseDxfFontFlag(XElement? element)
+    {
+        if (element is null)
+        {
+            return false;
+        }
+
+        var val = element.Attribute("val")?.Value;
+        return val is not ("0" or "false");
     }
 
     private static void ParseFonts(XDocument stylesDoc, XNamespace stylesNs, Dictionary<int, (string? Color, bool Bold, bool Italic, bool Underline, bool Strikethrough, string? FontFamily, double? FontSize)> fontStyles)
@@ -351,6 +420,8 @@ static class XlsxReader
 
         ParseDataValidations(sheetDoc, sNs, sheet);
 
+        ParseConditionalFormatting(sheetDoc, sNs, sheet, styleInfo);
+
         ParseHyperlinks(archive, sheetInfo, sheetDoc, sNs, sheet);
 
         ParseDrawings(archive, sheetInfo, sheetDoc, sNs, sheet);
@@ -364,22 +435,28 @@ static class XlsxReader
         return sheet;
     }
 
-    // The sheet must be large enough to hold its used range; a fixed grid dropped any content
-    // beyond it. 100x100 is kept as a floor so nearly-empty files still render a full default grid.
     private static (int Rows, int Columns) ComputeSheetSize(XDocument sheetDoc, XNamespace sNs)
     {
-        var maxRow = 100;
-        var maxColumn = 100;
+        var maxRow = 1;
+        var maxColumn = 1;
+        var hasDimension = false;
 
         var dimensionRef = sheetDoc.Descendants(sNs + "dimension").FirstOrDefault()?.Attribute("ref")?.Value;
         if (!string.IsNullOrEmpty(dimensionRef))
         {
             var range = RangeRef.Parse(dimensionRef);
-            if (!range.Equals(RangeRef.Invalid))
+            if (!range.Equals(RangeRef.Invalid) && !range.Start.Equals(range.End))
             {
+                hasDimension = true;
                 maxRow = Math.Max(maxRow, range.End.Row + 1);
                 maxColumn = Math.Max(maxColumn, range.End.Column + 1);
             }
+        }
+
+        if (!hasDimension)
+        {
+            maxRow = 100;
+            maxColumn = 100;
         }
 
         // The dimension element is optional and sometimes understated, so cross-check against the
@@ -667,6 +744,138 @@ static class XlsxReader
                 sheet.Cells[address.Row, address.Column].QuotePrefix = true;
             }
         }
+    }
+
+    private static void ParseConditionalFormatting(XDocument sheetDoc, XNamespace sNs, Worksheet sheet, StyleInfo styleInfo)
+    {
+        var parsed = new List<(int Priority, List<RangeRef> Ranges, ConditionalFormatBase Rule)>();
+
+        foreach (var cfElement in sheetDoc.Root!.Elements(sNs + "conditionalFormatting"))
+        {
+            var sqref = cfElement.Attribute("sqref")?.Value;
+            if (string.IsNullOrEmpty(sqref))
+            {
+                continue;
+            }
+
+            var ranges = new List<RangeRef>();
+            foreach (var part in sqref.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var range = RangeRef.Parse(part);
+                if (!range.Equals(RangeRef.Invalid))
+                {
+                    ranges.Add(range);
+                }
+            }
+
+            if (ranges.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var cfRule in cfElement.Elements(sNs + "cfRule"))
+            {
+                var rule = ParseCfRule(cfRule, sNs, styleInfo);
+                if (rule is null)
+                {
+                    continue;
+                }
+
+                var priorityAttr = cfRule.Attribute("priority")?.Value;
+                var priority = priorityAttr is not null && int.TryParse(priorityAttr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var p) ? p : int.MaxValue;
+
+                parsed.Add((priority, ranges, rule));
+            }
+        }
+
+        // ECMA-376 §18.3.1.10 gives precedence to the lowest priority number, while
+        // ConditionalFormatStore.Calculate lets later rules override earlier ones, so rules are
+        // added in descending priority order.
+        foreach (var (_, ranges, rule) in parsed.OrderByDescending(e => e.Priority))
+        {
+            foreach (var range in ranges)
+            {
+                sheet.ConditionalFormats.Add(range, rule);
+            }
+        }
+    }
+
+    private static ConditionalFormatBase? ParseCfRule(XElement cfRule, XNamespace sNs, StyleInfo styleInfo)
+    {
+        var dxfIdAttr = cfRule.Attribute("dxfId")?.Value;
+        if (dxfIdAttr is null
+            || !int.TryParse(dxfIdAttr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dxfId)
+            || dxfId < 0
+            || dxfId >= styleInfo.Dxfs.Count)
+        {
+            return null;
+        }
+
+        var format = styleInfo.Dxfs[dxfId];
+        var formulas = cfRule.Elements(sNs + "formula").Select(f => f.Value).ToList();
+
+        switch (cfRule.Attribute("type")?.Value)
+        {
+            case "cellIs":
+                return ParseCellIsRule(cfRule.Attribute("operator")?.Value, formulas, format);
+            case "containsText":
+                var text = cfRule.Attribute("text")?.Value;
+                return text is not null ? new TextContainsRule { Text = text, Format = format } : null;
+            case "top10":
+                if (cfRule.Attribute("percent")?.Value is "1" or "true")
+                {
+                    return null;
+                }
+
+                var rankAttr = cfRule.Attribute("rank")?.Value;
+                var rank = rankAttr is not null && int.TryParse(rankAttr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r) ? r : 10;
+                return new Top10Rule
+                {
+                    Count = rank,
+                    Bottom = cfRule.Attribute("bottom")?.Value is "1" or "true",
+                    Format = format
+                };
+            default:
+                return null;
+        }
+    }
+
+    private static ConditionalFormatBase? ParseCellIsRule(string? op, List<string> formulas, Format format)
+    {
+        switch (op)
+        {
+            case "greaterThan" when TryParseFormulaNumber(formulas, 0, out var value):
+                return new GreaterThanRule { Value = value, Format = format };
+            case "lessThan" when TryParseFormulaNumber(formulas, 0, out var value):
+                return new LessThanRule { Value = value, Format = format };
+            case "between" when TryParseFormulaNumber(formulas, 0, out var minimum) && TryParseFormulaNumber(formulas, 1, out var maximum):
+                return new BetweenRule { Minimum = minimum, Maximum = maximum, Format = format };
+            case "equal" when formulas.Count > 0:
+                if (TryParseFormulaNumber(formulas, 0, out var number))
+                {
+                    return new EqualToRule { Value = number, Format = format };
+                }
+
+                var formula = formulas[0];
+                if (formula.Length >= 2 && formula.StartsWith('"') && formula.EndsWith('"'))
+                {
+                    return new EqualToRule
+                    {
+                        Value = formula[1..^1].Replace("\"\"", "\"", StringComparison.Ordinal),
+                        Format = format
+                    };
+                }
+
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    private static bool TryParseFormulaNumber(List<string> formulas, int index, out double value)
+    {
+        value = 0;
+        return index < formulas.Count && double.TryParse(formulas[index], NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
     private static void ParseMergedCells(XDocument sheetDoc, XNamespace sNs, Worksheet sheet)
@@ -1611,19 +1820,22 @@ static class XlsxReader
         public Dictionary<int, (int FontId, int FillId, int BorderId, TextAlign? TextAlign, VerticalAlign? VerticalAlign, bool WrapText, int NumFmtId, bool? Locked, bool? FormulaHidden, bool QuotePrefix)> CellStyles { get; }
         public Dictionary<int, string> NumberFormats { get; }
         public Dictionary<int, (BorderStyle? Top, BorderStyle? Right, BorderStyle? Bottom, BorderStyle? Left)> BorderStyles { get; }
+        public List<Format> Dxfs { get; }
 
         public StyleInfo(
             Dictionary<int, (string? Color, bool Bold, bool Italic, bool Underline, bool Strikethrough, string? FontFamily, double? FontSize)> fontStyles,
             Dictionary<int, string> fillColors,
             Dictionary<int, (int FontId, int FillId, int BorderId, TextAlign? TextAlign, VerticalAlign? VerticalAlign, bool WrapText, int NumFmtId, bool? Locked, bool? FormulaHidden, bool QuotePrefix)> cellStyles,
             Dictionary<int, string> numberFormats,
-            Dictionary<int, (BorderStyle? Top, BorderStyle? Right, BorderStyle? Bottom, BorderStyle? Left)> borderStyles)
+            Dictionary<int, (BorderStyle? Top, BorderStyle? Right, BorderStyle? Bottom, BorderStyle? Left)> borderStyles,
+            List<Format> dxfs)
         {
             FontStyles = fontStyles;
             FillColors = fillColors;
             CellStyles = cellStyles;
             NumberFormats = numberFormats;
             BorderStyles = borderStyles;
+            Dxfs = dxfs;
         }
     }
 
